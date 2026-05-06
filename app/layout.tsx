@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Source_Serif_4 } from "next/font/google";
 import "./globals.css";
-import { SITE, resolveRobotsMeta } from "@/lib/seo";
+import { SITE } from "@/lib/seo";
 import { jsonLdScript, websiteJsonLd, organizationJsonLd } from "@/lib/jsonld";
 
 const serifHead = Source_Serif_4({
@@ -66,8 +66,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const robots = resolveRobotsMeta("/");
-
   return (
     <html lang="ko" className={`${serifHead.variable} h-full antialiased`}>
       <head>
@@ -80,12 +78,7 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css"
         />
-        <meta
-          name="robots"
-          content={`${robots.index ? "index" : "noindex"}, ${
-            robots.follow ? "follow" : "nofollow"
-          }`}
-        />
+        {/* robots는 각 페이지의 generateMetadata에서 결정 (alpha_dev_plan §2.2) */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: jsonLdScript(websiteJsonLd()) }}

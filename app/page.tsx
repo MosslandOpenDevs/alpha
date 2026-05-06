@@ -1,17 +1,25 @@
+import {
+  getActivePulses,
+  getAssetEntities,
+  getAllTopics,
+  getAllEvents,
+  getAllEntities,
+  assetSlugFromEntity,
+} from "@/lib/mic";
 import { upsertSeoPage } from "@/lib/db";
 import { SITE } from "@/lib/seo";
-
-/**
- * Home — Phase 0 placeholder.
- * 답변 가능 5-블록 구조 (alpha_dev_plan §2.3) 적용.
- * 도메인이 *살아있다*는 신호 + SEO 인프라 동작 확인 surface.
- */
+import { PulseCard } from "@/components/PulseCard";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
-const LAUNCH_DATE = "2026-05-06";
+const KST_OFFSET_MS = 9 * 3600_000;
 
-function ensureHomeRegistered() {
+function todayKST(): string {
+  return new Date(Date.now() + KST_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+export default function Home() {
   upsertSeoPage({
     path: "/",
     page_type: "home",
@@ -21,170 +29,177 @@ function ensureHomeRegistered() {
     index_policy: "index",
     lastmod: new Date().toISOString(),
     generated_at: new Date().toISOString(),
-    quality_score: 0.5,
+    quality_score: 0.7,
   });
-}
 
-export default function Home() {
-  ensureHomeRegistered();
+  const activePulses = getActivePulses(48);
+  const assets = getAssetEntities()
+    .sort((a, b) => b.videoCount - a.videoCount)
+    .slice(0, 12);
+  const topics = getAllTopics()
+    .sort((a, b) => b.videoCount - a.videoCount)
+    .slice(0, 10);
+  const events = getAllEvents()
+    .sort((a, b) => b.videoCount - a.videoCount)
+    .slice(0, 8);
+  const totalEntities = getAllEntities().length;
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-12 sm:py-20">
+    <main className="mx-auto w-full max-w-4xl px-6 py-10 sm:py-16">
       <header className="mb-10 flex items-baseline gap-3">
-        <span
-          aria-hidden
-          className="font-mono text-2xl text-[--color-moss]"
-          style={{ fontFamily: "var(--font-mono)" }}
-        >
+        <span aria-hidden className="font-mono text-2xl text-[--color-moss]">
           α
         </span>
-        <h1
-          className="text-3xl sm:text-4xl font-semibold tracking-tight"
-          style={{ color: "var(--fg)" }}
-        >
-          Alpha <span className="text-[--color-muted] font-normal">by Mossland</span>
+        <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
+          Alpha{" "}
+          <span className="text-[--color-muted] font-normal">by Mossland</span>
         </h1>
-        <span className="ml-auto text-xs uppercase tracking-wider text-[--color-muted]">
-          [beta · phase 0]
-        </span>
+        <a
+          href={`/brief/${todayKST()}`}
+          className="ml-auto text-xs text-[--color-moss] hover:underline"
+        >
+          오늘 브리프 ▸
+        </a>
       </header>
 
-      {/* 답변 가능 5-블록 구조 (LLM citation friendly) */}
-
-      {/* H1 = 사용자 질문 형태 */}
+      {/* 헤드라인 한 줄 요약 */}
       <section className="mb-10">
-        <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-          Alpha는 무엇이고 왜 만들었나?
-        </h2>
-
-        {/* [블록 1] 한 줄 요약 */}
-        <p className="mt-4 text-lg leading-relaxed">
-          Alpha는 크립토·매크로·국제정세를 AI로 요약·연결하고, 그 자리에서
-          익명으로 토론하는 한국형 미디어 커뮤니티입니다.
+        <p className="text-lg leading-relaxed">
+          크립토·매크로·국제정세를 한국 유튜브·뉴스 채널 단위로 정리.
+          현재 엔티티{" "}
+          <span className="font-mono">{totalEntities}</span>개, 토픽{" "}
+          <span className="font-mono">{getAllTopics().length}</span>개, 이벤트{" "}
+          <span className="font-mono">{getAllEvents().length}</span>개,
+          활성 펄스{" "}
+          <span className="font-mono">{activePulses.length}</span>건.
         </p>
       </section>
 
-      {/* [블록 2] 핵심 포인트 5개 */}
-      <section className="mb-10 border-l-2 border-[--color-moss] pl-5">
-        <h3 className="text-base font-semibold mb-3 uppercase tracking-wider text-[--color-muted]">
-          핵심 5가지
-        </h3>
-        <ol className="space-y-2 list-decimal list-inside leading-relaxed">
-          <li>
-            <strong>같은 이슈, 모든 시각</strong> — 영상·기사·소셜의 입장이
-            한 카드 안에 정리됩니다.
-          </li>
-          <li>
-            <strong>분 단위 freshness</strong> — 가격 쇼크 즉시 카드, 5/15/30분
-            enrichment.
-          </li>
-          <li>
-            <strong>연결 엔진</strong> — 카드끼리 인과 가설을 LLM이 1줄로 잇습니다.
-          </li>
-          <li>
-            <strong>익명 verified 커뮤니티</strong> — 닉네임은 자동 생성, 지갑·
-            거래소·산업 인증으로 자리 증명.
-          </li>
-          <li>
-            <strong>영구 URL 자산</strong> — 모든 카드가 시간이 지나도 검색 가능한
-            지식 자산으로 남습니다.
-          </li>
-        </ol>
-      </section>
+      {/* 활성 Pulse */}
+      {activePulses.length > 0 && (
+        <section className="mb-10">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3 flex items-center gap-2">
+            <span className="inline-block w-2 h-2 rounded-full bg-[--color-accent] animate-pulse" />
+            지금 움직이는 가격 시그널
+            <a
+              href="/pulse"
+              className="ml-auto text-[10px] normal-case font-normal text-[--color-moss] hover:underline tracking-normal"
+            >
+              모두 보기 ▸
+            </a>
+          </h2>
+          <div className="space-y-3">
+            {activePulses.slice(0, 3).map((p) => (
+              <PulseCard key={p.id} pulse={p} compact />
+            ))}
+          </div>
+        </section>
+      )}
 
-      {/* [블록 3] 대표 인용 — Phase 0이라 placeholder */}
-      <section className="mb-10">
-        <h3 className="text-base font-semibold mb-3 uppercase tracking-wider text-[--color-muted]">
-          Phase 0 상태
-        </h3>
-        <div className="rounded-2xl border border-[--color-line] bg-white p-5 text-sm leading-relaxed">
-          <p>
-            지금 이 페이지는 <strong>Phase 0 placeholder</strong>입니다. 도메인이
-            살아 있고, SEO 인프라(robots.txt · sitemap.xml · llms.txt · rss.xml ·
-            JSON-LD · seo_pages 단일 출처)가 동작합니다.
-          </p>
-          <p className="mt-2 text-[--color-muted]">
-            Phase 1에서 카드 빌더 + 홈 매거진 + Pulse가 추가됩니다.
-          </p>
-        </div>
-      </section>
+      {/* 자산 grid */}
+      {assets.length > 0 && (
+        <section className="mb-10">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+            자산
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {assets.map((a) => {
+              const slug = assetSlugFromEntity(a);
+              return (
+                <a
+                  key={a.id}
+                  href={`/asset/${slug}`}
+                  className="rounded-2xl border border-[--color-line] bg-white p-4 hover:border-[--color-moss] hover:shadow-sm transition"
+                >
+                  <div className="flex items-baseline justify-between mb-1">
+                    <span className="text-base font-semibold">{a.label}</span>
+                    <span className="text-xs font-mono uppercase text-[--color-muted]">
+                      {slug}
+                    </span>
+                  </div>
+                  <div className="text-xs text-[--color-muted]">
+                    영상 {a.videoCount}
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
-      {/* [블록 4] 출처 / 링크 */}
-      <section className="mb-10">
-        <h3 className="text-base font-semibold mb-3 uppercase tracking-wider text-[--color-muted]">
-          관련 surface
-        </h3>
-        <ul className="space-y-1 text-sm">
-          <li>
-            <a
-              href="/robots.txt"
-              className="text-[--color-moss] underline-offset-2 hover:underline"
-            >
-              /robots.txt
-            </a>
-            <span className="text-[--color-muted]"> — 검색봇·사용자봇·학습봇 3분류 정책</span>
-          </li>
-          <li>
-            <a
-              href="/llms.txt"
-              className="text-[--color-moss] underline-offset-2 hover:underline"
-            >
-              /llms.txt
-            </a>
-            <span className="text-[--color-muted]"> — LLM 친화 사이트 인덱스</span>
-          </li>
-          <li>
-            <a
-              href="/sitemap.xml"
-              className="text-[--color-moss] underline-offset-2 hover:underline"
-            >
-              /sitemap.xml
-            </a>
-            <span className="text-[--color-muted]"> — 색인 가능한 모든 URL</span>
-          </li>
-          <li>
-            <a
-              href="/rss.xml"
-              className="text-[--color-moss] underline-offset-2 hover:underline"
-            >
-              /rss.xml
-            </a>
-            <span className="text-[--color-muted]"> — 최근 발행 feed</span>
-          </li>
-          <li>
-            <a
-              href="/api/health"
-              className="text-[--color-moss] underline-offset-2 hover:underline"
-            >
-              /api/health
-            </a>
-            <span className="text-[--color-muted]"> — service health</span>
-          </li>
-          <li>
-            <a
-              href="https://moss.land"
-              className="text-[--color-moss] underline-offset-2 hover:underline"
-            >
-              moss.land
-            </a>
-            <span className="text-[--color-muted]"> — Mossland 본진</span>
-          </li>
-        </ul>
-      </section>
+      {/* 활성 토픽 */}
+      {topics.length > 0 && (
+        <section className="mb-10">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+            활성 토픽
+          </h2>
+          <ul className="space-y-2">
+            {topics.map((t) => (
+              <li key={t.id} className="border-b border-[--color-line] pb-2">
+                <a
+                  href={`/topic/${encodeURIComponent(t.id)}`}
+                  className="text-sm font-medium hover:text-[--color-moss]"
+                >
+                  {t.label}
+                </a>
+                {t.description && (
+                  <p className="text-xs text-[--color-muted] mt-0.5 line-clamp-1">
+                    {t.description}
+                  </p>
+                )}
+                <div className="text-[10px] text-[--color-muted] mt-1">
+                  영상 {t.videoCount}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
-      {/* [블록 5] 마지막 업데이트 */}
-      <footer className="mt-16 border-t border-[--color-line] pt-6 text-xs text-[--color-muted] flex flex-wrap gap-4">
-        <span>마지막 업데이트: {LAUNCH_DATE}</span>
-        <span>·</span>
-        <span>운영: Mossland</span>
+      {/* 이벤트 */}
+      {events.length > 0 && (
+        <section className="mb-10">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+            이벤트
+          </h2>
+          <ul className="space-y-1.5">
+            {events.map((e) => (
+              <li key={e.id} className="text-sm">
+                <a
+                  href={`/event/${encodeURIComponent(e.id)}`}
+                  className="hover:text-[--color-moss]"
+                >
+                  {e.label}
+                </a>{" "}
+                <span className="text-xs text-[--color-muted]">
+                  · 영상 {e.videoCount}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <footer className="mt-16 border-t border-[--color-line] pt-6 text-xs text-[--color-muted] flex flex-wrap gap-x-3 gap-y-1">
+        <span>by Mossland</span>
         <span>·</span>
         <a href="https://moss.land" className="hover:text-[--color-fg]">
           moss.land
         </a>
         <span>·</span>
-        <a href="https://disclosure.moss.land" className="hover:text-[--color-fg]">
+        <a
+          href="https://disclosure.moss.land"
+          className="hover:text-[--color-fg]"
+        >
           disclosure
         </a>
+        <span>·</span>
+        <a href="/llms.txt" className="hover:text-[--color-fg]">llms.txt</a>
+        <span>·</span>
+        <a href="/rss.xml" className="hover:text-[--color-fg]">rss</a>
+        <span>·</span>
+        <a href="/sitemap.xml" className="hover:text-[--color-fg]">sitemap</a>
+        <span className="ml-auto">{new Date().toLocaleString("ko-KR")}</span>
       </footer>
     </main>
   );

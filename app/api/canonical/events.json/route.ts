@@ -1,11 +1,30 @@
+import { getAllEvents } from "@/lib/mic";
+
 export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export async function GET() {
-  return Response.json({
-    version: "v1",
-    generated_at: new Date().toISOString(),
-    count: 0,
-    events: [],
-    note: "Phase 0 placeholder. signalmap canonical store integration in Phase 1.",
-  });
+  const events = getAllEvents();
+  return Response.json(
+    {
+      version: "v1",
+      generated_at: new Date().toISOString(),
+      count: events.length,
+      events: events.map((e) => ({
+        id: e.id,
+        label: e.label,
+        aliases: e.aliases,
+        dateHint: e.dateHint,
+        relatedEntityIds: e.relatedEntityIds,
+        videoCount: e.videoCount,
+        updatedAt: e.updatedAt,
+      })),
+    },
+    {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "public, max-age=300, s-maxage=300",
+      },
+    }
+  );
 }
