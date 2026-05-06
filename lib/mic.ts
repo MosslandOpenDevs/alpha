@@ -4,9 +4,10 @@
  * Read-only access to signalmap canonical store + per-video analysis.
  * Embeddings are stripped at consume time — UI never needs 1536d vectors.
  *
- * Path resolution:
- *   - prod / Mac mini: <MIC_DATA_PATH>
- *   - dev override: env MIC_DATA_PATH
+ * Path resolution: env `MIC_DATA_PATH` points to the directory holding
+ * `canonical-entities.json`, `canonical-topics.json`, `canonical-events.json`,
+ * and the per-video `yt-*.json` files emitted by the SignalMap pipeline
+ * (https://signalmap.moss.land — separate repo). Default: ./mic-data
  *
  * Caching: in-process LRU on canonical data (5 min TTL). Per-video reads
  * are filesystem cached by Node's path resolution; with O(1k) videos that's
@@ -17,8 +18,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const MIC_DATA_PATH =
-  process.env.MIC_DATA_PATH ||
-  "<MIC_DATA_PATH>";
+  process.env.MIC_DATA_PATH || path.join(process.cwd(), "mic-data");
 
 // ─── types ────────────────────────────────────────────────────────────
 

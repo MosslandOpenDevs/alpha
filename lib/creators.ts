@@ -11,12 +11,17 @@ import fs from "node:fs";
 import path from "node:path";
 import { getVideo, type VideoRecord } from "./mic";
 
+// SIGNALMAP_ROOT points at a checked-out copy of the SignalMap repo
+// (https://signalmap.moss.land), used to read seed/channels.json and the
+// canonical output directory. If not set, falls back to a sibling repo
+// directory next to this one.
 const SIGNALMAP_ROOT =
   process.env.SIGNALMAP_ROOT ||
-  "<SIGNALMAP_ROOT>";
+  path.resolve(process.cwd(), "..", "signalmap");
 
 const SEED_PATH = path.join(SIGNALMAP_ROOT, "seed/channels.json");
-const OUTPUT_PATH = path.join(SIGNALMAP_ROOT, "samples/output");
+const OUTPUT_PATH =
+  process.env.MIC_DATA_PATH || path.join(SIGNALMAP_ROOT, "samples/output");
 
 export type Channel = {
   name: string;

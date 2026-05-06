@@ -15,8 +15,7 @@ import path from "node:path";
 import { getDb } from "./db";
 
 const MIC_DATA_PATH =
-  process.env.MIC_DATA_PATH ||
-  "<MIC_DATA_PATH>";
+  process.env.MIC_DATA_PATH || path.join(process.cwd(), "mic-data");
 
 const EMBED_MODEL = process.env.OPENAI_EMBED_MODEL || "text-embedding-3-small";
 const EMBED_DIM = 1536;

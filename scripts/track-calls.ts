@@ -30,9 +30,6 @@ function loadEnvFile(file: string) {
 }
 loadEnvFile(path.join(process.cwd(), ".env.local"));
 loadEnvFile(path.join(process.cwd(), ".env"));
-if (!process.env.DB_PATH) {
-  process.env.DB_PATH = "<DB_PATH>";
-}
 process.env.NODE_ENV = process.env.NODE_ENV || "production";
 
 async function main() {

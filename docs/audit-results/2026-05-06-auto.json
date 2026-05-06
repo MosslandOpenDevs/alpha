@@ -550,5 +550,575 @@
     "alpha_cited": false,
     "citations": [],
     "answer_excerpt": "“Project 0x00 (100% Agents)”이 정확히 어떤 프로젝트인지 알기 위해 다양한 웹 검색을 시도했지만, 현재까지 신뢰할 만한 공식 정보나 언급을 찾을 수 없었습니다.\n\n아래는 조사 내용을 요약한 것입니다:\n\n- “Project 0x00” 또는 “100% Agents”라는 명칭은 제가 확인한 범위 내에서는 명확한 설명이나 정의를 가진 소개 페이지가 존재하지 않습니다.\n- 비슷한 이름의 프로젝트들이 여러 분야에 존재하지만, 해당 명칭과 정확하게 일치하는 개념은 발견되지 않았습니다.\n- 혹시 이 용어가 특정 회사, 커뮤니"
+  },
+  {
+    "query_id": "Q1",
+    "query": "오늘 비트코인이 왜 움직였나?",
+    "category": "why-asset",
+    "llm": "openai",
+    "ts": "2026-05-06T10:11:28.265Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://phemex.com/blogs/bitcoin-price-usd-today-btc-reclaims-81k-may-6?utm_source=openai",
+      "https://www.coingabbar.com/en/crypto-currency-news/latest-crypto-market-update-may-6-btc-eth-zcash-price-today?utm_source=openai",
+      "https://phemex.com/blogs/bitcoin-price-usd-today-btc-reclaims-81k-may-6?utm_source=openai",
+      "https://phemex.com/blogs/bitcoin-price-usd-today-btc-reclaims-81k-may-6?utm_source=openai",
+      "https://www.financemagnates.com/trending/why-is-bitcoin-price-going-up-btc-tests-82k-200-ema-and-three-months-highs/?utm_source=openai",
+      "https://economictimes.indiatimes.com/markets/cryptocurrency/bitcoin-trades-above-81k-signalling-shift-in-sentiment-market-awaits-clear-breakout/articleshow/130844528.cms?utm_source=openai",
+      "https://news.bitcoin.com/bitcoin-breaks-80000-institutional-demand-short-squeeze/?utm_source=openai",
+      "https://phemex.com/blogs/bitcoin-price-usd-today-btc-reclaims-81k-may-6?utm_source=openai",
+      "https://www.financemagnates.com/trending/why-is-bitcoin-price-going-up-btc-tests-82k-200-ema-and-three-months-highs/?utm_source=openai",
+      "https://www.financemagnates.com/trending/why-is-bitcoin-price-going-up-btc-tests-82k-200-ema-and-three-months-highs/?utm_source=openai",
+      "https://www.financemagnates.com/trending/why-is-bitcoin-price-going-up-btc-tests-82k-200-ema-and-three-months-highs/?utm_source=openai"
+    ],
+    "answer_excerpt": "오늘, 즉 2026년 5월 6일(한국 기준), 비트코인(BTC)이 상승한 이유에 대해 정리해 드리겠습니다.\n\n---\n\n##  현재 비트코인 시세 요약\n\n- 실시간 가격으로 비트코인은 약 81,964 USD이며, 일일 고가는 약 82,006 USD, 저가는 약 80,661 USD입니다 citeturn0finance0.\n- Phemex 기준으로는 81,170 USD까지 회복하며 전일 대비 약 +0.62% 상승한 상태입니다 ([phemex.com](https://phemex.com/blogs/bitcoin-price-usd-toda"
+  },
+  {
+    "query_id": "Q2",
+    "query": "이더리움 최근 상승 이유는?",
+    "category": "why-asset",
+    "llm": "openai",
+    "ts": "2026-05-06T10:11:38.749Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://www.fxleaders.com/news/2026/02/13/ethereum-defies-price-stagnation-why-institutional-resilience-eyes-a-2400-rebound/?utm_source=openai",
+      "https://www.mexc.co/en-PH/news/945069?utm_source=openai",
+      "https://www.mexc.co/en-PH/news/945069?utm_source=openai",
+      "https://www.mexc.co/en-NG/learn/article/why-is-ethereum-going-up-key-factors-behind-eths-price-surge/1?utm_source=openai",
+      "https://www.mexc.co/en-NG/learn/article/why-is-ethereum-going-up-key-factors-behind-eths-price-surge/1?utm_source=openai",
+      "https://www.mexc.co/en-NG/learn/article/why-is-ethereum-going-up-key-factors-behind-eths-price-surge/1?utm_source=openai",
+      "https://www.fxleaders.com/news/2026/02/13/ethereum-defies-price-stagnation-why-institutional-resilience-eyes-a-2400-rebound/?utm_source=openai",
+      "https://www.mexc.co/en-NG/learn/article/why-is-ethereum-going-up-key-factors-behind-eths-price-surge/1?utm_source=openai",
+      "https://invezz.com/in/news/2026/04/08/why-is-ethereum-surging-eth-jumps-6percent-as-whales-accumulate/?utm_source=openai",
+      "https://invezz.com/in/news/2026/04/08/why-is-ethereum-surging-eth-jumps-6percent-as-whales-accumulate/?utm_source=openai",
+      "https://coincentral.com/ethereum-price-analysis-staking-surge-signals-new-upside-phase/?utm_source=openai",
+      "https://coindoo.com/ethereum-keeps-stalling-at-2400-4-reasons-the-ceiling-is-holding/?utm_source=openai"
+    ],
+    "answer_excerpt": "이더리움(ETH)의 최근 상승 이유를 정리하면 다음과 같습니다.\n\n---\n\n1. **제도권 자금 유입: 스팟 및 스테이킹 ETF 활약**  \n   - 스팟 이더리움 ETF에 대한 기관 매수세가 꾸준히 이어지고 있으며, ETF 투자자들의 평균 보유 단가는 약 3,500달러로 추정되므로 현재 가격 대에서도 '다이아몬드 핸즈(Diamond Hands)'가 작용하고 있는 것으로 분석됩니다 ([fxleaders.com](https://www.fxleaders.com/news/2026/02/13/ethereum-defies-price-stag"
+  },
+  {
+    "query_id": "Q3",
+    "query": "비트코인이 11만불을 넘은 이유는 무엇인가?",
+    "category": "why-asset",
+    "llm": "openai",
+    "ts": "2026-05-06T10:11:48.417Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://www.fxleaders.com/news/2026/05/02/bitcoin-weekend-analysis-consolidation-at-78k-or-breakout-ahead-may-3-2026/?utm_source=openai",
+      "https://invezz.com/news/2026/05/06/bitcoin-extends-rally-to-81500-how-high-can-it-go-this-month/?utm_source=openai",
+      "https://coinmarketcap.com/top-stories/69f9eb290f220d5299567dfa/?utm_source=openai",
+      "https://www.tradingview.com/news/financemagnates%3A2236c358e094b%3A0-why-is-bitcoin-price-going-up-btc-tests-82k-200-ema-and-three-months-highs/?utm_source=openai",
+      "https://invezz.com/news/2026/05/06/bitcoin-extends-rally-to-81500-how-high-can-it-go-this-month/?utm_source=openai",
+      "https://mobee.com/en/mobee-academy/market-update/daily-04-05-2026?utm_source=openai"
+    ],
+    "answer_excerpt": "귀하께서 질문하신 “비트코인이 11만 달러(110,000 USD)를 넘은 이유”에 대해 말씀드리기 전, 현재 비트코인의 시세는 약 82,000 USD이며, 110,000 USD 수준에는 이르지 못한 상태입니다 (2026년 5월 6일 기준) citeturn0finance0.\n\n즉, 현재 기준으로 비트코인이 110,000 USD를 돌파했다는 사실은 사실과 다르며, 일부 혼동이 있을 수 있습니다. 최근 비트코인 가격은 80,000 USD 안팎에서 움직이고 있으며, 110,000 USD는 과거 혹은 미래의 가능성으로 언급된 수준입니다"
+  },
+  {
+    "query_id": "Q4",
+    "query": "MOC 토큰 가격이 변동하는 이유는?",
+    "category": "why-asset",
+    "llm": "openai",
+    "ts": "2026-05-06T10:11:57.038Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://www.btcc.com/en-US/price/moc?utm_source=openai",
+      "https://www.coingecko.com/en/coins/mossland/usd?utm_source=openai",
+      "https://www.btcc.com/en-US/price/moc?utm_source=openai",
+      "https://feed-content.bithumb.com/cms/copied-2179d321-7e37-492f-8051-f0ffa2ba13a1.pdf?utm_source=openai",
+      "https://coinmarketcap.com/currencies/moss-coin/?utm_source=openai",
+      "https://www.coingecko.com/en/coins/mossland/usd?utm_source=openai",
+      "https://feed-content.bithumb.com/cms/copied-2179d321-7e37-492f-8051-f0ffa2ba13a1.pdf?utm_source=openai",
+      "https://www.reddit.com/r/cryptopricesalerts/comments/ttebba?utm_source=openai",
+      "https://www.coingecko.com/en/coins/mossland/usd?utm_source=openai",
+      "https://coinmarketcap.com/currencies/moss-coin/?utm_source=openai",
+      "https://www.btcc.com/en-US/price/moc?utm_source=openai",
+      "https://www.reddit.com/r/cryptopricesalerts/comments/ttebba?utm_source=openai"
+    ],
+    "answer_excerpt": "MOC—보통 \"Moss Coin\" (MOC 토큰)으로 알려진 암호화폐—의 가격이 변동하는 주요 원인들을 아래와 같이 정리해 드립니다.\n\n---\n\n##  1. 수요와 공급 (시장 유동성과 거래량)\n\n암호화폐 시장에서 기본적인 원리인 **수요가 공급을 초과하거나 반대일 경우 가격은 상승 또는 하락**합니다. Moss Coin 역시 예외는 아니며, 투자자들의 매수/매도 활동이 가격 변동의 주요 요인입니다. ([btcc.com](https://www.btcc.com/en-US/price/moc?utm_source=openai))\n\n24시간"
+  },
+  {
+    "query_id": "Q5",
+    "query": "솔라나가 이번 주 다시 주목받는 이유?",
+    "category": "why-asset",
+    "llm": "openai",
+    "ts": "2026-05-06T10:12:06.712Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://fortune.com/2026/05/05/moonpay-acquires-solana-100m-all-stock/?utm_source=openai",
+      "https://fortune.com/2026/05/05/moonpay-acquires-solana-100m-all-stock/?utm_source=openai",
+      "https://www.bitget.com/news/detail/12560605393537?utm_source=openai",
+      "https://www.bitget.com/news/detail/12560605393537?utm_source=openai",
+      "https://www.tradingnews.com/news/solana-price-forecast-sol-usd-tests-86-usd-decision-zone-as-circle-mints?utm_source=openai",
+      "https://www.tradingnews.com/news/solana-price-forecast-sol-usd-tests-86-usd-decision-zone-as-circle-mints?utm_source=openai",
+      "https://www.tradingnews.com/news/solana-price-forecast-sol-usd-tests-86-usd-decision-zone-as-circle-mints?utm_source=openai",
+      "https://www.tradingnews.com/news/solana-price-forecast-sol-usd-tests-86-usd-decision-zone-as-circle-mints?utm_source=openai",
+      "https://www.tradingnews.com/news/solana-price-forecast-sol-usd-tests-86-usd-decision-zone-as-circle-mints?utm_source=openai",
+      "https://www.reddit.com/r/solana/comments/1t0y395/solana_accelerate_usa_solanas_big_week_in_america/?utm_source=openai",
+      "https://www.reddit.com/r/solana/comments/1t2qm7j/solana_ecosystem_news_may_32026/?utm_source=openai"
+    ],
+    "answer_excerpt": "이번 주(2026년 5월 첫째 주)에 ‘솔라나(Solana)’가 다시 주목을 받고 있는 이유는 여러 가지 주요 요인들이 겹치며 시장의 관심을 집중시키고 있기 때문입니다. 아래에 그 주요 배경들을 정리해드립니다.\n\n---\n\n## 1. MoonPay의 DFlow 인수 – 인프라 확충\n\n- 최근 암호화 결제 및 인프라 업체인 MoonPay가 **Solana 기반 거래 인프라 플랫폼인 DFlow를 1억 달러 규모의 주식 거래(all‑stock deal)**로 인수했습니다. DFlow는 **최근 한 주 동안 코인베이스에서 Solana 거래량"
+  },
+  {
+    "query_id": "Q6",
+    "query": "한국 유튜버들은 BTC ETF에 대해 어떻게 보는가?",
+    "category": "stance",
+    "llm": "openai",
+    "ts": "2026-05-06T10:12:16.342Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://tuyudan.com/bitcoin-etf-korea-invest-2026/?utm_source=openai",
+      "https://tuyudan.com/bitcoin-etf-korea-invest-2026/?utm_source=openai",
+      "https://tuyudan.com/bitcoin-etf-korea-invest-2026/?utm_source=openai",
+      "https://millionscode.com/blog/bitcoin-etf-complete-guide-2026?utm_source=openai",
+      "https://file.hanaw.com/download/research/FileServer/WEB/strategy/market/2026/04/13/Global_ETF_260413.pdf?utm_source=openai"
+    ],
+    "answer_excerpt": "죄송합니다만, 제가 직접적으로 \"한국 유튜버들이 비트코인(BTC) ETF에 대해 어떻게 보는지\"에 관한 유튜브 콘텐츠나 반응을 담은 자료를 확인할 수 있는 검색 결과는 현재 확보되지 않았습니다. 직접적으로 해당 내용을 다룬 유튜브 콘텐츠는 웹 검색만으로는 쉽사히 확인되지 않습니다.\n\n다만, 한국 투자자나 콘텐츠 제작자들이 BTC ETF에 대해 논할 때 주로 언급되는 이슈들을 정리해드릴 수 있습니다:\n\n• 국내에서 비트코인 **현물 ETF(Spot ETF)**는 아직 승인되지 않은 상태이며, 현재 거래소에 상장된 비트코인 ETF는 모"
+  },
+  {
+    "query_id": "Q7",
+    "query": "FOMC 결정에 대한 한국 매크로 채널 시각은?",
+    "category": "stance",
+    "llm": "openai",
+    "ts": "2026-05-06T10:12:25.405Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://kbthink.com/investment/issues/fomc-announcement.html?utm_source=openai",
+      "https://www.yna.co.kr/amp/view/AKR20260318068100008?utm_source=openai",
+      "https://www.macrothread.com/issues/bok-overseas-2026-04-fomc-result?utm_source=openai",
+      "https://www.yna.co.kr/amp/view/AKR20260318068100008?utm_source=openai",
+      "https://www.macrothread.com/issues/bok-overseas-2026-04-fomc-result?utm_source=openai",
+      "https://www.macrothread.com/issues/bok-overseas-2026-04-fomc-result?utm_source=openai",
+      "https://www.yna.co.kr/amp/view/AKR20260318068100008?utm_source=openai"
+    ],
+    "answer_excerpt": "한국 내에서 FOMC 결정에 대한 매크로 채널(예: 유튜브 채널, 팟캐스트, 블로그 등)의 시각은 일반적으로 다음과 같은 주요 포인트를 중심으로 전달됩니다.\n\n---\n\n## 1. 발표 시점 (한국 시각 기준)\n\nFOMC(연방공개시장위원회)의 정책금리 결정은 미국 현지 기준으로 회의 종료 뒤 발표되며, 한국 시간으로는 종종 “다음 날 새벽 3시 또는 4시경”에 공개되는 경우가 많습니다 ([kbthink.com](https://kbthink.com/investment/issues/fomc-announcement.html?utm_sour"
+  },
+  {
+    "query_id": "Q8",
+    "query": "AI 코인 narrative에 대해 의견이 갈리는 지점은?",
+    "category": "stance",
+    "llm": "openai",
+    "ts": "2026-05-06T10:12:33.963Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://btcnews.space/artificial_intelligence_news/ai-tokens-are-selling-promises-not-working-products?utm_source=openai",
+      "https://cointelegraph.com/news/ai-agents-memecoins-investments?utm_source=openai",
+      "https://coinedition.com/do-ai-projects-need-tokens-experts-highlight-the-flaws/?utm_source=openai",
+      "https://thebitcoinmanual.com/articles/ai-tokens-scam/?utm_source=openai",
+      "https://btcnews.space/artificial_intelligence_news/ai-tokens-are-selling-promises-not-working-products?utm_source=openai",
+      "https://www.lowcaphunt.com/blog/ai-and-memecoins-narrative-engines-2026-risk?utm_source=openai",
+      "https://www.webopedia.com/news/markets/shumer-ai-warning-sparks-crypto-surge/?utm_source=openai",
+      "https://www.axios.com/2025/01/07/meme-coins-ai-chatbots-crypto?utm_source=openai",
+      "https://www.chaincatcher.com/en/article/2254368?utm_source=openai",
+      "https://www.reddit.com/r/CryptoMarkets/comments/1sl4nih/the_ai_crypto_reality_check_most_projects_are/?utm_source=openai"
+    ],
+    "answer_excerpt": "AI 코인(이른바 ‘AI 토큰’)의 내러티브에 대한 논란은 여러 핵심 쟁점으로 나뉘며, 각 쟁점마다 찬반 의견이 엇갈리고 있습니다. 최근 동향을 바탕으로 주요 논점을 정리하면 다음과 같습니다.\n\n### 1. 실체 없는 'AI' 브랜딩  \n많은 프로젝트들이 \"AI 기반\"이라는 레이블만 강조할 뿐, 실제로 유의미한 AI 기능 없이 마케팅에만 의존하는 경우가 많다는 지적이 있습니다.  \n- 2026년 초, 여러 AI 토큰이 산업 내무기반이나 기술적 증명 없이 표면적인 데모나 정적 UI로 AI 통합을 꾸미는 사례가 늘어나면서, 신뢰도 하락"
+  },
+  {
+    "query_id": "Q9",
+    "query": "한국 트레이더 사이에서 ETH 강세론과 약세론 비중은?",
+    "category": "stance",
+    "llm": "openai",
+    "ts": "2026-05-06T10:12:40.569Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://coinness.com/en/news/78919?utm_source=openai",
+      "https://www.mexc.com/en-NG/news/1002720?utm_source=openai",
+      "https://www.coingecko.com/research/publications/crypto-market-sentiment?utm_source=openai"
+    ],
+    "answer_excerpt": "한국 트레이더(cryptocurrency traders in South Korea) 사이에서 이더리움(ETH)에 대한 '강세론(bullish)'과 '약세론(bearish)'의 비중을 정확하게 나타내는 최신 통계는 찾기 어렵습니다. 다만, 관련 설문 및 시장 동향을 통해 유추할 수 있는 정보는 있습니다.\n\n---\n\n1. **CoinNess–Cratos 설문 (2025년 7–8월 진행)**  \n   – 이 설문에 따르면, 한국 암호화폐 투자자 중 **64.2%**가 올해 ETH가 사상 최고가를 경신할 것이라 예상했습니다. 반면, **3"
+  },
+  {
+    "query_id": "Q10",
+    "query": "김프에 대해 한국 매크로 분석가들은 어떻게 해석하는가?",
+    "category": "stance",
+    "llm": "openai",
+    "ts": "2026-05-06T10:12:48.307Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://imnotarobot.tistory.com/125?utm_source=openai",
+      "https://www.hankyung.com/article/202403154271g?utm_source=openai",
+      "https://www.hankyung.com/article/202403154271g?utm_source=openai",
+      "https://dailyinsight.kr/42?utm_source=openai",
+      "https://plus.hankyung.com/apps/newsinside.view?aid=2024111145421&category=NEWSPAPER&utm_source=openai"
+    ],
+    "answer_excerpt": "한국 매크로 분석가들이 ‘김프(김치 프리미엄)’를 어떻게 해석하는지에 대한 답변을 아래에 정리합니다.\n\n---\n\n##  김프란 무엇인가?\n\n- **정의**  \n  김치 프리미엄(줄여서 김프)은 국내 암호화폐, 특히 비트코인 가격이 해외 거래소보다 더 높은 상황을 의미합니다. 즉, 원화 기준으로 코인을 사는 가격이 달러 또는 스테이블코인 기준 해외 가격보다 높을 때 ‘김프가 끼었다’고 표현합니다. 반대로 국내 가격이 더 낮으면 ‘역프(역 김치 프리미엄)’라고 합니다 ([imnotarobot.tistory.com](https://imn"
+  },
+  {
+    "query_id": "Q11",
+    "query": "AI 코인이란 무엇이고 왜 중요한가?",
+    "category": "concept",
+    "llm": "openai",
+    "ts": "2026-05-06T10:12:56.342Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://coinmarketcap.com/academy/glossary/ai-coins?utm_source=openai",
+      "https://www.cointr.com/en/blog/cryptocurrency-exchange/ai-coins?utm_source=openai",
+      "https://www.cointr.com/en/blog/cryptocurrency-exchange/ai-coins?utm_source=openai",
+      "https://coinmarketcap.com/academy/glossary/ai-coins?utm_source=openai",
+      "https://www.coingecko.com/learn/crypto-ai-artificial-intelligence-coins?locale=en&utm_source=openai",
+      "https://coinmarketcap.com/academy/glossary/ai-coins?utm_source=openai",
+      "https://coinmarketcap.com/academy/glossary/ai-coins?utm_source=openai",
+      "https://coinmarketcap.com/academy/glossary/ai-coins?utm_source=openai",
+      "https://coinmarketcap.com/academy/glossary/ai-coins?utm_source=openai",
+      "https://www.cointr.com/en/blog/cryptocurrency-exchange/ai-coins?utm_source=openai"
+    ],
+    "answer_excerpt": "아래는 \"AI 코인(AI Coins)\"이 무엇인지, 그리고 왜 중요한지에 대한 종합적인 설명입니다.\n\n---\n\n##  AI 코인이란?\n\nAI 코인은 **인공지능(AI)** 기술과 **블록체인** 기술을 결합한 암호화폐 또는 토큰으로, AI 서비스와 생태계 내에서 다양한 기능을 수행하도록 설계된 디지털 자산입니다.([coinmarketcap.com](https://coinmarketcap.com/academy/glossary/ai-coins?utm_source=openai))\n\n이러한 AI 코인은 다음과 같은 주요 역할을 합니다:\n\n"
+  },
+  {
+    "query_id": "Q12",
+    "query": "Physical AI는 왜 중요한가?",
+    "category": "concept",
+    "llm": "openai",
+    "ts": "2026-05-06T10:13:03.829Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://www.techtarget.com/WhatIs/feature/Physical-AI-explained-Everything-you-need-to-know?utm_source=openai",
+      "https://www.ey.com/en_gl/simply-explained/what-is-physical-ai?utm_source=openai",
+      "https://www.nvidia.com/en-us/glossary/generative-physical-ai/?utm_source=openai",
+      "https://newsroom.arm.com/blog/what-is-physical-ai?utm_source=openai",
+      "https://newsroom.arm.com/blog/what-is-physical-ai?utm_source=openai",
+      "https://www.ibm.com/think/topics/physical-ai?utm_source=openai",
+      "https://www.techradar.com/pro/microsoft-unveils-first-robotics-model-targeted-at-boosting-physical-ai-in-a-bid-to-free-robots-from-the-production-line?utm_source=openai",
+      "https://www.techradar.com/pro/how-to-deploy-physical-ai-effectively?utm_source=openai"
+    ],
+    "answer_excerpt": "Physical AI—or “Physical Artificial Intelligence”—is critically important today because it represents a fundamental shift from software-only intelligence to embodied, real-world action. Here’s why Physical AI matters:\n\n1.   Intelligence Meets Real-World Embodiment  \nPhysical AI systems combine sensi"
+  },
+  {
+    "query_id": "Q13",
+    "query": "Agentic Governance란 무엇인가?",
+    "category": "concept",
+    "llm": "openai",
+    "ts": "2026-05-06T10:13:11.672Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://www.enz.ai/what-is-agentic-ai-governance?utm_source=openai",
+      "https://www.enz.ai/what-is-agentic-ai-governance?utm_source=openai",
+      "https://www.ibm.com/think/insights/agentic-ai-governance-playbook?utm_source=openai",
+      "https://cordum.io/blog/agentic-ai-governance-2026?utm_source=openai",
+      "https://www.n-ix.com/agentic-ai-governance/?utm_source=openai",
+      "https://www.vastkind.com/agentic-ai-governance-2026/?utm_source=openai",
+      "https://www.n-ix.com/agentic-ai-governance/?utm_source=openai",
+      "https://www.enz.ai/what-is-agentic-ai-governance?utm_source=openai",
+      "https://www.techradar.com/pro/the-leadership-dilemma-governing-the-agentic-ai-workforce?utm_source=openai"
+    ],
+    "answer_excerpt": "Agentic Governance, 특히 **Agentic AI Governance**,는 최근에 기업과 조직 수준에서 빠르게 주목받는 개념입니다. 이는 전통적인 AI 거버넌스와는 근본적으로 다른 ‘행동하는 AI(agentic AI)’에 초점을 맞춰, 시스템의 행동과 결정을 통제하고 책임을 명확히 하기 위한 통제 및 감독 메커니즘을 의미합니다. 아래에 그 정의와 주요 특징을 정리했습니다:\n\n1. 정의  \n   Agentic AI Governance는 **자율적으로 목표를 추구하고 행동하는 AI 시스템**—즉, 단순한 예측이나 분류를"
+  },
+  {
+    "query_id": "Q14",
+    "query": "김치 프리미엄은 무엇을 의미하는가?",
+    "category": "concept",
+    "llm": "openai",
+    "ts": "2026-05-06T10:13:19.985Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://www.seoul.co.kr/news/economy/2021/04/09/20210409500172?utm_source=openai",
+      "https://tuyudan.com/kimchi-premium-crypto-guide-2026/?utm_source=openai",
+      "https://tuyudan.com/kimchi-premium-crypto-guide-2026/?utm_source=openai",
+      "https://tuyudan.com/kimchi-premium-crypto-guide-2026/?utm_source=openai",
+      "https://www.seoul.co.kr/news/economy/2021/04/09/20210409500172?utm_source=openai",
+      "https://www.hankyung.com/article/2018010979246?utm_source=openai",
+      "https://www.seoul.co.kr/news/economy/2021/04/09/20210409500172?utm_source=openai",
+      "https://tuyudan.com/kimchi-premium-crypto-guide-2026/?utm_source=openai",
+      "https://www.donga.com/news/Society/article/all/20240907/126896530/1?utm_source=openai",
+      "https://www.mk.co.kr/news/society/10628959?utm_source=openai",
+      "https://tuyudan.com/kimchi-premium-crypto-guide-2026/?utm_source=openai"
+    ],
+    "answer_excerpt": "김치 프리미엄(김프, Kimchi Premium)은 한국의 암호화폐 시장에서 자주 회자되는 개념으로, 다음과 같이 이해할 수 있습니다.\n\n정의  \n김치 프리미엄이란 한국의 암호화폐 거래소—예를 들어 업비트, 빗썸—에서 거래되는 암호화폐의 가격이 해외 거래소(바이낸스, 코인베이스 등)에 비해 더 높은 현상을 말합니다([seoul.co.kr](https://www.seoul.co.kr/news/economy/2021/04/09/20210409500172?utm_source=openai)). 즉, 같은 암호화폐지만 국내에서는 해외보다 더"
+  },
+  {
+    "query_id": "Q15",
+    "query": "옵션 만기일이 BTC에 미치는 영향은?",
+    "category": "concept",
+    "llm": "openai",
+    "ts": "2026-05-06T10:13:28.979Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://www.coingecko.com/learn/bitcoin-options-theta-decay?utm_source=openai",
+      "https://www.coingecko.com/learn/bitcoin-options-theta-decay?utm_source=openai",
+      "https://cointelegraph.com/learn/articles/how-bitcoin-options-expiry-influences-market-volatility//?utm_source=openai",
+      "https://www.coinrank.io/crypto/how-bitcoin-options-expiry-could-impact-bitcoin-prices/?utm_source=openai",
+      "https://www.coinrank.io/crypto/how-bitcoin-options-expiry-could-impact-bitcoin-prices/?utm_source=openai",
+      "https://crypto.news/bitcoins-18b-options-expiry-is-a-volatility-trap-bitfinex-analysts/?utm_source=openai",
+      "https://cryptoslate.com/market-reports/how-bitcoin-options-impact-the-crypto-market/?utm_source=openai",
+      "https://www.mimint.co.kr/bbs/view/news/S1N113/5369643?utm_source=openai"
+    ],
+    "answer_excerpt": "옵션 만기일이 비트코인(BTC)에 미치는 영향에 대해 아래와 같이 정리했습니다.\n\n##  실시간 BTC 시세  \n현재 비트코인(BTC)의 시세는 약 **82,028 USD**입니다. citeturn0finance0\n\n---\n\n##  옵션 만기일의 주요 영향 요인  \n\n### 1. **시간가치 감소 (Theta Decay)**  \n옵션 만기일이 다가올수록, 특히 **만기 직전(Theta cliff)**에 시간가치(Theta)가 급격히 감소하기 시작합니다.  \n- ATM(At-the-Money) 옵션일수록 시간가치가 더 높아 빨리"
+  },
+  {
+    "query_id": "Q16",
+    "query": "What is the Kimchi Premium and what does it indicate now?",
+    "category": "bilingual-en",
+    "llm": "openai",
+    "ts": "2026-05-06T10:13:36.028Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://coinmarketcap.com/academy/glossary/kimchi-premium?utm_source=openai",
+      "https://www.gate.com/ja/learn/glossary/kimchi-premium?utm_source=openai",
+      "https://www.gate.com/learn/glossary/kimchi-definition?utm_source=openai",
+      "https://coinmarketcap.com/academy/glossary/kimchi-premium?utm_source=openai",
+      "https://www.bydfi.com/en/cointalk/kimchi-premium-arbitrage-guide?utm_source=openai",
+      "https://www.bydfi.com/en/cointalk/kimchi-premium-arbitrage-guide?utm_source=openai"
+    ],
+    "answer_excerpt": "Here’s a detailed explanation of the **Kimchi Premium** and what it indicates as of now (early May 2026):\n\n---\n\n## What Is the Kimchi Premium?\n\n- The **Kimchi Premium** refers to the price disparity where the same cryptocurrency—like Bitcoin—trades at a **higher price on South Korean exchanges** (pr"
+  },
+  {
+    "query_id": "Q17",
+    "query": "How does Korean retail react to Fed rate decisions?",
+    "category": "bilingual-en",
+    "llm": "openai",
+    "ts": "2026-05-06T10:13:44.675Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://www.seoulstockalpha.com/2026/04/us-rate-hikes-korean-stocks-5-key.html?utm_source=openai",
+      "https://www.seoulstockalpha.com/2026/04/us-rate-hikes-korean-stocks-5-key.html?utm_source=openai",
+      "https://www.reddit.com/r/KoreaNewsfeed/comments/1s6hj7a/add_kshaped_consumer_polarization_to_the_list_of/?utm_source=openai",
+      "https://www.seoulstockalpha.com/2026/04/us-rate-hikes-korean-stocks-5-key.html?utm_source=openai",
+      "https://www.seoulstockalpha.com/2026/04/us-rate-hikes-korean-stocks-5-key.html?utm_source=openai",
+      "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4155877&utm_source=openai",
+      "https://cm.asiae.co.kr/en/article/2025091809540229422?utm_source=openai",
+      "https://ca.investing.com/news/economy-news/fed-rate-cut-concerns-weigh-on-south-korean-central-bank-93CH-4061696?utm_source=openai",
+      "https://koreaplus-lifes.com/fed-rate-hike-impact-usd-krw-korean-stocks-2026/?utm_source=openai",
+      "https://www.reddit.com/r/KoreaNewsfeed/comments/1php8gt/why_korean_investors_buying_us_stocks_draws_forex/?utm_source=openai"
+    ],
+    "answer_excerpt": "Here’s a structured and detailed analysis of how **Korean retail**—both at the macroeconomic and individual (retail investor) levels—reacts to decisions by the U.S. Federal Reserve (Fed). The insights reflect up-to-date observations, including behavior observed as recently as early 2026.\n\n---\n\n##  1"
+  },
+  {
+    "query_id": "Q18",
+    "query": "Korean YouTuber sentiment on Bitcoin ETF flows?",
+    "category": "bilingual-en",
+    "llm": "openai",
+    "ts": "2026-05-06T10:13:52.714Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://web3-scan.compounding.co.kr/insights/563/?utm_source=openai",
+      "https://www.fnnews.com/news/202401111736039566?utm_source=openai"
+    ],
+    "answer_excerpt": "한국 크립토 유튜버들이 ‘비트코인 ETF 흐름 (ETF flows)’에 대해 어떤 분위기인지 살펴본 결과, 현재로서는 **직접적으로 이 주제를 다룬 콘텐츠는 검색된 자료에서는 확인되지 않았습니다**. 그러나 일부 한국 유튜브 채널에서 ETF 자금 흐름에 대한 언급이 간접적으로 나타난 사례들이 있어, 이를 중심으로 전반적인 감성을 추정해 보았습니다.\n\n---\n\n##  한국 유튜브 채널에서 확인된 간접적 언급 사례\n\n### 1. **불장TV**, **퍼즈 (ppause)**\n- 2026년 1월 7일 방송에서는 ETF 순유입이 재개되어 "
+  },
+  {
+    "query_id": "Q19",
+    "query": "What are the most-discussed crypto narratives in Korea right now?",
+    "category": "bilingual-en",
+    "llm": "openai",
+    "ts": "2026-05-06T10:13:59.701Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://en.sedaily.com/news/2026/05/05/korea-crypto-holdings-halve-to-60-trillion-won-as-investors?utm_source=openai",
+      "https://en.sedaily.com/news/2026/05/05/korea-crypto-holdings-halve-to-60-trillion-won-as-investors?utm_source=openai",
+      "https://www.koreatimes.co.kr/economy/cryptocurrency/20251225/why-2026-could-mark-cryptos-next-expansion-phase-in-korea?utm_source=openai",
+      "https://coinpedia.org/news/south-korea-fss-2026-to-crack-down-on-crypto-market-abuse-with-new-ai-systems/?utm_source=openai",
+      "https://www.cryptotimes.io/2026/03/04/south-korea-sets-ownership-cap-for-upbit-and-bithumb/?utm_source=openai",
+      "https://www.ccn.com/news/crypto/south-korea-opens-corporate-crypto-hong-kong-japan-tighten-rules/?utm_source=openai",
+      "https://www.koreatimes.co.kr/amp/economy/cryptocurrency/20260101/mirae-assets-korbit-takeover-bid-signals-shake-up-in-koreas-crypto-market?utm_source=openai",
+      "https://www.coingecko.com/learn/2026-korea-crypto-market-guide-tiger-research?locale=en&utm_source=openai",
+      "https://www.tomshardware.com/tech-industry/cryptocurrency/south-korean-authorities-lose-over-usd4-8-million-in-crypto-after-posting-mnemonic-recovery-phrase-online-stolen-prtg-tokens-part-of-funds-seized-by-national-tax-service-from-high-value-tax-evaders?utm_source=openai",
+      "https://www.investing.com/news/economy-news/south-korea-watchdog-says-tougher-crypto-rules-needed-after-40-billion-giveaway-4492718?utm_source=openai",
+      "https://cointelegraph.com/news/south-korea-fines-bithumb-24-5m-six-month-partial-suspension-aml?utm_source=openai"
+    ],
+    "answer_excerpt": "Here are the most-discussed crypto narratives currently circulating in South Korea, as of early May 2026:\n\n---\n\nRetail Pullback & Stablecoin Surge  \n- **Crypto holdings in Korea have halved**, dropping from approximately 121.8 trillion won at the end of 2025 to about 60.6 trillion won by the end of "
+  },
+  {
+    "query_id": "Q20",
+    "query": "What is Mossland's role in the Korean Web3 ecosystem?",
+    "category": "bilingual-en",
+    "llm": "openai",
+    "ts": "2026-05-06T10:14:09.045Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://www.prnewswire.com/news-releases/korean-startup-reality-reflection-launches-the-first-blockchain-ecosystem-for-arvr-assets-called-moss-chain-676576503.html?utm_source=openai",
+      "https://www.blockchaingamer.biz/profiles/1491/what-is-mossland/?utm_source=openai",
+      "https://www.prnewswire.com/news-releases/korean-startup-reality-reflection-launches-the-first-blockchain-ecosystem-for-arvr-assets-called-moss-chain-676576503.html?utm_source=openai",
+      "https://www.prnewswire.com/news-releases/korean-startup-reality-reflection-launches-the-first-blockchain-ecosystem-for-arvr-assets-called-moss-chain-676576503.html?utm_source=openai",
+      "https://www.prnewswire.com/news-releases/korean-startup-reality-reflection-launches-the-first-blockchain-ecosystem-for-arvr-assets-called-moss-chain-676576503.html?utm_source=openai",
+      "https://www.prnewswire.com/news-releases/korean-startup-reality-reflection-launches-the-first-blockchain-ecosystem-for-arvr-assets-called-moss-chain-676576503.html?utm_source=openai",
+      "https://www.lbank.com/price/mossland?utm_source=openai",
+      "https://www.blockchaingamer.biz/profiles/1491/what-is-mossland/?utm_source=openai",
+      "https://www.prnewswire.com/news-releases/korean-startup-reality-reflection-launches-the-first-blockchain-ecosystem-for-arvr-assets-called-moss-chain-676576503.html?utm_source=openai",
+      "https://medium.com/mossland-blog/moc-listed-on-gopax-krw-market-2f7657d8addd?utm_source=openai",
+      "https://medium.com/mossland-blog/moc-listed-on-gopax-krw-market-2f7657d8addd?utm_source=openai",
+      "https://static.moss.land/docs/mossland_development_progress_2025-01-04.pdf?utm_source=openai"
+    ],
+    "answer_excerpt": "Here’s a structured overview of **Mossland** and its **role in the South Korean Web3 ecosystem**, combining its origins, evolution, and ongoing contributions:\n\n---\n\n## 1. Origin and Vision: Fusing AR, Blockchain, and Location-Based Gaming\n\n- **Founded by Korean startup Reality Reflection**, Mossland"
+  },
+  {
+    "query_id": "Q21",
+    "query": "FOMC 9월 결정 이후 한국 시장 반응은?",
+    "category": "timeline",
+    "llm": "openai",
+    "ts": "2026-05-06T10:14:17.413Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://www.chosun.com/economy/economy_general/2025/09/19/4G3YKYXQ3RENNFMEVJTKAYD3PU/?outputType=amp&utm_source=openai",
+      "https://www.chosun.com/economy/economy_general/2025/09/19/4G3YKYXQ3RENNFMEVJTKAYD3PU/?outputType=amp&utm_source=openai",
+      "https://www.mt.co.kr/stock/2025/09/17/2025091716552012279?utm_source=openai",
+      "https://www.fnnews.com/news/202509171121503653?utm_source=openai",
+      "https://m.kr.investing.com/analysis/article-200454124?ampMode=1&utm_source=openai",
+      "https://eiec.kdi.re.kr/policy/domesticView.do?ac=0000198345&utm_source=openai",
+      "https://www.hankyung.com/amp/2025091956026?utm_source=openai",
+      "https://www.hankyung.com/amp/2025091834665?utm_source=openai",
+      "https://www.chosun.com/economy/economy_general/2025/09/19/4G3YKYXQ3RENNFMEVJTKAYD3PU/?outputType=amp&utm_source=openai"
+    ],
+    "answer_excerpt": "아래는 2025년 9월 미국 연방준비제도(FOMC)의 금리 인하 결정 이후, 한국(대한민국) 금융시장—특히 증시—의 반응을 정리한 내용입니다.\n\n---\n\n##  1. FOMC 결정 요약 (2025년 9월 17–18일)\n\n- 미국 연준은 2025년 9월 17일(미 현지시간, 한국 9월 18일 새벽)에 기준금리를 25bp 인하하여 4.00~4.25%로 조정했습니다. 이는 2024년 12월 이후 약 9개월 만의 첫 금리 인하입니다. ([chosun.com](https://www.chosun.com/economy/economy_genera"
+  },
+  {
+    "query_id": "Q22",
+    "query": "BTC ETF 승인 직후 24시간 흐름은?",
+    "category": "timeline",
+    "llm": "openai",
+    "ts": "2026-05-06T10:14:30.970Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://blockworks.co/news/markets-react-to-bitcoin-etf?utm_source=openai",
+      "https://www.theblock.co/post/271749/bitcoin-price-unfazed-by-sec-approval-of-spot-btc-etfs?utm_source=openai",
+      "https://fortune.com/crypto/2024/01/11/bitcoin-gains-crypto-spot-etfs-approval-sec-gary-gensler/?utm_source=openai",
+      "https://blockworks.com/news/bitcoin-etf-trading-volumes-1-billion?utm_source=openai",
+      "https://www.theblock.co/post/272260/bitcoin-price-dips-below-46000-as-etf-approval-causes-increased-market-volatility?utm_source=openai",
+      "https://cointelegraph.com/news/bitcoin-price-sells-off-after-etf-approval-have-investors-turned-bearish?utm_source=openai",
+      "https://theblockopedia.com/bitcoin-price-dips-5-despite-etf-approval-find-out-why/?utm_source=openai"
+    ],
+    "answer_excerpt": "BTC ETF(스팟 비트코인 상장지수펀드) 승인이 발표된 직후 및 그로부터 24시간 동안의 비트코인(BTC) 가격 흐름에 대해 정리해 드리겠습니다.\n\n---\n\n##  승인 당일 및 그 즉시 반응\n\n- **1월 10일 정오 전후**: 뉴욕 증권거래위원회(SEC)의 정식 ETF 승인 발표 직후, 비트코인 가격은 크게 반응하지 않고 소폭 횡보하는 모습을 보였습니다.([blockworks.co](https://blockworks.co/news/markets-react-to-bitcoin-etf?utm_source=openai))\n- **오"
+  },
+  {
+    "query_id": "Q23",
+    "query": "일본 BOJ 정책 회의 이후 BTC는?",
+    "category": "timeline",
+    "llm": "openai",
+    "ts": "2026-05-06T10:14:42.652Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://www.fxleaders.com/news/2026/04/14/bank-of-japan-signals-rate-pause-as-yen-weakens-helping-bitcoin-climb-above-74000/?utm_source=openai",
+      "https://www.ccn.com/education/crypto/boj-interest-rate-decision-bitcoin-price-in-2026/?utm_source=openai",
+      "https://www.ccn.com/education/crypto/boj-interest-rate-decision-bitcoin-price-in-2026/?utm_source=openai",
+      "https://www.ccn.com/education/crypto/boj-interest-rate-decision-bitcoin-price-in-2026/?utm_source=openai",
+      "https://www.kucoin.com/news/articles/boj-25-bps-hike-unraveling-the-impact-of-yen-carry-trade-unwind-on-crypto-markets?utm_source=openai",
+      "https://www.fxleaders.com/news/2026/04/14/bank-of-japan-signals-rate-pause-as-yen-weakens-helping-bitcoin-climb-above-74000/?utm_source=openai"
+    ],
+    "answer_excerpt": "일본은행 (BOJ)의 최근 통화정책회의 이후 비트코인(BTC)에 어떤 변화가 있었는지 살펴보겠습니다. 2026년 5월 6일 기준, 특히 **2026년 4월 기준 BOJ의 금리 동결 신호**로 인해 비트코인은 긍정적인 반응을 보였습니다.\n\n---\n\n##  BOJ의 금리 정책과 비트코인의 최근 반응\n\n2026년 4월 14일, BOJ는 **추가 금리 인상 없이 ‘금리 동결'(rate pause)** 메시지를 시장에 내놓았습니다. 이로 인해 **엔화 약세**가 진행되었고, 이는 일본 외 자산, 특히 **비트코인 가격 반등**에 긍정적인 환"
+  },
+  {
+    "query_id": "Q24",
+    "query": "5월 6일 BTC 시장에서 무슨 일이 있었나?",
+    "category": "timeline",
+    "llm": "openai",
+    "ts": "2026-05-06T10:15:03.522Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://www.tradingview.com/news/financemagnates%3A2236c358e094b%3A0-why-is-bitcoin-price-going-up-btc-tests-82k-200-ema-and-three-months-highs/?utm_source=openai",
+      "https://www.coingabbar.com/en/crypto-currency-news/latest-crypto-market-update-may-6-btc-eth-zcash-price-today?utm_source=openai",
+      "https://invezz.com/uk/news/2026/05/06/bitcoin-extends-rally-to-dollar81500-how-high-can-it-go-this-month/?utm_source=openai",
+      "https://invezz.com/uk/news/2026/05/06/bitcoin-extends-rally-to-dollar81500-how-high-can-it-go-this-month/?utm_source=openai",
+      "https://www.tradingview.com/news/financemagnates%3A2236c358e094b%3A0-why-is-bitcoin-price-going-up-btc-tests-82k-200-ema-and-three-months-highs/?utm_source=openai",
+      "https://www.tradingview.com/news/financemagnates%3A2236c358e094b%3A0-why-is-bitcoin-price-going-up-btc-tests-82k-200-ema-and-three-months-highs/?utm_source=openai",
+      "https://invezz.com/uk/news/2026/05/06/bitcoin-extends-rally-to-dollar81500-how-high-can-it-go-this-month/?utm_source=openai",
+      "https://www.thestreet.com/crypto/markets/analyst-reveals-3b-bitcoin-buy-coming-this-week?utm_source=openai"
+    ],
+    "answer_excerpt": "다음은 2026년 5월 6일(미국 기준일) 비트코인(BTC) 시장에서 있었던 주요 동향을 정리한 내용입니다:\n\n---\n\n##  비트코인 가격 및 시장 상태\n\n- **실시간 가격**  \n  현재 비트코인의 가격은 약 **$82,036**로 나타났습니다. 오늘의 시가 대비 소폭 상승한 수준입니다. citeturn0finance0\n\n- **당일 가격 흐름 및 주요 지표**  \n  5월 6일 BTC는 **$81,250**에 거래되며 **$81,760**까지 오르며 1월 이후 최고치를 다시 테스트했습니다. 이는 다가오는 200일 지수이"
+  },
+  {
+    "query_id": "Q25",
+    "query": "최근 7일 한국 크립토 주요 이벤트는?",
+    "category": "timeline",
+    "llm": "openai",
+    "ts": "2026-05-06T10:15:15.098Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://en.bloomingbit.io/feed/news/111401?utm_source=openai",
+      "https://www.reddit.com/r/RWATimes/comments/1t3n8dx/south_korea_crypto_sector_faces_aml_rule_pushback/?utm_source=openai",
+      "https://intellectia.ai/news/crypto/major-crypto-token-unlock-events-scheduled-for-may-2026?utm_source=openai",
+      "https://www.kucoin.com/news/trends/SUI/69f4ef4a2f8d6c000731a42a?utm_source=openai",
+      "https://www.ccn.com/news/crypto/bitcoin-may-80k-strategy-fed-consensus-rally/?utm_source=openai"
+    ],
+    "answer_excerpt": "다음은 지난 7일(즉, 2026년 4월 29일 ~ 5월 5일 기준) 동안 한국의 암호화폐(크립토) 시장 및 관련 정책·행사에서 주목할 만한 주요 이벤트들을 정리한 내용입니다.\n\n---\n\n##  주요 이벤트 요약\n\n1. **한국 내 암호화폐 보유액 크게 감소**\n  \n   한국은행이 국회에 제출한 자료에 따르면, 2026년 2월 말 기준 국내 대형 거래소(업비트, 빗썸, 코빗, 코인원, 고팍스)에 집계된 암호화폐 보유액은 60.6조 원(약 439억 달러)으로, 2025년 12월 말의 121.8조 원(약 883억 달러)의 절반 이하로 "
+  },
+  {
+    "query_id": "Q26",
+    "query": "MOC는 어디에 쓰이는 토큰인가?",
+    "category": "mossland",
+    "llm": "openai",
+    "ts": "2026-05-06T10:15:26.065Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://pp.one/en/MOC?utm_source=openai",
+      "https://coinmarketcap.com/currencies/moss-coin/?utm_source=openai",
+      "https://coinmarketcap.com/currencies/moss-coin/?utm_source=openai",
+      "https://coinmarketcap.com/tr/currencies/moss-coin/?utm_source=openai",
+      "https://coinmarketcap.com/tr/currencies/moss-coin/?utm_source=openai",
+      "https://moneyonchain.com/blog/moc-money-on-chain-governance-token/?utm_source=openai",
+      "https://moneyonchain.com/blog/moc-money-on-chain-governance-token/?utm_source=openai",
+      "https://moneyonchain.com/blog/moc-money-on-chain-governance-token/?utm_source=openai",
+      "https://moneyonchain.com/moc-token/?utm_source=openai"
+    ],
+    "answer_excerpt": "“ MOC”이라는 토큰은 동일한 이름을 가진 여러 암호화폐 프로젝트에서 사용되고 있으므로, “어떤 MOC”인지 파악하는 것이 중요합니다. 아래에 두 가지 주요 MOC 토큰의 용도를 정리했습니다.\n\n---\n\n## 1. Moss Coin (MOC) — Mossland 메타버스 토큰\n\n“Mossland”라는 블록체인 기반 메타버스 플랫폼에서 사용되는 유틸리티 토큰으로, 다음과 같은 용도로 활용됩니다:\n\n- **가상 부동산 거래 및 NFT 관련 활동**  \n  현실 세계의 랜드마크를 기반으로 한 가상 부동산을 NFT 형태로 소유·거래하거나"
+  },
+  {
+    "query_id": "Q27",
+    "query": "Mossland은 지금 무엇을 만들고 있는가?",
+    "category": "mossland",
+    "llm": "openai",
+    "ts": "2026-05-06T10:15:35.461Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://medium.com/mossland-blog/mossland-website-renewal-update-26ec132affcb?utm_source=openai",
+      "https://medium.com/mossland-blog/mossland-website-renewal-update-26ec132affcb?utm_source=openai",
+      "https://medium.com/mossland-blog/summary-of-progress-in-q2-2025-e62d3ffa1c1e?utm_source=openai",
+      "https://medium.com/mossland-blog/summary-of-progress-in-q1-2025-672efa1c2920?utm_source=openai",
+      "https://medium.com/mossland-blog/summary-of-progress-in-q2-2025-e62d3ffa1c1e?utm_source=openai",
+      "https://medium.com/mossland-blog/q3-2025-progress-summary-5b5a639a8137?utm_source=openai",
+      "https://medium.com/mossland-blog/2025-progress-summary-and-notices-d287e0ea1dce?utm_source=openai",
+      "https://medium.com/mossland-blog/2025-progress-summary-and-notices-d287e0ea1dce?utm_source=openai",
+      "https://medium.com/mossland-blog/mossland-website-renewal-update-26ec132affcb?utm_source=openai",
+      "https://medium.com/mossland-blog/q3-2025-progress-summary-5b5a639a8137?utm_source=openai"
+    ],
+    "answer_excerpt": "“Mossland”은 현재 무엇을 만들고 있는지에 대해 알려드리겠습니다. 최근 공식 블로그와 발표에 기반해 정리해드리며, 가장 최신 정보로는 2026년에 연구/실험 단계에서 진행 중인 프로젝트들이 포함되어 있습니다.\n\n---\n\n##  2026년 현재 진행 중인 프로젝트 (연구 & 실험 단계)\n\n2026년 2월 4일 공개된 웹사이트 갱신 글(“THE INVISIBLE BRIDGE”)에 따르면, Mossland은 단순한 UI 업그레이드가 아닌 기술 방향성과 실험적 접근을 더욱 투명하게 전달하기 위해 웹사이트를 개편했습니다([medium"
+  },
+  {
+    "query_id": "Q28",
+    "query": "Mossland의 AI 전략은?",
+    "category": "mossland",
+    "llm": "openai",
+    "ts": "2026-05-06T10:15:43.465Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://medium.com/mossland-blog/mait-mossland-dao-ai-toolkit-official-launch-9eed901d2f82?utm_source=openai",
+      "https://medium.com/mossland-blog/mait-mossland-dao-ai-toolkit-official-launch-9eed901d2f82?utm_source=openai",
+      "https://medium.com/mossland-blog/mait-mossland-dao-ai-toolkit-official-launch-9eed901d2f82?utm_source=openai",
+      "https://medium.com/mossland-blog/mait-mossland-dao-ai-toolkit-official-launch-9eed901d2f82?utm_source=openai",
+      "https://medium.com/mossland-blog/mait-mossland-dao-ai-toolkit-official-launch-9eed901d2f82?utm_source=openai",
+      "https://medium.com/mossland-blog/mait-mossland-dao-ai-toolkit-official-launch-9eed901d2f82?utm_source=openai"
+    ],
+    "answer_excerpt": "Mossland(모스랜드)의 AI 전략은 주로 **MAIT (Mossland DAO AI Toolkit)**라는 시스템을 중심으로 전개되고 있습니다. 이는 2025년 4월 23일 공식 출시된 도구이며, DAO 참여와 메타버스 경험 모두에 AI를 통합해 사용자의 참여를 용이하게 하고 보상을 투명하게 연결하는 데 중점을 둡니다 ([medium.com](https://medium.com/mossland-blog/mait-mossland-dao-ai-toolkit-official-launch-9eed901d2f82?utm_source=op"
+  },
+  {
+    "query_id": "Q29",
+    "query": "MOC 1년 차트와 주요 disclosure는?",
+    "category": "mossland",
+    "llm": "openai",
+    "ts": "2026-05-06T10:15:52.798Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://robinhood.com/us/en/stocks/MOC/?utm_source=openai",
+      "https://robinhood.com/us/en/stocks/MOC/?utm_source=openai",
+      "https://www.owler.com/reports/csc/press-release--csc---command-security-corporation-/1538166365626?utm_source=openai",
+      "https://fintel.io/sn/us/moc?utm_source=openai",
+      "https://fintel.io/sn/us/moc?utm_source=openai",
+      "https://fintel.io/sn/us/moc?utm_source=openai",
+      "https://fintel.io/sfs/us/moc?utm_source=openai"
+    ],
+    "answer_excerpt": "아래는 요청하신 **MOC(티커: MOC)**의 **1년 주가 차트 현황**과 **주요 공시(Disclosure)** 내용 정리입니다.\n\n---\n\n##  1년 차트 현황\n\n- **최근 주가 범위**:\n  - **52주 최고가**: 약 **$3.55**\n  - **52주 최저가**: 약 **$1.20** ([robinhood.com](https://robinhood.com/us/en/stocks/MOC/?utm_source=openai))\n- **현재 주가**: 약 **$2.82** 수준입니다 ([robinhood.com](https"
+  },
+  {
+    "query_id": "Q30",
+    "query": "Project 0x00 (100% Agents)이란 무엇인가?",
+    "category": "mossland",
+    "llm": "openai",
+    "ts": "2026-05-06T10:15:58.647Z",
+    "alpha_cited": false,
+    "citations": [
+      "https://iq.wiki/wiki/0x0ai?utm_source=openai",
+      "https://docs.projectzero.io/docs/getting-started/what?utm_source=openai",
+      "https://www.0xwork.org/?utm_source=openai",
+      "https://www.nullagentbase.xyz/?utm_source=openai"
+    ],
+    "answer_excerpt": "“Project 0x00 (100% Agents)”에 대해 질문해 주셨는데, 현재로서는 그 용어가 정확하게 어떤 맥락에서 사용되었는지를 특정하기 어렵습니다. 구체적인 프로젝트 명칭, 관련 웹사이트나 문서, 또는 어떤 분야와 관련된 것인지 등을 알려주시면 더 명확하게 설명드릴 수 있습니다. 현재까지 웹 검색에서 동일한 이름의 프로젝트에 대한 직접적인 정보는 나오지 않았습니다.\n\n다만, 몇 가지 유사하거나 연관 가능성이 있는 프로젝트들을 소개해드릴 수 있습니다:\n\n1. **0x0.ai – 수익 공유 기반 AI 보안 플랫폼**  \n   "
   }
 ]
