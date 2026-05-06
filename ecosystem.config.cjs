@@ -52,5 +52,15 @@ module.exports = {
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
+    {
+      // Daily brief AI 요약 — 매일 08:30 KST = 23:30 UTC (어제 자료 정리)
+      name: "alpha-brief-cron",
+      cwd: "<PROJECT_ROOT>",
+      script: "./node_modules/.bin/tsx",
+      args: "scripts/generate-brief.ts",
+      cron_restart: "30 23 * * *",
+      autorestart: false,
+      env: { NODE_ENV: "production" },
+    },
   ],
 };

@@ -107,7 +107,7 @@ export default async function ComparePage({ params }: Props) {
         />
       )}
 
-      <nav className="text-xs text-[--color-muted] mb-4">
+      <nav className="text-xs text-[var(--muted)] mb-4">
         <a href="/" className="hover:underline">α Alpha</a>
         <span className="mx-2">/</span>
         <a href="/compare" className="hover:underline">Compare</a>
@@ -118,13 +118,13 @@ export default async function ComparePage({ params }: Props) {
           {c.title}
         </h1>
         {c.titleEn && (
-          <p className="text-sm text-[--color-muted] italic">{c.titleEn}</p>
+          <p className="text-sm text-[var(--muted)] italic">{c.titleEn}</p>
         )}
       </header>
 
       {/* 한 줄 요약 */}
-      <section className="mb-8 rounded-2xl border border-[--color-moss] bg-green-50/30 p-5">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-[--color-moss] mb-2">
+      <section className="mb-8 rounded-2xl border border-[var(--moss)] bg-green-50/30 p-5">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--moss)] mb-2">
           한 줄 요약
         </h2>
         <p className="text-base leading-relaxed">{c.oneLineSummary}</p>
@@ -132,12 +132,12 @@ export default async function ComparePage({ params }: Props) {
 
       {/* 양 측 비교 */}
       <section className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <article className="rounded-2xl border border-[--color-line] bg-white p-5">
+        <article className="rounded-2xl border border-[var(--line)] bg-white p-5">
           <h3 className="text-base font-semibold mb-2">
             {aHref ? (
               <a
                 href={aHref}
-                className="hover:text-[--color-moss] hover:underline"
+                className="hover:text-[var(--moss)] hover:underline"
               >
                 {c.sideA.label}
               </a>
@@ -155,12 +155,12 @@ export default async function ComparePage({ params }: Props) {
           </ul>
         </article>
 
-        <article className="rounded-2xl border border-[--color-line] bg-white p-5">
+        <article className="rounded-2xl border border-[var(--line)] bg-white p-5">
           <h3 className="text-base font-semibold mb-2">
             {bHref ? (
               <a
                 href={bHref}
-                className="hover:text-[--color-moss] hover:underline"
+                className="hover:text-[var(--moss)] hover:underline"
               >
                 {c.sideB.label}
               </a>
@@ -181,7 +181,7 @@ export default async function ComparePage({ params }: Props) {
 
       {/* Alpha 종합 */}
       <section className="mb-8 rounded-2xl bg-zinc-900 text-white p-5">
-        <h3 className="text-xs uppercase tracking-wider text-[--color-accent] mb-2">
+        <h3 className="text-xs uppercase tracking-wider text-[var(--accent)] mb-2">
           Alpha의 종합 시각
         </h3>
         <p className="text-base leading-relaxed">{c.alphaTake}</p>
@@ -190,14 +190,14 @@ export default async function ComparePage({ params }: Props) {
       {/* FAQ */}
       {c.faq && c.faq.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
             자주 묻는 질문
           </h2>
           <dl className="space-y-3">
             {c.faq.map((f, i) => (
               <div
                 key={i}
-                className="rounded-2xl border border-[--color-line] bg-white p-4"
+                className="rounded-2xl border border-[var(--line)] bg-white p-4"
               >
                 <dt className="text-sm font-semibold mb-1.5">{f.q}</dt>
                 <dd className="text-sm text-zinc-700 leading-relaxed">{f.a}</dd>
@@ -207,7 +207,7 @@ export default async function ComparePage({ params }: Props) {
         </section>
       )}
 
-      <footer className="mt-12 border-t border-[--color-line] pt-4 text-xs text-[--color-muted]">
+      <footer className="mt-12 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
         <span>마지막 업데이트: {c.updatedAt}</span>
         <span className="mx-2">·</span>
         <span>유형: 큐레이션된 비교</span>

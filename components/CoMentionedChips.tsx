@@ -31,13 +31,13 @@ export function CoMentionedChips({ focalEntityId }: { focalEntityId: string }) {
 
   return (
     <section className="mb-8">
-      <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+      <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
         함께 언급되는 것들
       </h2>
 
       {entities.length > 0 && (
         <div className="mb-3">
-          <div className="text-xs text-[--color-muted] mb-1.5">엔티티</div>
+          <div className="text-xs text-[var(--muted)] mb-1.5">엔티티</div>
           <div className="flex flex-wrap gap-1.5">
             {entities.map(({ entity, count }) => {
               const href =
@@ -46,10 +46,10 @@ export function CoMentionedChips({ focalEntityId }: { focalEntityId: string }) {
                 <a
                   key={entity.id}
                   href={href}
-                  className="rounded-full border border-[--color-line] bg-white px-2.5 py-1 text-xs hover:border-[--color-moss]"
+                  className="rounded-full border border-[var(--line)] bg-white px-2.5 py-1 text-xs hover:border-[var(--moss)]"
                 >
                   {entity.label}
-                  <span className="ml-1.5 text-[10px] text-[--color-muted]">
+                  <span className="ml-1.5 text-[10px] text-[var(--muted)]">
                     {count}
                   </span>
                 </a>
@@ -61,16 +61,16 @@ export function CoMentionedChips({ focalEntityId }: { focalEntityId: string }) {
 
       {topics.length > 0 && (
         <div className="mb-3">
-          <div className="text-xs text-[--color-muted] mb-1.5">토픽</div>
+          <div className="text-xs text-[var(--muted)] mb-1.5">토픽</div>
           <div className="flex flex-wrap gap-1.5">
             {topics.map(({ topic, count }) => (
               <a
                 key={topic.id}
                 href={`/topic/${encodeURIComponent(topic.id)}`}
-                className="rounded-full border border-[--color-line] bg-white px-2.5 py-1 text-xs hover:border-[--color-moss]"
+                className="rounded-full border border-[var(--line)] bg-white px-2.5 py-1 text-xs hover:border-[var(--moss)]"
               >
                 {topic.label}
-                <span className="ml-1.5 text-[10px] text-[--color-muted]">
+                <span className="ml-1.5 text-[10px] text-[var(--muted)]">
                   {count}
                 </span>
               </a>
@@ -81,16 +81,16 @@ export function CoMentionedChips({ focalEntityId }: { focalEntityId: string }) {
 
       {events.length > 0 && (
         <div>
-          <div className="text-xs text-[--color-muted] mb-1.5">이벤트</div>
+          <div className="text-xs text-[var(--muted)] mb-1.5">이벤트</div>
           <div className="flex flex-wrap gap-1.5">
             {events.map(({ event, count }) => (
               <a
                 key={event.id}
                 href={`/event/${encodeURIComponent(event.id)}`}
-                className="rounded-full border border-[--color-line] bg-white px-2.5 py-1 text-xs hover:border-[--color-moss]"
+                className="rounded-full border border-[var(--line)] bg-white px-2.5 py-1 text-xs hover:border-[var(--moss)]"
               >
                 {event.label}
-                <span className="ml-1.5 text-[10px] text-[--color-muted]">
+                <span className="ml-1.5 text-[10px] text-[var(--muted)]">
                   {count}
                 </span>
               </a>

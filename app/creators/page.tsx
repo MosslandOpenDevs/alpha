@@ -39,7 +39,7 @@ export default function CreatorsIndex() {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-10">
-      <nav className="text-xs text-[--color-muted] mb-4">
+      <nav className="text-xs text-[var(--muted)] mb-4">
         <a href="/" className="hover:underline">α Alpha</a>
         <span className="mx-2">/</span>
         <span>Creators</span>
@@ -49,7 +49,7 @@ export default function CreatorsIndex() {
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight mb-2">
           채널 디렉토리
         </h1>
-        <p className="text-sm text-[--color-muted]">
+        <p className="text-sm text-[var(--muted)]">
           Alpha가 분석 중인 한국·글로벌 유튜브·뉴스 채널 {channels.length}개.
           각 채널의 fingerprint(자주 다루는 엔티티 · stance 분포)를 클릭으로 확인.
         </p>
@@ -57,7 +57,7 @@ export default function CreatorsIndex() {
 
       {Object.entries(byCategory).map(([cat, list]) => (
         <section key={cat} className="mb-10">
-          <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
             {CATEGORY_LABEL[cat] || cat} · {list.length}
           </h2>
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -65,11 +65,11 @@ export default function CreatorsIndex() {
               <li key={c.youtube_channel_id || c.name}>
                 <a
                   href={`/creator/${c.youtube_channel_id}`}
-                  className="block rounded-lg border border-[--color-line] bg-white px-3 py-2 hover:border-[--color-moss]"
+                  className="block rounded-lg border border-[var(--line)] bg-white px-3 py-2 hover:border-[var(--moss)]"
                 >
                   <div className="text-sm font-medium">{c.name}</div>
                   {c.notes && (
-                    <div className="text-xs text-[--color-muted] mt-0.5 line-clamp-1">
+                    <div className="text-xs text-[var(--muted)] mt-0.5 line-clamp-1">
                       {c.notes}
                     </div>
                   )}
@@ -80,7 +80,7 @@ export default function CreatorsIndex() {
         </section>
       ))}
 
-      <footer className="mt-12 border-t border-[--color-line] pt-4 text-xs text-[--color-muted]">
+      <footer className="mt-12 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
         <span>출처: signalmap seed/channels.json</span>
       </footer>
     </main>

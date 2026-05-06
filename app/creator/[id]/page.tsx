@@ -90,7 +90,7 @@ export default async function CreatorPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: jsonLdScript(personLd) }}
       />
 
-      <nav className="text-xs text-[--color-muted] mb-4">
+      <nav className="text-xs text-[var(--muted)] mb-4">
         <a href="/" className="hover:underline">α Alpha</a>
         <span className="mx-2">/</span>
         <span>Creator</span>
@@ -100,18 +100,18 @@ export default async function CreatorPage({ params }: Props) {
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight mb-2">
           {fp.channel.name}
         </h1>
-        <div className="flex flex-wrap gap-2 text-xs text-[--color-muted]">
-          <span className="rounded-full border border-[--color-line] px-2 py-0.5">
+        <div className="flex flex-wrap gap-2 text-xs text-[var(--muted)]">
+          <span className="rounded-full border border-[var(--line)] px-2 py-0.5">
             {CATEGORY_LABEL[fp.channel.category] || fp.channel.category}
           </span>
-          <span className="rounded-full border border-[--color-line] px-2 py-0.5">
+          <span className="rounded-full border border-[var(--line)] px-2 py-0.5">
             {STANCE_LABEL[fp.channel.stance] || fp.channel.stance}
           </span>
-          <span className="rounded-full border border-[--color-line] px-2 py-0.5">
+          <span className="rounded-full border border-[var(--line)] px-2 py-0.5">
             {fp.channel.language?.toUpperCase()}
           </span>
           <a
-            className="rounded-full border border-[--color-line] px-2 py-0.5 hover:border-[--color-moss]"
+            className="rounded-full border border-[var(--line)] px-2 py-0.5 hover:border-[var(--moss)]"
             href={`https://www.youtube.com/channel/${id}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -127,7 +127,7 @@ export default async function CreatorPage({ params }: Props) {
       </header>
 
       <section className="mb-6">
-        <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-2">
+        <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
           한 줄 요약
         </h2>
         <p className="text-base">
@@ -137,7 +137,7 @@ export default async function CreatorPage({ params }: Props) {
       </section>
 
       <section className="mb-8">
-        <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+        <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
           입장 분포
         </h2>
         <StanceBar dist={dist} />
@@ -145,7 +145,7 @@ export default async function CreatorPage({ params }: Props) {
 
       {fp.topEntityIds.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
             자주 다루는 엔티티 ({fp.topEntityIds.length})
           </h2>
           <ul className="grid grid-cols-2 gap-2">
@@ -160,10 +160,10 @@ export default async function CreatorPage({ params }: Props) {
                 <li key={eid}>
                   <a
                     href={href}
-                    className="block rounded-lg border border-[--color-line] bg-white px-3 py-2 hover:border-[--color-moss]"
+                    className="block rounded-lg border border-[var(--line)] bg-white px-3 py-2 hover:border-[var(--moss)]"
                   >
                     <div className="text-sm font-medium">{e.label}</div>
-                    <div className="text-xs text-[--color-muted]">
+                    <div className="text-xs text-[var(--muted)]">
                       {count}회 · {e.type}
                     </div>
                   </a>
@@ -176,7 +176,7 @@ export default async function CreatorPage({ params }: Props) {
 
       {fp.topTopicIds.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
             자주 다루는 토픽
           </h2>
           <ul className="space-y-1.5">
@@ -187,11 +187,11 @@ export default async function CreatorPage({ params }: Props) {
                 <li key={tid} className="text-sm">
                   <a
                     href={`/topic/${encodeURIComponent(t.id)}`}
-                    className="text-[--color-moss] hover:underline"
+                    className="text-[var(--moss)] hover:underline"
                   >
                     {t.label}
                   </a>{" "}
-                  <span className="text-xs text-[--color-muted]">{count}회</span>
+                  <span className="text-xs text-[var(--muted)]">{count}회</span>
                 </li>
               );
             })}
@@ -200,7 +200,7 @@ export default async function CreatorPage({ params }: Props) {
       )}
 
       <section className="mb-8">
-        <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+        <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
           최근 영상 ({videos.length})
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -210,7 +210,7 @@ export default async function CreatorPage({ params }: Props) {
         </div>
       </section>
 
-      <footer className="mt-12 border-t border-[--color-line] pt-4 text-xs text-[--color-muted]">
+      <footer className="mt-12 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
         <span>출처: signalmap canonical (Mossland)</span>
       </footer>
     </main>

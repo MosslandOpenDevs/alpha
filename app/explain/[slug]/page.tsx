@@ -99,7 +99,7 @@ export default async function ExplainPage({ params }: Props) {
         />
       )}
 
-      <nav className="text-xs text-[--color-muted] mb-4">
+      <nav className="text-xs text-[var(--muted)] mb-4">
         <a href="/" className="hover:underline">α Alpha</a>
         <span className="mx-2">/</span>
         <span>Explain</span>
@@ -110,15 +110,15 @@ export default async function ExplainPage({ params }: Props) {
           {ex.title}
         </h1>
         {ex.titleEn && (
-          <p className="text-sm text-[--color-muted] italic mb-3">{ex.titleEn}</p>
+          <p className="text-sm text-[var(--muted)] italic mb-3">{ex.titleEn}</p>
         )}
       </header>
 
       {/* 답변 가능 5-블록 */}
 
       {/* [1] 한 줄 요약 */}
-      <section className="mb-8 rounded-2xl border border-[--color-moss] bg-green-50/30 p-5">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-[--color-moss] mb-2">
+      <section className="mb-8 rounded-2xl border border-[var(--moss)] bg-green-50/30 p-5">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--moss)] mb-2">
           한 줄 요약
         </h2>
         <p className="text-base leading-relaxed">{ex.oneLine}</p>
@@ -131,7 +131,7 @@ export default async function ExplainPage({ params }: Props) {
 
       {/* [2] 왜 중요 */}
       <section className="mb-8">
-        <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+        <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
           왜 중요한가
         </h2>
         <p className="text-base leading-relaxed">{ex.whyImportant}</p>
@@ -139,7 +139,7 @@ export default async function ExplainPage({ params }: Props) {
 
       {/* [3] 핵심 포인트 5개 */}
       <section className="mb-8">
-        <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+        <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
           핵심 포인트
         </h2>
         <ol className="space-y-2 list-decimal list-inside leading-relaxed">
@@ -152,12 +152,12 @@ export default async function ExplainPage({ params }: Props) {
       {/* [4] FAQ */}
       {ex.faq && ex.faq.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
             자주 묻는 질문
           </h2>
           <dl className="space-y-4">
             {ex.faq.map((f, i) => (
-              <div key={i} className="rounded-2xl border border-[--color-line] bg-white p-4">
+              <div key={i} className="rounded-2xl border border-[var(--line)] bg-white p-4">
                 <dt className="text-sm font-semibold mb-1.5">{f.q}</dt>
                 <dd className="text-sm text-zinc-700 leading-relaxed">{f.a}</dd>
               </div>
@@ -169,7 +169,7 @@ export default async function ExplainPage({ params }: Props) {
       {/* 관련 (internal linking) */}
       {(relatedEntities.length > 0 || relatedTopics.length > 0) && (
         <section className="mb-8">
-          <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
             관련 페이지
           </h2>
           <div className="flex flex-wrap gap-2">
@@ -181,7 +181,7 @@ export default async function ExplainPage({ params }: Props) {
                     ? `/asset/${e.id}`
                     : `/entity/${encodeURIComponent(e.id)}`
                 }
-                className="rounded-full border border-[--color-line] bg-white px-3 py-1 text-xs hover:border-[--color-moss]"
+                className="rounded-full border border-[var(--line)] bg-white px-3 py-1 text-xs hover:border-[var(--moss)]"
               >
                 {e.label}
               </a>
@@ -190,7 +190,7 @@ export default async function ExplainPage({ params }: Props) {
               <a
                 key={t.id}
                 href={`/topic/${encodeURIComponent(t.id)}`}
-                className="rounded-full border border-[--color-line] bg-white px-3 py-1 text-xs hover:border-[--color-moss]"
+                className="rounded-full border border-[var(--line)] bg-white px-3 py-1 text-xs hover:border-[var(--moss)]"
               >
                 {t.label}
               </a>
@@ -202,7 +202,7 @@ export default async function ExplainPage({ params }: Props) {
       {/* 출처 */}
       {ex.sources && ex.sources.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
             출처
           </h2>
           <ul className="space-y-1 text-sm">
@@ -212,7 +212,7 @@ export default async function ExplainPage({ params }: Props) {
                   href={s.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[--color-moss] hover:underline"
+                  className="text-[var(--moss)] hover:underline"
                 >
                   {s.title} ▸
                 </a>
@@ -223,7 +223,7 @@ export default async function ExplainPage({ params }: Props) {
       )}
 
       {/* [5] 마지막 업데이트 */}
-      <footer className="mt-12 border-t border-[--color-line] pt-4 text-xs text-[--color-muted]">
+      <footer className="mt-12 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
         <span>마지막 업데이트: {ex.updatedAt}</span>
         <span className="mx-2">·</span>
         <span>유형: 큐레이션된 explainer</span>

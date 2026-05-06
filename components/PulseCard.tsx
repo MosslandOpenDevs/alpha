@@ -33,12 +33,12 @@ export function PulseCard({ pulse, compact }: { pulse: Pulse; compact?: boolean 
     : null;
   const dirSign = pulse.direction === "up" ? "+" : "-";
   const dirCls =
-    pulse.direction === "up" ? "text-[--color-bull]" : "text-[--color-bear]";
+    pulse.direction === "up" ? "text-[var(--bull)]" : "text-[var(--bear)]";
 
   return (
-    <article className="rounded-2xl border border-[--color-line] bg-white p-5">
-      <div className="flex items-center gap-2 text-xs text-[--color-muted] mb-2">
-        <span className="font-mono uppercase font-bold text-[--color-fg]">
+    <article className="rounded-2xl border border-[var(--line)] bg-white p-5">
+      <div className="flex items-center gap-2 text-xs text-[var(--muted)] mb-2">
+        <span className="font-mono uppercase font-bold text-[var(--fg)]">
           {pulse.asset}
         </span>
         <span className={`font-mono font-bold ${dirCls}`}>
@@ -73,8 +73,8 @@ export function PulseCard({ pulse, compact }: { pulse: Pulse; compact?: boolean 
       )}
 
       {pulse.sources && pulse.sources.length > 0 && (
-        <details className="text-xs text-[--color-muted]" open={!compact}>
-          <summary className="cursor-pointer text-[--color-moss] hover:underline">
+        <details className="text-xs text-[var(--muted)]" open={!compact}>
+          <summary className="cursor-pointer text-[var(--moss)] hover:underline">
             출처 {pulse.sources.length}건
           </summary>
           <ul className="mt-2 space-y-1.5">
@@ -84,12 +84,12 @@ export function PulseCard({ pulse, compact }: { pulse: Pulse; compact?: boolean 
                   href={s.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[--color-moss] hover:underline"
+                  className="text-[var(--moss)] hover:underline"
                 >
                   {s.title || s.url}
                 </a>
                 {s.publisher && (
-                  <span className="text-[--color-muted]"> — {s.publisher}</span>
+                  <span className="text-[var(--muted)]"> — {s.publisher}</span>
                 )}
               </li>
             ))}

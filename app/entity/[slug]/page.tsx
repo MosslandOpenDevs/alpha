@@ -13,6 +13,8 @@ import { CoMentionedChips } from "@/components/CoMentionedChips";
 import { SynthesisCard } from "@/components/SynthesisCard";
 import { getSynthesis } from "@/lib/synthesis";
 import { ConnectionList } from "@/components/ConnectionList";
+import { CommunitySection } from "@/components/CommunitySection";
+import { listPostsForRef } from "@/lib/community";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -99,7 +101,7 @@ export default async function EntityPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: jsonLdScript(entityLd) }}
       />
 
-      <nav className="text-xs text-[--color-muted] mb-4">
+      <nav className="text-xs text-[var(--muted)] mb-4">
         <a href="/" className="hover:underline">α Alpha</a>
         <span className="mx-2">/</span>
         <span>{TYPE_LABEL[entity.type] || "Entity"}</span>
@@ -109,7 +111,7 @@ export default async function EntityPage({ params }: Props) {
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight mb-2">
           {entity.label}
         </h1>
-        <div className="text-xs text-[--color-muted]">
+        <div className="text-xs text-[var(--muted)]">
           {TYPE_LABEL[entity.type] || entity.type}
           {entity.aliases.length > 0 && (
             <span> · {entity.aliases.join(", ")}</span>
@@ -125,7 +127,7 @@ export default async function EntityPage({ params }: Props) {
       })()}
 
       <section className="mb-6">
-        <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-2">
+        <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
           한 줄 요약 (데이터)
         </h2>
         <p className="text-base">
@@ -135,7 +137,7 @@ export default async function EntityPage({ params }: Props) {
       </section>
 
       <section className="mb-6">
-        <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+        <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
           입장 분포
         </h2>
         <StanceBar dist={dist} />
@@ -146,11 +148,11 @@ export default async function EntityPage({ params }: Props) {
       <CoMentionedChips focalEntityId={entity.id} />
 
       <section className="mb-8">
-        <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+        <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
           관련 영상 ({videos.length})
         </h2>
         {videos.length === 0 ? (
-          <p className="text-sm text-[--color-muted]">아직 분석된 영상 없음.</p>
+          <p className="text-sm text-[var(--muted)]">아직 분석된 영상 없음.</p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {videos.slice(0, 12).map((v) => (
@@ -160,7 +162,13 @@ export default async function EntityPage({ params }: Props) {
         )}
       </section>
 
-      <footer className="mt-12 border-t border-[--color-line] pt-4 text-xs text-[--color-muted]">
+      <CommunitySection
+        refType="entity"
+        refId={entity.id}
+        initialPosts={listPostsForRef("entity", entity.id, 30)}
+      />
+
+      <footer className="mt-12 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
         <span>마지막 업데이트: {new Date(entity.updatedAt).toLocaleString("ko-KR")}</span>
         <span className="mx-2">·</span>
         <span>출처: signalmap canonical (Mossland)</span>

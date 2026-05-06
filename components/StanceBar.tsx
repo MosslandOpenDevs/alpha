@@ -15,17 +15,17 @@ export function StanceBar({ dist }: { dist: StanceDistribution }) {
 
   return (
     <div className="space-y-2">
-      <div className="flex h-2 overflow-hidden rounded-full border border-[--color-line]">
+      <div className="flex h-2 overflow-hidden rounded-full border border-[var(--line)]">
         {a > 0 && (
           <div
-            className="bg-[--color-bull]"
+            className="bg-[var(--bull)]"
             style={{ width: `${a}%` }}
             aria-label={`agree ${a}%`}
           />
         )}
         {d > 0 && (
           <div
-            className="bg-[--color-bear]"
+            className="bg-[var(--bear)]"
             style={{ width: `${d}%` }}
             aria-label={`disagree ${d}%`}
           />
@@ -45,13 +45,13 @@ export function StanceBar({ dist }: { dist: StanceDistribution }) {
           />
         )}
       </div>
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[--color-muted]">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
         <span>
-          <span className="inline-block w-2 h-2 rounded-full bg-[--color-bull] mr-1.5 align-middle" />
+          <span className="inline-block w-2 h-2 rounded-full bg-[var(--bull)] mr-1.5 align-middle" />
           같은 방향 {dist.agree}
         </span>
         <span>
-          <span className="inline-block w-2 h-2 rounded-full bg-[--color-bear] mr-1.5 align-middle" />
+          <span className="inline-block w-2 h-2 rounded-full bg-[var(--bear)] mr-1.5 align-middle" />
           다른 방향 {dist.disagree}
         </span>
         <span>

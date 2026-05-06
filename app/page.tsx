@@ -63,13 +63,13 @@ export default function Home() {
         <div className="mt-4 flex items-center gap-3 text-sm">
           <a
             href={`/brief/${todayKST()}`}
-            className="rounded-full bg-[--color-moss] text-white px-4 py-1.5 hover:opacity-90"
+            className="rounded-full bg-[var(--moss)] text-white px-4 py-1.5 hover:opacity-90"
           >
             오늘 브리프 ▸
           </a>
           <a
             href="/pulse"
-            className="rounded-full border border-[--color-line] bg-white px-4 py-1.5 hover:border-[--color-moss]"
+            className="rounded-full border border-[var(--line)] bg-white px-4 py-1.5 hover:border-[var(--moss)]"
           >
             Pulse ({activePulses.length})
           </a>
@@ -82,12 +82,12 @@ export default function Home() {
       {/* 활성 Pulse */}
       {activePulses.length > 0 && (
         <section className="mb-10">
-          <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3 flex items-center gap-2">
-            <span className="inline-block w-2 h-2 rounded-full bg-[--color-accent] animate-pulse" />
+          <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3 flex items-center gap-2">
+            <span className="inline-block w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" />
             지금 움직이는 가격 시그널
             <a
               href="/pulse"
-              className="ml-auto text-[10px] normal-case font-normal text-[--color-moss] hover:underline tracking-normal"
+              className="ml-auto text-[10px] normal-case font-normal text-[var(--moss)] hover:underline tracking-normal"
             >
               모두 보기 ▸
             </a>
@@ -103,7 +103,7 @@ export default function Home() {
       {/* 자산 grid */}
       {assets.length > 0 && (
         <section className="mb-10">
-          <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
             자산
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -113,15 +113,15 @@ export default function Home() {
                 <a
                   key={a.id}
                   href={`/asset/${slug}`}
-                  className="rounded-2xl border border-[--color-line] bg-white p-4 hover:border-[--color-moss] hover:shadow-sm transition"
+                  className="rounded-2xl border border-[var(--line)] bg-white p-4 hover:border-[var(--moss)] hover:shadow-sm transition"
                 >
                   <div className="flex items-baseline justify-between mb-1">
                     <span className="text-base font-semibold">{a.label}</span>
-                    <span className="text-xs font-mono uppercase text-[--color-muted]">
+                    <span className="text-xs font-mono uppercase text-[var(--muted)]">
                       {slug}
                     </span>
                   </div>
-                  <div className="text-xs text-[--color-muted]">
+                  <div className="text-xs text-[var(--muted)]">
                     영상 {a.videoCount}
                   </div>
                 </a>
@@ -134,24 +134,24 @@ export default function Home() {
       {/* 활성 토픽 */}
       {topics.length > 0 && (
         <section className="mb-10">
-          <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
             활성 토픽
           </h2>
           <ul className="space-y-2">
             {topics.map((t) => (
-              <li key={t.id} className="border-b border-[--color-line] pb-2">
+              <li key={t.id} className="border-b border-[var(--line)] pb-2">
                 <a
                   href={`/topic/${encodeURIComponent(t.id)}`}
-                  className="text-sm font-medium hover:text-[--color-moss]"
+                  className="text-sm font-medium hover:text-[var(--moss)]"
                 >
                   {t.label}
                 </a>
                 {t.description && (
-                  <p className="text-xs text-[--color-muted] mt-0.5 line-clamp-1">
+                  <p className="text-xs text-[var(--muted)] mt-0.5 line-clamp-1">
                     {t.description}
                   </p>
                 )}
-                <div className="text-[10px] text-[--color-muted] mt-1">
+                <div className="text-[10px] text-[var(--muted)] mt-1">
                   영상 {t.videoCount}
                 </div>
               </li>
@@ -163,7 +163,7 @@ export default function Home() {
       {/* 이벤트 */}
       {events.length > 0 && (
         <section className="mb-10">
-          <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
             이벤트
           </h2>
           <ul className="space-y-1.5">
@@ -171,11 +171,11 @@ export default function Home() {
               <li key={e.id} className="text-sm">
                 <a
                   href={`/event/${encodeURIComponent(e.id)}`}
-                  className="hover:text-[--color-moss]"
+                  className="hover:text-[var(--moss)]"
                 >
                   {e.label}
                 </a>{" "}
-                <span className="text-xs text-[--color-muted]">
+                <span className="text-xs text-[var(--muted)]">
                   · 영상 {e.videoCount}
                 </span>
               </li>
@@ -184,25 +184,25 @@ export default function Home() {
         </section>
       )}
 
-      <footer className="mt-16 border-t border-[--color-line] pt-6 text-xs text-[--color-muted] flex flex-wrap gap-x-3 gap-y-1">
+      <footer className="mt-16 border-t border-[var(--line)] pt-6 text-xs text-[var(--muted)] flex flex-wrap gap-x-3 gap-y-1">
         <span>by Mossland</span>
         <span>·</span>
-        <a href="https://moss.land" className="hover:text-[--color-fg]">
+        <a href="https://moss.land" className="hover:text-[var(--fg)]">
           moss.land
         </a>
         <span>·</span>
         <a
           href="https://disclosure.moss.land"
-          className="hover:text-[--color-fg]"
+          className="hover:text-[var(--fg)]"
         >
           disclosure
         </a>
         <span>·</span>
-        <a href="/llms.txt" className="hover:text-[--color-fg]">llms.txt</a>
+        <a href="/llms.txt" className="hover:text-[var(--fg)]">llms.txt</a>
         <span>·</span>
-        <a href="/rss.xml" className="hover:text-[--color-fg]">rss</a>
+        <a href="/rss.xml" className="hover:text-[var(--fg)]">rss</a>
         <span>·</span>
-        <a href="/sitemap.xml" className="hover:text-[--color-fg]">sitemap</a>
+        <a href="/sitemap.xml" className="hover:text-[var(--fg)]">sitemap</a>
         <span className="ml-auto">{new Date().toLocaleString("ko-KR")}</span>
       </footer>
     </main>

@@ -25,9 +25,9 @@ export function ConnectionList({ entityId }: { entityId: string }) {
 
   return (
     <section className="mb-8">
-      <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3 flex items-baseline gap-2">
+      <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3 flex items-baseline gap-2">
         관계 가설
-        <span className="text-[10px] normal-case font-normal text-[--color-muted]">
+        <span className="text-[10px] normal-case font-normal text-[var(--muted)]">
           (AI 합성 — 함께 언급된 영상 근거)
         </span>
       </h2>
@@ -45,7 +45,7 @@ export function ConnectionList({ entityId }: { entityId: string }) {
           return (
             <li
               key={`${c.entityA}-${c.entityB}`}
-              className="rounded-2xl border border-[--color-line] bg-white p-4"
+              className="rounded-2xl border border-[var(--line)] bg-white p-4"
             >
               <div className="flex items-baseline gap-2 mb-1.5">
                 <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${rel.cls}`}>
@@ -53,11 +53,11 @@ export function ConnectionList({ entityId }: { entityId: string }) {
                 </span>
                 <a
                   href={href}
-                  className="text-sm font-semibold text-[--color-fg] hover:text-[--color-moss] hover:underline"
+                  className="text-sm font-semibold text-[var(--fg)] hover:text-[var(--moss)] hover:underline"
                 >
                   {other.label}
                 </a>
-                <span className="text-[10px] text-[--color-muted] ml-auto">
+                <span className="text-[10px] text-[var(--muted)] ml-auto">
                   {CONFIDENCE_LABEL[c.confidence]} · 영상 {c.coMentionCount}편 근거
                 </span>
               </div>
@@ -68,7 +68,7 @@ export function ConnectionList({ entityId }: { entityId: string }) {
           );
         })}
       </ul>
-      <p className="mt-3 text-[10px] text-[--color-muted]">
+      <p className="mt-3 text-[10px] text-[var(--muted)]">
         ↑ AI 합성 가설입니다. 단정 X — 영상 근거 기반 추정. 정확한 사실은
         영상 원본 + 출처 직링크로 확인하세요.
       </p>

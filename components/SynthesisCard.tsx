@@ -14,7 +14,7 @@ export function SynthesisCard({
   return (
     <article className="rounded-2xl bg-zinc-900 text-zinc-100 p-6 mb-8 shadow-lg">
       <header className="flex items-baseline gap-2 mb-3 text-xs text-zinc-400">
-        <span className="font-mono text-sm text-[--color-accent]">α</span>
+        <span className="font-mono text-sm text-[var(--accent)]">α</span>
         <span className="uppercase tracking-wider">Alpha 합성</span>
         <span className="ml-auto">
           {new Date(synthesis.generatedAt).toLocaleDateString("ko-KR")}
@@ -28,7 +28,7 @@ export function SynthesisCard({
 
       {/* [2] 왜 중요 */}
       {synthesis.why && (
-        <p className="text-sm text-zinc-300 leading-relaxed mb-5 border-l-2 border-[--color-accent] pl-3">
+        <p className="text-sm text-zinc-300 leading-relaxed mb-5 border-l-2 border-[var(--accent)] pl-3">
           {synthesis.why}
         </p>
       )}
@@ -38,7 +38,7 @@ export function SynthesisCard({
         <ul className="space-y-1.5 mb-5 text-sm">
           {synthesis.points.map((p, i) => (
             <li key={i} className="flex gap-2">
-              <span className="text-[--color-accent] font-mono text-xs mt-0.5">
+              <span className="text-[var(--accent)] font-mono text-xs mt-0.5">
                 {i + 1}.
               </span>
               <span className="text-zinc-200">{p}</span>

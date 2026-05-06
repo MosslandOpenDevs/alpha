@@ -81,7 +81,7 @@ export default async function TopicPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: jsonLdScript(definedTermLd) }}
       />
 
-      <nav className="text-xs text-[--color-muted] mb-4">
+      <nav className="text-xs text-[var(--muted)] mb-4">
         <a href="/" className="hover:underline">α Alpha</a>
         <span className="mx-2">/</span>
         <span>Topic</span>
@@ -106,7 +106,7 @@ export default async function TopicPage({ params }: Props) {
       })()}
 
       <section className="mb-6">
-        <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-2">
+        <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
           한 줄 요약 (데이터)
         </h2>
         <p className="text-base">
@@ -116,18 +116,18 @@ export default async function TopicPage({ params }: Props) {
       </section>
 
       <section className="mb-8">
-        <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+        <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
           입장 분포
         </h2>
         <StanceBar dist={dist} />
       </section>
 
       <section className="mb-8">
-        <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+        <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
           관련 영상 ({videos.length})
         </h2>
         {videos.length === 0 ? (
-          <p className="text-sm text-[--color-muted]">아직 분석된 영상 없음.</p>
+          <p className="text-sm text-[var(--muted)]">아직 분석된 영상 없음.</p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {videos.slice(0, 12).map((v) => (
@@ -137,7 +137,7 @@ export default async function TopicPage({ params }: Props) {
         )}
       </section>
 
-      <footer className="mt-12 border-t border-[--color-line] pt-4 text-xs text-[--color-muted]">
+      <footer className="mt-12 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
         <span>마지막 업데이트: {new Date(topic.updatedAt).toLocaleString("ko-KR")}</span>
         <span className="mx-2">·</span>
         <span>출처: signalmap canonical (Mossland)</span>

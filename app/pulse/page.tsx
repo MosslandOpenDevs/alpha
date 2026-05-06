@@ -38,7 +38,7 @@ export default function PulseIndex() {
         dangerouslySetInnerHTML={{ __html: jsonLdScript(breadcrumb) }}
       />
 
-      <nav className="text-xs text-[--color-muted] mb-4">
+      <nav className="text-xs text-[var(--muted)] mb-4">
         <a href="/" className="hover:underline">α Alpha</a>
         <span className="mx-2">/</span>
         <span>Pulse</span>
@@ -48,7 +48,7 @@ export default function PulseIndex() {
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight mb-2">
           Pulse — 가격 쇼크 즉시 정리
         </h1>
-        <p className="text-sm text-[--color-muted]">
+        <p className="text-sm text-[var(--muted)]">
           5분 윈도우 1% 이상 변동 자동 감지. raw → enriched → reviewed 단계로
           승급. 보도 매칭 후 사후 검증 라벨링.
         </p>
@@ -56,7 +56,7 @@ export default function PulseIndex() {
 
       {active.length > 0 ? (
         <section className="mb-10">
-          <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
             활성 (지난 72시간)
           </h2>
           <div className="space-y-4">
@@ -66,14 +66,14 @@ export default function PulseIndex() {
           </div>
         </section>
       ) : (
-        <section className="mb-10 rounded-2xl border border-[--color-line] bg-white p-6 text-sm text-[--color-muted]">
+        <section className="mb-10 rounded-2xl border border-[var(--line)] bg-white p-6 text-sm text-[var(--muted)]">
           최근 72시간 활성 펄스 없음. signalmap이 5분 윈도우로 모니터링 중.
         </section>
       )}
 
       {archived.length > 0 && (
         <section>
-          <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
             지난 펄스 ({archived.length})
           </h2>
           <div className="space-y-3">

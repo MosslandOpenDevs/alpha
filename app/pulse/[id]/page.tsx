@@ -76,7 +76,7 @@ export default async function PulseDetail({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: jsonLdScript(articleLd) }}
       />
 
-      <nav className="text-xs text-[--color-muted] mb-4">
+      <nav className="text-xs text-[var(--muted)] mb-4">
         <a href="/" className="hover:underline">α Alpha</a>
         <span className="mx-2">/</span>
         <a href="/pulse" className="hover:underline">Pulse</a>
@@ -86,7 +86,7 @@ export default async function PulseDetail({ params }: Props) {
 
       <PulseCard pulse={p} />
 
-      <footer className="mt-12 border-t border-[--color-line] pt-4 text-xs text-[--color-muted]">
+      <footer className="mt-12 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
         <span>출처: signalmap pulse · {p.confidence}</span>
       </footer>
     </main>

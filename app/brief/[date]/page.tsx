@@ -10,6 +10,8 @@ import { registerSeoPage } from "@/lib/seo-register";
 import { SITE } from "@/lib/seo";
 import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import { PulseCard } from "@/components/PulseCard";
+import { SynthesisCard } from "@/components/SynthesisCard";
+import { getBriefSummary } from "@/lib/brief";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -118,7 +120,7 @@ export default async function BriefPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: jsonLdScript(articleLd) }}
       />
 
-      <nav className="text-xs text-[--color-muted] mb-4">
+      <nav className="text-xs text-[var(--muted)] mb-4">
         <a href="/" className="hover:underline">α Alpha</a>
         <span className="mx-2">/</span>
         <span>Brief</span>
@@ -128,16 +130,32 @@ export default async function BriefPage({ params }: Props) {
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight mb-2">
           {date} 시장 브리프
         </h1>
-        <p className="text-sm text-[--color-muted]">
+        <p className="text-sm text-[var(--muted)]">
           이 날 한국 크립토·매크로 시장에서 무엇이 일어났나.
           {isToday && " (진행 중 — 자정 후 인덱싱 활성)"}
         </p>
       </header>
 
-      {/* 한 줄 요약 */}
+      {(() => {
+        const briefSummary = getBriefSummary(date);
+        return briefSummary && briefSummary.points.length > 0 ? (
+          <SynthesisCard
+            synthesis={{
+              oneLine: briefSummary.oneLine,
+              why: briefSummary.why,
+              points: briefSummary.points,
+              quotes: briefSummary.quotes,
+              generatedAt: briefSummary.generatedAt,
+            }}
+            refLabel={`${date} 일일 브리프`}
+          />
+        ) : null;
+      })()}
+
+      {/* 한 줄 요약 (데이터) */}
       <section className="mb-8">
-        <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-2">
-          한 줄 요약
+        <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
+          한 줄 요약 (데이터)
         </h2>
         <p className="text-base">
           이 날 pulse {pulses.length}건, 갱신된 토픽 {updatedTopics.length},
@@ -147,7 +165,7 @@ export default async function BriefPage({ params }: Props) {
 
       {pulses.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
             가격 시그널
           </h2>
           <div className="space-y-3">
@@ -160,7 +178,7 @@ export default async function BriefPage({ params }: Props) {
 
       {updatedTopics.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
             새로 다뤄진 토픽
           </h2>
           <ul className="space-y-2">
@@ -168,11 +186,11 @@ export default async function BriefPage({ params }: Props) {
               <li key={t.id} className="flex items-baseline gap-2">
                 <a
                   href={`/topic/${encodeURIComponent(t.id)}`}
-                  className="text-[--color-moss] hover:underline font-medium"
+                  className="text-[var(--moss)] hover:underline font-medium"
                 >
                   {t.label}
                 </a>
-                <span className="text-xs text-[--color-muted]">
+                <span className="text-xs text-[var(--muted)]">
                   · 영상 {t.videoCount}
                 </span>
               </li>
@@ -183,7 +201,7 @@ export default async function BriefPage({ params }: Props) {
 
       {updatedEvents.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-3">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
             새 이벤트
           </h2>
           <ul className="space-y-2">
@@ -191,11 +209,11 @@ export default async function BriefPage({ params }: Props) {
               <li key={e.id} className="flex items-baseline gap-2">
                 <a
                   href={`/event/${encodeURIComponent(e.id)}`}
-                  className="text-[--color-moss] hover:underline font-medium"
+                  className="text-[var(--moss)] hover:underline font-medium"
                 >
                   {e.label}
                 </a>
-                <span className="text-xs text-[--color-muted]">
+                <span className="text-xs text-[var(--muted)]">
                   · 영상 {e.videoCount}
                 </span>
               </li>
@@ -205,12 +223,12 @@ export default async function BriefPage({ params }: Props) {
       )}
 
       {total === 0 && (
-        <section className="rounded-2xl border border-[--color-line] bg-white p-6 text-sm text-[--color-muted]">
+        <section className="rounded-2xl border border-[var(--line)] bg-white p-6 text-sm text-[var(--muted)]">
           이 날에 추적된 pulse·토픽·이벤트가 없습니다.
         </section>
       )}
 
-      <footer className="mt-12 border-t border-[--color-line] pt-4 text-xs text-[--color-muted]">
+      <footer className="mt-12 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
         <span>마지막 업데이트: {new Date().toLocaleString("ko-KR")}</span>
         <span className="mx-2">·</span>
         <span>출처: signalmap canonical (Mossland)</span>

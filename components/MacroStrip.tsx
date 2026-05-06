@@ -30,9 +30,9 @@ export function MacroStrip({
 
   return (
     <section className="mb-6">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-[--color-muted] mb-2 flex items-center gap-2">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2 flex items-center gap-2">
         매크로 한 컷
-        <span className="text-[10px] normal-case font-normal text-[--color-muted]">
+        <span className="text-[10px] normal-case font-normal text-[var(--muted)]">
           (FRED · 자동 갱신)
         </span>
       </h2>
@@ -43,10 +43,10 @@ export function MacroStrip({
           return (
             <div
               key={series.id}
-              className="rounded-2xl border border-[--color-line] bg-white px-3 py-2 min-w-[140px]"
+              className="rounded-2xl border border-[var(--line)] bg-white px-3 py-2 min-w-[140px]"
               title={series.description}
             >
-              <div className="text-[10px] uppercase tracking-wider text-[--color-muted]">
+              <div className="text-[10px] uppercase tracking-wider text-[var(--muted)]">
                 {series.label}
               </div>
               <div className="flex items-baseline gap-1.5 mt-0.5">
@@ -56,7 +56,7 @@ export function MacroStrip({
                 {change && (
                   <span
                     className={`text-[10px] font-mono ${
-                      isUp ? "text-[--color-bull]" : isDown ? "text-[--color-bear]" : "text-[--color-muted]"
+                      isUp ? "text-[var(--bull)]" : isDown ? "text-[var(--bear)]" : "text-[var(--muted)]"
                     }`}
                   >
                     {isUp ? "+" : ""}
@@ -65,7 +65,7 @@ export function MacroStrip({
                   </span>
                 )}
               </div>
-              <div className="text-[10px] text-[--color-muted] mt-0.5">
+              <div className="text-[10px] text-[var(--muted)] mt-0.5">
                 {latest.date}
               </div>
             </div>
