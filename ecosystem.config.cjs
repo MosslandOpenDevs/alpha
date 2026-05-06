@@ -22,5 +22,15 @@ module.exports = {
       autorestart: true,
       watch: false,
     },
+    {
+      // IndexNow weekly ping — 매주 월요일 04:00 KST = 일요일 19:00 UTC
+      name: "alpha-indexnow-cron",
+      cwd: "<PROJECT_ROOT>",
+      script: "./node_modules/.bin/tsx",
+      args: "scripts/indexnow-cron.ts",
+      cron_restart: "0 19 * * 0",
+      autorestart: false,
+      env: { NODE_ENV: "production" },
+    },
   ],
 };
