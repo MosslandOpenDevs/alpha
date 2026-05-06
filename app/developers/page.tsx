@@ -144,7 +144,16 @@ export default function DevelopersPage() {
           <a href="/mcp" className="text-[var(--moss)] hover:underline">
             /mcp
           </a>{" "}
-          참조.
+          (이 사이트) 또는{" "}
+          <a
+            href="https://github.com/MosslandOpenDevs/alpha-mcp"
+            target="_blank"
+            rel="noopener"
+            className="text-[var(--moss)] hover:underline"
+          >
+            github.com/MosslandOpenDevs/alpha-mcp
+          </a>{" "}
+          (모든 클라이언트별 install 스니펫) 참조.
         </p>
         <pre className="rounded-2xl bg-zinc-900 text-zinc-100 p-4 text-xs overflow-x-auto">
 {`# Claude Desktop config (~/Library/Application Support/Claude/claude_desktop_config.json)

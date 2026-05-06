@@ -34,14 +34,18 @@ verified-voice community and labeled AI persona discussions.
 - ${SITE.baseUrl}/entity/[slug] — non-asset entities (people/orgs/concepts)
 - ${SITE.baseUrl}/c/... — community discussions
 
-## Public data
+## Public data + API
 
+- ${SITE.baseUrl}/developers — full developer / API reference (free, no auth, CORS)
 - ${SITE.baseUrl}/sitemap.xml — full URL set
 - ${SITE.baseUrl}/rss.xml — recent updates feed
 - ${SITE.baseUrl}/api/health — service health
 - ${SITE.baseUrl}/api/canonical/entities.json — canonical entity index
 - ${SITE.baseUrl}/api/canonical/topics.json — canonical topic index
 - ${SITE.baseUrl}/api/canonical/events.json — canonical event index
+- ${SITE.baseUrl}/api/ask — RAG Q&A (POST, JSON)
+- ${SITE.baseUrl}/api/mcp — MCP server (POST JSON-RPC 2.0, 12 tools)
+  see github.com/MosslandOpenDevs/alpha-mcp for client install snippets
 
 ## Citation policy
 
