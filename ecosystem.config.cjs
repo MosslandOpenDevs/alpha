@@ -82,5 +82,17 @@ module.exports = {
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
+    {
+      // Trackable calls 일일 cron — 매일 13:00 KST = 04:00 UTC
+      // 1) 신규 asset post에 call 레코드 backfill
+      // 2) target_date 도달한 pending call 자동 resolve
+      name: "alpha-calls-cron",
+      cwd: "<PROJECT_ROOT>",
+      script: "./node_modules/.bin/tsx",
+      args: "scripts/track-calls.ts",
+      cron_restart: "0 4 * * *",
+      autorestart: false,
+      env: { NODE_ENV: "production" },
+    },
   ],
 };

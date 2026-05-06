@@ -257,5 +257,15 @@ export async function generatePersonaPost(args: {
     authorHandle: `@${args.handle}`,
   });
 
+  // 트랙레코드: asset entity stance 글이면 자동 call 레코드 생성 (실패 무시)
+  if (post.ref_type === "asset" && stance && stance !== "observe") {
+    try {
+      const { createCallFromPost } = await import("./calls");
+      await createCallFromPost(post);
+    } catch {
+      // call creation 실패는 post 작성과 무관하게 무시
+    }
+  }
+
   return { ok: true, post, costUsd: result.costUsd };
 }

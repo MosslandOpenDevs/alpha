@@ -1,4 +1,5 @@
 import { AGENTS } from "@/lib/agents";
+import { getHandleStats } from "@/lib/calls";
 import { registerSeoPage } from "@/lib/seo-register";
 import { SITE } from "@/lib/seo";
 import type { Metadata } from "next";
@@ -61,34 +62,67 @@ export default function AgentsIndex() {
           페르소나 8개 (Phase 4 예정)
         </h2>
         <ul className="space-y-3">
-          {AGENTS.map((a) => (
-            <li
-              key={a.handle}
-              className="rounded-2xl border border-[var(--line)] bg-white p-5"
-            >
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="font-mono text-sm text-[var(--moss)]">α</span>
-                <span className="font-mono text-sm">@{a.handle}</span>
-                <span className="text-sm font-medium">{a.displayName}</span>
-                <span className="ml-auto text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                  {a.active ? "active" : "phase 4 예정"}
-                </span>
-              </div>
-              <div className="text-xs text-[var(--muted)] mb-2">
-                {a.age} · {a.background}
-              </div>
-              <blockquote className="border-l-2 border-[var(--moss)] pl-3 text-sm italic text-zinc-700 mb-2">
-                “{a.voice}”
-              </blockquote>
-              <div className="text-xs text-[var(--muted)]">
-                <span className="font-semibold text-zinc-700">stance:</span>{" "}
-                {a.stanceLean}
-                <span className="mx-2">·</span>
-                <span className="font-semibold text-zinc-700">합성 베이스:</span>{" "}
-                {a.inputCluster}
-              </div>
-            </li>
-          ))}
+          {AGENTS.map((a) => {
+            const stats = getHandleStats(`@${a.handle}`);
+            return (
+              <li
+                key={a.handle}
+                className="rounded-2xl border border-[var(--line)] bg-white p-5"
+              >
+                <div className="flex items-baseline gap-2 mb-2 flex-wrap">
+                  <span className="font-mono text-sm text-[var(--moss)]">α</span>
+                  <a
+                    href={`/agents/${a.handle}`}
+                    className="font-mono text-sm hover:underline"
+                  >
+                    @{a.handle}
+                  </a>
+                  <span className="text-sm font-medium">{a.displayName}</span>
+                  {stats.total > 0 && (
+                    <span className="ml-auto text-[10px] flex items-baseline gap-2">
+                      {stats.correct + stats.wrong > 0 && (
+                        <span
+                          className={`font-mono ${
+                            stats.accuracy >= 60
+                              ? "text-[var(--bull)]"
+                              : stats.accuracy < 40
+                              ? "text-[var(--bear)]"
+                              : "text-[var(--muted)]"
+                          }`}
+                        >
+                          적중 {stats.accuracy.toFixed(0)}%
+                        </span>
+                      )}
+                      <span className="text-[var(--muted)]">
+                        ({stats.total} 콜)
+                      </span>
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-[var(--muted)] mb-2">
+                  {a.age} · {a.background}
+                </div>
+                <blockquote className="border-l-2 border-[var(--moss)] pl-3 text-sm italic text-zinc-700 mb-2">
+                  “{a.voice}”
+                </blockquote>
+                <div className="text-xs text-[var(--muted)]">
+                  <span className="font-semibold text-zinc-700">stance:</span>{" "}
+                  {a.stanceLean}
+                  <span className="mx-2">·</span>
+                  <span className="font-semibold text-zinc-700">합성 베이스:</span>{" "}
+                  {a.inputCluster}
+                </div>
+                <div className="mt-2">
+                  <a
+                    href={`/agents/${a.handle}`}
+                    className="text-xs text-[var(--moss)] hover:underline"
+                  >
+                    프로필 + 콜 history ▸
+                  </a>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </section>
 
