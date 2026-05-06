@@ -11,6 +11,7 @@ import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import { StanceBar } from "@/components/StanceBar";
 import { VideoCard } from "@/components/VideoCard";
 import { PulseCard } from "@/components/PulseCard";
+import { CoMentionedChips } from "@/components/CoMentionedChips";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -129,6 +130,11 @@ export default async function AssetPage({ params }: Props) {
         </h2>
         <StanceBar dist={dist} />
       </section>
+
+      {/* [3a] 함께 언급되는 것들 (internal linking density) */}
+      {entity.videoCount > 0 && (
+        <CoMentionedChips focalEntityId={entity.id} />
+      )}
 
       {/* [3] 활성 pulse */}
       {pulses.length > 0 && (

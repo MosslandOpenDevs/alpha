@@ -435,3 +435,73 @@ export function getAssetOrStub(slug: string): Entity | null {
 export function getAssetEntities(): Entity[] {
   return getEntitiesByType("asset");
 }
+
+// ─── co-mention helpers ──────────────────────────────────────────────
+
+/** Top N entities co-mentioned with the focal entity (excludes self). */
+export function getCoMentionedEntities(
+  focalEntityId: string,
+  limit = 12
+): { entity: Entity; count: number }[] {
+  const ent = getEntity(focalEntityId);
+  if (!ent) return [];
+  const counts = new Map<string, number>();
+  for (const vid of ent.videoIds) {
+    const v = getVideo(vid);
+    if (!v) continue;
+    for (const eid of v.canonical_entity_ids || []) {
+      if (eid === focalEntityId) continue;
+      counts.set(eid, (counts.get(eid) || 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .map(([id, count]) => ({ entity: getEntity(id), count }))
+    .filter((x): x is { entity: Entity; count: number } => !!x.entity)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
+}
+
+/** Top N topics co-mentioned with focal entity. */
+export function getCoMentionedTopics(
+  focalEntityId: string,
+  limit = 6
+): { topic: Topic; count: number }[] {
+  const ent = getEntity(focalEntityId);
+  if (!ent) return [];
+  const counts = new Map<string, number>();
+  for (const vid of ent.videoIds) {
+    const v = getVideo(vid);
+    if (!v?.canonical_topic_id) continue;
+    counts.set(
+      v.canonical_topic_id,
+      (counts.get(v.canonical_topic_id) || 0) + 1
+    );
+  }
+  return [...counts.entries()]
+    .map(([id, count]) => ({ topic: getTopic(id), count }))
+    .filter((x): x is { topic: Topic; count: number } => !!x.topic)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
+}
+
+/** Top N events co-mentioned with focal entity. */
+export function getCoMentionedEvents(
+  focalEntityId: string,
+  limit = 6
+): { event: EventItem; count: number }[] {
+  const ent = getEntity(focalEntityId);
+  if (!ent) return [];
+  const counts = new Map<string, number>();
+  for (const vid of ent.videoIds) {
+    const v = getVideo(vid);
+    if (!v) continue;
+    for (const eid of v.canonical_event_ids || []) {
+      counts.set(eid, (counts.get(eid) || 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .map(([id, count]) => ({ event: getEvent(id), count }))
+    .filter((x): x is { event: EventItem; count: number } => !!x.event)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
+}
