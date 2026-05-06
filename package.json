@@ -2,18 +2,22 @@
   "name": "alpha",
   "version": "0.1.0",
   "private": true,
+  "description": "Alpha by Mossland — 외부 유저가 매일 들어오는 미디어·커뮤니티·시그널 surface",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 6900",
     "build": "next build",
-    "start": "next start"
+    "start": "next start -p 6900"
   },
   "dependencies": {
+    "better-sqlite3": "^12.9.0",
+    "nanoid": "^5.1.11",
     "next": "16.2.4",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

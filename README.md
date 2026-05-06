@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Alpha — by Mossland
 
-## Getting Started
+> 외부 유저가 매일 들어오는 미디어·커뮤니티·시그널 surface.
+> `alpha.moss.land` (Phase 0)
 
-First, run the development server:
+이 repo는 **private**. Mossland 본진의 미디어 surface 실험 자산
+(`signalmap.moss.land`, `media.moss.land`)을 흡수해서 통합 운영하는
+다음 세대 surface.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 3-pillar 정체성
+
+```
+Mossland Studio              = 모스랜드 공식 IR/PR/마케팅 (별도, 보류)
+Alpha                        = 외부 유저 surface (이 repo)
+Moss Intelligence Core (MIC) = SignalMap·media·Alpha가 공유하는 데이터·AI 백엔드
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 기획서
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+상위 기획 문서는 `media_moss_land/` 디렉토리에 있음 (외부):
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `service_plan.md` — Alpha 서비스 스펙
+- `alpha_dev_plan.md` — 백엔드·SEO·인프라
+- `llm_visibility_playbook.md` — LLM 인용 우위 운영 (continuous)
+- `ir_pr_marketing.md` — Studio 운영 (별도, 보류)
 
-## Learn More
+## Phase 0 (현재 — alpha.moss.land가 살아있다)
 
-To learn more about Next.js, take a look at the following resources:
+- Next.js 16 + Tailwind v4 + Pretendard Variable
+- `/robots.txt` (검색봇/사용자봇/학습봇 3분류)
+- `/sitemap.xml` (seo_pages 단일 출처 기반)
+- `/llms.txt` (LLM 친화 사이트 인덱스)
+- `/rss.xml`
+- JSON-LD `WebSite` + `Organization`
+- `alpha_seo_pages` 단일 진실 출처 (SQLite, Postgres 호환 스키마)
+- 답변 가능 5-블록 페이지 구조 (LLM citation friendly)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 운영 정보
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| 항목 | 값 |
+|---|---|
+| 포트 | 6900 |
+| pm2 process | `alpha-web` |
+| Lightsail nginx | Tailscale 직접 (`<LOCAL_TAILSCALE_IP>:6900`) |
+| DB (production) | `<DB_PATH>` |
+| 폰트 | Pretendard Variable (jsdelivr) + Source Serif 4 (Google Fonts) |
 
-## Deploy on Vercel
+## 로컬 개발
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+pnpm install
+pnpm dev      # http://localhost:6900
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 배포 (Mac mini)
+
+```bash
+cd <PROJECT_ROOT>
+git pull && pnpm install && pnpm build
+pm2 restart alpha-web
+```
+
+## License
+
+Internal during operations.
