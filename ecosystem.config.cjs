@@ -62,5 +62,15 @@ module.exports = {
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
+    {
+      // Persona 일일 tick — 매일 09:00 KST = 00:00 UTC (페르소나 발화 10건)
+      name: "alpha-persona-cron",
+      cwd: "<PROJECT_ROOT>",
+      script: "./node_modules/.bin/tsx",
+      args: "scripts/persona-tick.ts --pages=10",
+      cron_restart: "0 0 * * *",
+      autorestart: false,
+      env: { NODE_ENV: "production" },
+    },
   ],
 };
