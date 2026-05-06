@@ -9,6 +9,7 @@ import {
 import { upsertSeoPage } from "@/lib/db";
 import { SITE } from "@/lib/seo";
 import { PulseCard } from "@/components/PulseCard";
+import { MacroStrip } from "@/components/MacroStrip";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 60;
@@ -74,6 +75,9 @@ export default function Home() {
           </a>
         </div>
       </header>
+
+      {/* Macro Strip */}
+      <MacroStrip />
 
       {/* 활성 Pulse */}
       {activePulses.length > 0 && (

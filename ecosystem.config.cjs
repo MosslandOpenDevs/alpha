@@ -32,5 +32,25 @@ module.exports = {
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
+    {
+      // Macro 데이터 daily fetch — 매일 06:00 KST = 21:00 UTC
+      name: "alpha-macro-cron",
+      cwd: "<PROJECT_ROOT>",
+      script: "./node_modules/.bin/tsx",
+      args: "scripts/fetch-macro.ts",
+      cron_restart: "0 21 * * *",
+      autorestart: false,
+      env: { NODE_ENV: "production" },
+    },
+    {
+      // Synthesis 자동 갱신 — 매일 07:00 KST = 22:00 UTC (top 30 entity)
+      name: "alpha-synthesis-cron",
+      cwd: "<PROJECT_ROOT>",
+      script: "./node_modules/.bin/tsx",
+      args: "scripts/generate-synthesis.ts top --limit=30",
+      cron_restart: "0 22 * * *",
+      autorestart: false,
+      env: { NODE_ENV: "production" },
+    },
   ],
 };

@@ -12,6 +12,7 @@ import { VideoCard } from "@/components/VideoCard";
 import { CoMentionedChips } from "@/components/CoMentionedChips";
 import { SynthesisCard } from "@/components/SynthesisCard";
 import { getSynthesis } from "@/lib/synthesis";
+import { ConnectionList } from "@/components/ConnectionList";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -139,6 +140,8 @@ export default async function EntityPage({ params }: Props) {
         </h2>
         <StanceBar dist={dist} />
       </section>
+
+      <ConnectionList entityId={entity.id} />
 
       <CoMentionedChips focalEntityId={entity.id} />
 

@@ -1,0 +1,84 @@
+import {
+  MACRO_SERIES,
+  getLatestObservation,
+  getRecentObservations,
+  changeFromPrevious,
+} from "@/lib/fred";
+
+/**
+ * Macro 한 줄 strip — 핵심 4개 series를 chip 형태로.
+ * 홈 + asset/btc 등에 노출.
+ */
+export function MacroStrip({
+  seriesIds = ["DFF", "DGS10", "DEXKOUS", "UNRATE"],
+}: {
+  seriesIds?: string[];
+}) {
+  const items = seriesIds
+    .map((id) => {
+      const series = MACRO_SERIES.find((s) => s.id === id);
+      if (!series) return null;
+      const latest = getLatestObservation(id);
+      if (!latest || latest.value == null) return null;
+      const recent = getRecentObservations(id, 2);
+      const change = changeFromPrevious(series, recent);
+      return { series, latest, change };
+    })
+    .filter((x): x is NonNullable<typeof x> => !!x);
+
+  if (items.length === 0) return null;
+
+  return (
+    <section className="mb-6">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-[--color-muted] mb-2 flex items-center gap-2">
+        매크로 한 컷
+        <span className="text-[10px] normal-case font-normal text-[--color-muted]">
+          (FRED · 자동 갱신)
+        </span>
+      </h2>
+      <div className="flex flex-wrap gap-2">
+        {items.map(({ series, latest, change }) => {
+          const isUp = (change?.delta ?? 0) > 0;
+          const isDown = (change?.delta ?? 0) < 0;
+          return (
+            <div
+              key={series.id}
+              className="rounded-2xl border border-[--color-line] bg-white px-3 py-2 min-w-[140px]"
+              title={series.description}
+            >
+              <div className="text-[10px] uppercase tracking-wider text-[--color-muted]">
+                {series.label}
+              </div>
+              <div className="flex items-baseline gap-1.5 mt-0.5">
+                <span className="font-mono text-base font-semibold">
+                  {fmt(latest.value!, series.unit)}
+                </span>
+                {change && (
+                  <span
+                    className={`text-[10px] font-mono ${
+                      isUp ? "text-[--color-bull]" : isDown ? "text-[--color-bear]" : "text-[--color-muted]"
+                    }`}
+                  >
+                    {isUp ? "+" : ""}
+                    {change.delta.toFixed(2)}
+                    {change.deltaUnit}
+                  </span>
+                )}
+              </div>
+              <div className="text-[10px] text-[--color-muted] mt-0.5">
+                {latest.date}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function fmt(value: number, unit: string): string {
+  if (unit === "%" || unit === "%p") return value.toFixed(2) + "%";
+  if (unit === "KRW") return value.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
+  if (unit === "index") return value.toFixed(2);
+  return value.toString();
+}

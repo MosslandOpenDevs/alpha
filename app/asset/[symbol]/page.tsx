@@ -14,6 +14,8 @@ import { PulseCard } from "@/components/PulseCard";
 import { CoMentionedChips } from "@/components/CoMentionedChips";
 import { SynthesisCard } from "@/components/SynthesisCard";
 import { getSynthesis } from "@/lib/synthesis";
+import { MacroStrip } from "@/components/MacroStrip";
+import { ConnectionList } from "@/components/ConnectionList";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -118,6 +120,9 @@ export default async function AssetPage({ params }: Props) {
         <SynthesisCard synthesis={synthesis} refLabel={entity.label} />
       )}
 
+      {/* Macro context (BTC 등 매크로에 민감한 자산만) */}
+      <MacroStrip />
+
       {/* 답변 가능 5-블록 */}
 
       {/* [1] 한 줄 요약 */}
@@ -138,6 +143,9 @@ export default async function AssetPage({ params }: Props) {
         </h2>
         <StanceBar dist={dist} />
       </section>
+
+      {/* 관계 가설 (Grok 1줄 인과) */}
+      {entity.videoCount > 0 && <ConnectionList entityId={entity.id} />}
 
       {/* [3a] 함께 언급되는 것들 (internal linking density) */}
       {entity.videoCount > 0 && (
