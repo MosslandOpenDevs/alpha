@@ -10,6 +10,8 @@ import { SITE } from "@/lib/seo";
 import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import { StanceBar } from "@/components/StanceBar";
 import { VideoCard } from "@/components/VideoCard";
+import { SynthesisCard } from "@/components/SynthesisCard";
+import { getSynthesis } from "@/lib/synthesis";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -101,9 +103,16 @@ export default async function EventPage({ params }: Props) {
         )}
       </header>
 
+      {(() => {
+        const synthesis = getSynthesis("event", ev.id);
+        return synthesis ? (
+          <SynthesisCard synthesis={synthesis} refLabel={ev.label} />
+        ) : null;
+      })()}
+
       <section className="mb-6">
         <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-2">
-          한 줄 요약
+          한 줄 요약 (데이터)
         </h2>
         <p className="text-base">
           {videos.length}편의 한국 채널이 이 사건을 다뤘고, 의견은 {dist.agree}/

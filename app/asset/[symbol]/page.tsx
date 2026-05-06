@@ -12,6 +12,8 @@ import { StanceBar } from "@/components/StanceBar";
 import { VideoCard } from "@/components/VideoCard";
 import { PulseCard } from "@/components/PulseCard";
 import { CoMentionedChips } from "@/components/CoMentionedChips";
+import { SynthesisCard } from "@/components/SynthesisCard";
+import { getSynthesis } from "@/lib/synthesis";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -50,6 +52,7 @@ export default async function AssetPage({ params }: Props) {
   const pulses = getActivePulses(72).filter(
     (p) => p.asset.toLowerCase() === symbol.toLowerCase()
   );
+  const synthesis = getSynthesis("entity", entity.id);
 
   // Quality score: ≥5 videos = full quality. <5 = sparse → noindex.
   const quality = Math.min(1, entity.videoCount / 20);
@@ -110,12 +113,17 @@ export default async function AssetPage({ params }: Props) {
         </p>
       </header>
 
+      {/* AI synthesis 카드 (있을 때만) */}
+      {synthesis && (
+        <SynthesisCard synthesis={synthesis} refLabel={entity.label} />
+      )}
+
       {/* 답변 가능 5-블록 */}
 
       {/* [1] 한 줄 요약 */}
       <section className="mb-6">
         <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-2">
-          한 줄 요약
+          한 줄 요약 (데이터)
         </h2>
         <p className="text-base text-[--color-fg]">
           최근 {videos.length}편 영상 중 {dist.agree}개 강세, {dist.disagree}개

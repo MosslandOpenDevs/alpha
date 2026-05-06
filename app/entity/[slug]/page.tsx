@@ -10,6 +10,8 @@ import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import { StanceBar } from "@/components/StanceBar";
 import { VideoCard } from "@/components/VideoCard";
 import { CoMentionedChips } from "@/components/CoMentionedChips";
+import { SynthesisCard } from "@/components/SynthesisCard";
+import { getSynthesis } from "@/lib/synthesis";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -114,9 +116,16 @@ export default async function EntityPage({ params }: Props) {
         </div>
       </header>
 
+      {(() => {
+        const synthesis = getSynthesis("entity", entity.id);
+        return synthesis ? (
+          <SynthesisCard synthesis={synthesis} refLabel={entity.label} />
+        ) : null;
+      })()}
+
       <section className="mb-6">
         <h2 className="text-base font-semibold uppercase tracking-wider text-[--color-muted] mb-2">
-          한 줄 요약
+          한 줄 요약 (데이터)
         </h2>
         <p className="text-base">
           {entity.label}을(를) 다룬 영상 {videos.length}편. 의견 {dist.agree}/
