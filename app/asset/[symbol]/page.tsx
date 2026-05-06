@@ -18,6 +18,7 @@ import { MacroStrip } from "@/components/MacroStrip";
 import { ConnectionList } from "@/components/ConnectionList";
 import { CommunitySection } from "@/components/CommunitySection";
 import { listPostsWithRepliesForRef } from "@/lib/community";
+import { listWhyMovedForAsset } from "@/lib/why-moved";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -167,6 +168,47 @@ export default async function AssetPage({ params }: Props) {
           </div>
         </section>
       )}
+
+      {/* Why-moved 일자별 분석 — SEO 직격 ("오늘 BTC 왜 올랐나") */}
+      {(() => {
+        const moves = listWhyMovedForAsset(entity.id, 8);
+        if (moves.length === 0) return null;
+        return (
+          <section className="mb-8">
+            <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
+              일자별 움직임 분석
+            </h2>
+            <ul className="space-y-2">
+              {moves.map((m) => (
+                <li
+                  key={m.date}
+                  className="rounded-2xl border border-[var(--line)] bg-white p-4"
+                >
+                  <a
+                    href={`/asset/${symbol.toLowerCase()}/why-moved/${m.date}`}
+                    className="block hover:text-[var(--moss)]"
+                  >
+                    <div className="flex items-baseline gap-2 mb-1">
+                      <span className="font-mono text-xs text-[var(--muted)]">
+                        {m.date}
+                      </span>
+                      <span className="text-[10px] text-[var(--muted)]">
+                        · pulse {m.pulses.length} · 출처 {m.sources.length}
+                      </span>
+                    </div>
+                    <div className="text-sm font-semibold mb-1 line-clamp-1">
+                      {m.title}
+                    </div>
+                    <p className="text-xs text-zinc-700 line-clamp-2 leading-relaxed">
+                      {m.oneLine}
+                    </p>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })()}
 
       {/* [4] 최근 영상 카드 */}
       <section className="mb-8">

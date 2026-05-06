@@ -94,5 +94,16 @@ module.exports = {
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
+    {
+      // Why-moved 자동 생성 — 매일 23:45 UTC = 다음날 08:45 KST
+      // 새 pulse 들어오면 (asset, date) 조합으로 자동 article 생성
+      name: "alpha-why-moved-cron",
+      cwd: "<PROJECT_ROOT>",
+      script: "./node_modules/.bin/tsx",
+      args: "scripts/generate-why-moved.ts",
+      cron_restart: "45 23 * * *",
+      autorestart: false,
+      env: { NODE_ENV: "production" },
+    },
   ],
 };
