@@ -33,37 +33,49 @@ process.env.NODE_ENV = process.env.NODE_ENV || "production";
 
 async function main() {
   const { fetchSeriesLatest, MACRO_SERIES, FRED_AVAILABLE } = await import("../lib/fred");
+  const { fetchKrSeries, KR_MACRO_SERIES, ECOS_AVAILABLE } = await import("../lib/ecos");
 
-  if (!FRED_AVAILABLE) {
-    console.error("FRED_API_KEY not set.");
-    process.exit(1);
-  }
-
-  const args = process.argv.slice(2);
-  const filter = args.length > 0 ? args : null;
-  const targets = filter
-    ? MACRO_SERIES.filter((s) => filter.includes(s.id))
-    : MACRO_SERIES;
-
-  console.log(`Fetching ${targets.length} series from FRED...`);
   let totalRows = 0;
-  for (const s of targets) {
-    process.stdout.write(`  ${s.id} (${s.label}) ... `);
-    try {
-      const rows = await fetchSeriesLatest(s.id, 60);
-      totalRows += rows.length;
-      const latest = rows[0];
-      process.stdout.write(
-        latest
-          ? `OK [${rows.length} obs, latest ${latest.date}=${latest.value}${s.unit}]\n`
-          : `OK [no data]\n`
-      );
-    } catch (err) {
-      process.stdout.write(`FAIL: ${(err as Error).message}\n`);
+
+  if (FRED_AVAILABLE) {
+    console.log(`Fetching ${MACRO_SERIES.length} series from FRED...`);
+    for (const s of MACRO_SERIES) {
+      process.stdout.write(`  FRED:${s.id} ... `);
+      try {
+        const rows = await fetchSeriesLatest(s.id, 60);
+        totalRows += rows.length;
+        const latest = rows[0];
+        process.stdout.write(
+          latest
+            ? `OK [${rows.length} obs, latest ${latest.date}=${latest.value}${s.unit}]\n`
+            : `OK [no data]\n`
+        );
+      } catch (err) {
+        process.stdout.write(`FAIL: ${(err as Error).message}\n`);
+      }
+      await new Promise((r) => setTimeout(r, 500));
     }
-    // simple rate-limit safety: 0.5s between calls
-    await new Promise((r) => setTimeout(r, 500));
+  } else {
+    console.warn("FRED_API_KEY not set, skipping FRED.");
   }
+
+  if (ECOS_AVAILABLE) {
+    console.log(`\nFetching ${KR_MACRO_SERIES.length} series from ECOS...`);
+    for (const s of KR_MACRO_SERIES) {
+      process.stdout.write(`  ECOS:${s.id} ... `);
+      try {
+        const rows = await fetchKrSeries(s);
+        totalRows += rows.length;
+        process.stdout.write(`OK [${rows.length} obs]\n`);
+      } catch (err) {
+        process.stdout.write(`FAIL: ${(err as Error).message}\n`);
+      }
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  } else {
+    console.warn("ECOS_API_KEY not set, skipping ECOS.");
+  }
+
   console.log(`\nDone. Stored ${totalRows} observations.`);
 }
 

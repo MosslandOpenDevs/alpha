@@ -14,7 +14,7 @@ import { SynthesisCard } from "@/components/SynthesisCard";
 import { getSynthesis } from "@/lib/synthesis";
 import { ConnectionList } from "@/components/ConnectionList";
 import { CommunitySection } from "@/components/CommunitySection";
-import { listPostsForRef } from "@/lib/community";
+import { listPostsWithRepliesForRef } from "@/lib/community";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -165,7 +165,7 @@ export default async function EntityPage({ params }: Props) {
       <CommunitySection
         refType="entity"
         refId={entity.id}
-        initialPosts={listPostsForRef("entity", entity.id, 30)}
+        initialPosts={listPostsWithRepliesForRef("entity", entity.id, 30)}
       />
 
       <footer className="mt-12 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">

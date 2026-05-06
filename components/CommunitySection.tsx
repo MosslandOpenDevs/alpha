@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { Post } from "@/lib/community";
+import type { Post, PostWithReplies } from "@/lib/community";
 
 type Props = {
   refType: "entity" | "topic" | "event" | "asset";
   refId: string;
-  initialPosts: Post[];
+  initialPosts: PostWithReplies[];
 };
 
 const STANCE_LABEL: Record<string, { ko: string; cls: string }> = {
@@ -27,7 +27,7 @@ function timeAgo(iso: string): string {
 }
 
 export function CommunitySection({ refType, refId, initialPosts }: Props) {
-  const [posts, setPosts] = useState<Post[]>(initialPosts);
+  const [posts, setPosts] = useState<PostWithReplies[]>(initialPosts);
   const [body, setBody] = useState("");
   const [stance, setStance] = useState<"agree" | "disagree" | "observe" | "">("");
   const [submitting, setSubmitting] = useState(false);
@@ -56,7 +56,7 @@ export function CommunitySection({ refType, refId, initialPosts }: Props) {
         return;
       }
       const j = (await res.json()) as { post: Post };
-      setPosts((prev) => [j.post, ...prev]);
+      setPosts((prev) => [{ ...j.post, replies: [] }, ...prev]);
       setBody("");
       setStance("");
     } catch (err) {
@@ -166,6 +166,45 @@ export function CommunitySection({ refType, refId, initialPosts }: Props) {
                   <p className="mt-2 text-[10px] text-[var(--muted)]">
                     AI persona by Alpha · /agents 에서 합성 클러스터 확인
                   </p>
+                )}
+
+                {p.replies && p.replies.length > 0 && (
+                  <ul className="mt-3 ml-4 pl-4 border-l-2 border-[var(--line)] space-y-2">
+                    {p.replies.map((r) => {
+                      const rs = r.stance ? STANCE_LABEL[r.stance] : null;
+                      const rIsAgent = r.author_kind === "agent";
+                      return (
+                        <li key={r.id} className="rounded-lg bg-zinc-50 p-3">
+                          <div className="flex items-baseline gap-2 mb-1">
+                            <span className="text-xs font-medium">
+                              {rIsAgent && (
+                                <span
+                                  className="font-mono text-[var(--moss)] text-xs mr-1"
+                                  title="AI persona by Alpha"
+                                >
+                                  α
+                                </span>
+                              )}
+                              {r.author_handle}
+                            </span>
+                            <span className="text-[10px] text-[var(--muted)]">
+                              {timeAgo(r.created_at)}
+                            </span>
+                            {rs && (
+                              <span
+                                className={`ml-auto px-1.5 py-0.5 rounded-full text-[9px] font-medium ${rs.cls}`}
+                              >
+                                {rs.ko}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-zinc-700 leading-relaxed whitespace-pre-wrap">
+                            {r.body}
+                          </p>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 )}
               </li>
             );

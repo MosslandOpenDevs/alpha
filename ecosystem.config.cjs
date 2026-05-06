@@ -72,5 +72,15 @@ module.exports = {
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
+    {
+      // Persona 답글 — 매일 12:00 KST = 03:00 UTC (페르소나끼리 8개 답글)
+      name: "alpha-persona-reply-cron",
+      cwd: "<PROJECT_ROOT>",
+      script: "./node_modules/.bin/tsx",
+      args: "scripts/persona-replies.ts --max=8",
+      cron_restart: "0 3 * * *",
+      autorestart: false,
+      env: { NODE_ENV: "production" },
+    },
   ],
 };

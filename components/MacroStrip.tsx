@@ -4,19 +4,42 @@ import {
   getRecentObservations,
   changeFromPrevious,
 } from "@/lib/fred";
+import { KR_MACRO_SERIES } from "@/lib/ecos";
+
+type MergedSeries = {
+  id: string;
+  label: string;
+  unit: string;
+  description: string;
+};
 
 /**
- * Macro 한 줄 strip — 핵심 4개 series를 chip 형태로.
+ * Macro 한 줄 strip — 미국(FRED) + 한국(ECOS) 핵심 chip.
  * 홈 + asset/btc 등에 노출.
  */
 export function MacroStrip({
-  seriesIds = ["DFF", "DGS10", "DEXKOUS", "UNRATE"],
+  seriesIds = ["DFF", "KR_BASE_RATE", "DGS10", "KR_GOV3Y", "DEXKOUS", "T10Y2Y"],
 }: {
   seriesIds?: string[];
 }) {
+  const allSeries: MergedSeries[] = [
+    ...MACRO_SERIES.map((s) => ({
+      id: s.id,
+      label: s.label,
+      unit: s.unit,
+      description: s.description,
+    })),
+    ...KR_MACRO_SERIES.map((s) => ({
+      id: s.id,
+      label: s.label,
+      unit: s.unit,
+      description: s.description,
+    })),
+  ];
+
   const items = seriesIds
     .map((id) => {
-      const series = MACRO_SERIES.find((s) => s.id === id);
+      const series = allSeries.find((s) => s.id === id);
       if (!series) return null;
       const latest = getLatestObservation(id);
       if (!latest || latest.value == null) return null;

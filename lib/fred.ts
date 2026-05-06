@@ -168,7 +168,7 @@ export function getRecentObservations(seriesId: string, limit = 30): Observation
 
 /** 직전 값 대비 변화 (%p for rates, % change for indices). */
 export function changeFromPrevious(
-  series: MacroSeries,
+  series: { unit: string },
   obs: Observation[]
 ): { delta: number; deltaUnit: string } | null {
   if (obs.length < 2) return null;

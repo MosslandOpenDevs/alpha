@@ -1,0 +1,136 @@
+/**
+ * 페르소나끼리 답글 일일 cron.
+ *
+ * 사용법:
+ *   pnpm tsx scripts/persona-replies.ts                  # default 8
+ *   pnpm tsx scripts/persona-replies.ts --max=12
+ *
+ * 알고리즘:
+ *   - 최근 24시간 페르소나 글 (사람 글도 가능, 다만 v1은 페르소나 글 우선)
+ *   - 답글 < 5 인 글만
+ *   - 다른 페르소나가 답글
+ *   - stance 대비 우선 (agree → disagree responder, etc.)
+ *   - 일일 reply cap (각 페르소나 dailyCap/2)
+ *
+ * pm2 cron: 매일 03:00 UTC = 12:00 KST.
+ */
+
+import fs from "node:fs";
+import path from "node:path";
+
+function loadEnvFile(file: string) {
+  if (!fs.existsSync(file)) return;
+  const text = fs.readFileSync(file, "utf8");
+  for (const line of text.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq < 0) continue;
+    const key = trimmed.slice(0, eq).trim();
+    const val = trimmed.slice(eq + 1).trim();
+    if (!process.env[key]) process.env[key] = val;
+  }
+}
+loadEnvFile(path.join(process.cwd(), ".env.local"));
+loadEnvFile(path.join(process.cwd(), ".env"));
+if (!process.env.DB_PATH) {
+  process.env.DB_PATH = "<DB_PATH>";
+}
+process.env.NODE_ENV = process.env.NODE_ENV || "production";
+
+function parseFlag(args: string[], name: string): string | undefined {
+  const flag = `--${name}=`;
+  for (const a of args) if (a.startsWith(flag)) return a.slice(flag.length);
+  return undefined;
+}
+
+const STANCE_OPPOSITE: Record<string, string[]> = {
+  agree: ["disagree", "observe"],
+  disagree: ["agree", "observe"],
+  observe: ["agree", "disagree"],
+};
+
+async function main() {
+  const args = process.argv.slice(2);
+  const max = Number(parseFlag(args, "max") ?? "8");
+
+  const { generatePersonaReply } = await import("../lib/persona-reply");
+  const { getActiveAgents } = await import("../lib/agents");
+
+  const Database = (await import("better-sqlite3")).default;
+  const db = new Database(process.env.DB_PATH!, { readonly: true });
+
+  // 최근 24시간 페르소나 글 (답글 < 5)
+  const cutoff = new Date(Date.now() - 24 * 3600_000).toISOString();
+  const candidates = db
+    .prepare(
+      `SELECT p.id, p.author_handle, p.stance, p.body
+       FROM alpha_posts p
+       WHERE p.parent_id IS NULL
+       AND p.is_deleted = 0
+       AND p.created_at >= ?
+       AND (
+         SELECT COUNT(*) FROM alpha_posts r WHERE r.parent_id = p.id AND r.is_deleted = 0
+       ) < 5
+       ORDER BY RANDOM()`
+    )
+    .all(cutoff) as {
+    id: string;
+    author_handle: string;
+    stance: string | null;
+    body: string;
+  }[];
+  db.close();
+
+  const agents = getActiveAgents();
+
+  console.log(`Reply candidates: ${candidates.length}, max ${max} replies`);
+  let posted = 0;
+  let totalCost = 0;
+  let attempts = 0;
+
+  for (const c of candidates) {
+    if (posted >= max) break;
+    attempts++;
+
+    // Pick replier: stance-contrast preferred
+    const preferredStances =
+      c.stance && STANCE_OPPOSITE[c.stance] ? STANCE_OPPOSITE[c.stance] : ["observe"];
+    void preferredStances;
+
+    // 자기 자신은 제외 + 무작위
+    const candidates_agents = agents.filter(
+      (a) => `@${a.handle}` !== c.author_handle
+    );
+    if (candidates_agents.length === 0) continue;
+    const replier =
+      candidates_agents[Math.floor(Math.random() * candidates_agents.length)];
+
+    process.stdout.write(`  reply to ${c.author_handle}'s post by @${replier.handle} ... `);
+    try {
+      const r = await generatePersonaReply({
+        handle: replier.handle,
+        parentId: c.id,
+      });
+      if (r.ok && r.post) {
+        posted++;
+        totalCost += r.costUsd ?? 0;
+        process.stdout.write(`OK [$${(r.costUsd ?? 0).toFixed(4)}] ${r.post.body.slice(0, 60)}\n`);
+      } else {
+        process.stdout.write(`SKIP: ${r.reason}\n`);
+      }
+    } catch (err) {
+      process.stdout.write(`FAIL: ${(err as Error).message}\n`);
+    }
+    await new Promise((r) => setTimeout(r, 200));
+  }
+
+  console.log(
+    `\nReplies done. Posted: ${posted}/${max} · cost: $${totalCost.toFixed(4)} · attempts: ${attempts}`
+  );
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

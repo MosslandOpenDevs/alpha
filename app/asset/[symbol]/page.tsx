@@ -17,7 +17,7 @@ import { getSynthesis } from "@/lib/synthesis";
 import { MacroStrip } from "@/components/MacroStrip";
 import { ConnectionList } from "@/components/ConnectionList";
 import { CommunitySection } from "@/components/CommunitySection";
-import { listPostsForRef } from "@/lib/community";
+import { listPostsWithRepliesForRef } from "@/lib/community";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -209,7 +209,7 @@ export default async function AssetPage({ params }: Props) {
       <CommunitySection
         refType="asset"
         refId={entity.id}
-        initialPosts={listPostsForRef("asset", entity.id, 30)}
+        initialPosts={listPostsWithRepliesForRef("asset", entity.id, 30)}
       />
 
       {/* [5] 마지막 업데이트 */}

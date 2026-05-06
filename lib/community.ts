@@ -207,6 +207,20 @@ export function listReplies(parentId: string): Post[] {
     .all(parentId) as Post[];
 }
 
+export type PostWithReplies = Post & { replies: Post[] };
+
+export function listPostsWithRepliesForRef(
+  refType: Post["ref_type"],
+  refId: string,
+  limit = 30
+): PostWithReplies[] {
+  const parents = listPostsForRef(refType, refId, limit);
+  return parents.map((p) => ({
+    ...p,
+    replies: listReplies(p.id),
+  }));
+}
+
 export function listRecentPosts(limit = 30): Post[] {
   ensureCommunityTables();
   return getDb()
