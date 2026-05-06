@@ -26,6 +26,9 @@ export function SiteHeader() {
           />
         </form>
         <nav className="flex items-center gap-3 text-xs text-[var(--muted)] ml-auto">
+          <a href="/ask" className="hover:text-[var(--fg)] font-medium text-[var(--moss)]">
+            Ask
+          </a>
           <a href="/pulse" className="hover:text-[var(--fg)] hidden sm:inline">
             Pulse
           </a>

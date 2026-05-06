@@ -1,0 +1,1082 @@
+[
+  {
+    "query_id": "Q1",
+    "query": "오늘 비트코인이 왜 움직였나?",
+    "category": "why-asset",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:09.715Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q1",
+    "query": "오늘 비트코인이 왜 움직였나?",
+    "category": "why-asset",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:09.971Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q1",
+    "query": "오늘 비트코인이 왜 움직였나?",
+    "category": "why-asset",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:10.230Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q1",
+    "query": "오늘 비트코인이 왜 움직였나?",
+    "category": "why-asset",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:10.484Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q2",
+    "query": "이더리움 최근 상승 이유는?",
+    "category": "why-asset",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:10.733Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q2",
+    "query": "이더리움 최근 상승 이유는?",
+    "category": "why-asset",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:10.981Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q2",
+    "query": "이더리움 최근 상승 이유는?",
+    "category": "why-asset",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:11.234Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q2",
+    "query": "이더리움 최근 상승 이유는?",
+    "category": "why-asset",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:11.485Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q3",
+    "query": "비트코인이 11만불을 넘은 이유는 무엇인가?",
+    "category": "why-asset",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:11.736Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q3",
+    "query": "비트코인이 11만불을 넘은 이유는 무엇인가?",
+    "category": "why-asset",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:11.987Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q3",
+    "query": "비트코인이 11만불을 넘은 이유는 무엇인가?",
+    "category": "why-asset",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:12.237Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q3",
+    "query": "비트코인이 11만불을 넘은 이유는 무엇인가?",
+    "category": "why-asset",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:12.489Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q4",
+    "query": "MOC 토큰 가격이 변동하는 이유는?",
+    "category": "why-asset",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:12.737Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q4",
+    "query": "MOC 토큰 가격이 변동하는 이유는?",
+    "category": "why-asset",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:12.984Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q4",
+    "query": "MOC 토큰 가격이 변동하는 이유는?",
+    "category": "why-asset",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:13.231Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q4",
+    "query": "MOC 토큰 가격이 변동하는 이유는?",
+    "category": "why-asset",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:13.481Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q5",
+    "query": "솔라나가 이번 주 다시 주목받는 이유?",
+    "category": "why-asset",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:13.733Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q5",
+    "query": "솔라나가 이번 주 다시 주목받는 이유?",
+    "category": "why-asset",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:13.981Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q5",
+    "query": "솔라나가 이번 주 다시 주목받는 이유?",
+    "category": "why-asset",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:14.228Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q5",
+    "query": "솔라나가 이번 주 다시 주목받는 이유?",
+    "category": "why-asset",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:14.477Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q6",
+    "query": "한국 유튜버들은 BTC ETF에 대해 어떻게 보는가?",
+    "category": "stance",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:14.727Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q6",
+    "query": "한국 유튜버들은 BTC ETF에 대해 어떻게 보는가?",
+    "category": "stance",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:14.975Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q6",
+    "query": "한국 유튜버들은 BTC ETF에 대해 어떻게 보는가?",
+    "category": "stance",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:15.228Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q6",
+    "query": "한국 유튜버들은 BTC ETF에 대해 어떻게 보는가?",
+    "category": "stance",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:15.480Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q7",
+    "query": "FOMC 결정에 대한 한국 매크로 채널 시각은?",
+    "category": "stance",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:15.731Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q7",
+    "query": "FOMC 결정에 대한 한국 매크로 채널 시각은?",
+    "category": "stance",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:15.982Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q7",
+    "query": "FOMC 결정에 대한 한국 매크로 채널 시각은?",
+    "category": "stance",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:16.232Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q7",
+    "query": "FOMC 결정에 대한 한국 매크로 채널 시각은?",
+    "category": "stance",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:16.483Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q8",
+    "query": "AI 코인 narrative에 대해 의견이 갈리는 지점은?",
+    "category": "stance",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:16.734Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q8",
+    "query": "AI 코인 narrative에 대해 의견이 갈리는 지점은?",
+    "category": "stance",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:16.985Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q8",
+    "query": "AI 코인 narrative에 대해 의견이 갈리는 지점은?",
+    "category": "stance",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:17.237Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q8",
+    "query": "AI 코인 narrative에 대해 의견이 갈리는 지점은?",
+    "category": "stance",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:17.491Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q9",
+    "query": "한국 트레이더 사이에서 ETH 강세론과 약세론 비중은?",
+    "category": "stance",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:17.744Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q9",
+    "query": "한국 트레이더 사이에서 ETH 강세론과 약세론 비중은?",
+    "category": "stance",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:17.995Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q9",
+    "query": "한국 트레이더 사이에서 ETH 강세론과 약세론 비중은?",
+    "category": "stance",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:18.245Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q9",
+    "query": "한국 트레이더 사이에서 ETH 강세론과 약세론 비중은?",
+    "category": "stance",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:18.499Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q10",
+    "query": "김프에 대해 한국 매크로 분석가들은 어떻게 해석하는가?",
+    "category": "stance",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:18.751Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q10",
+    "query": "김프에 대해 한국 매크로 분석가들은 어떻게 해석하는가?",
+    "category": "stance",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:19.002Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q10",
+    "query": "김프에 대해 한국 매크로 분석가들은 어떻게 해석하는가?",
+    "category": "stance",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:19.255Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q10",
+    "query": "김프에 대해 한국 매크로 분석가들은 어떻게 해석하는가?",
+    "category": "stance",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:19.509Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q11",
+    "query": "AI 코인이란 무엇이고 왜 중요한가?",
+    "category": "concept",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:19.763Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q11",
+    "query": "AI 코인이란 무엇이고 왜 중요한가?",
+    "category": "concept",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:20.012Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q11",
+    "query": "AI 코인이란 무엇이고 왜 중요한가?",
+    "category": "concept",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:20.265Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q11",
+    "query": "AI 코인이란 무엇이고 왜 중요한가?",
+    "category": "concept",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:20.516Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q12",
+    "query": "Physical AI는 왜 중요한가?",
+    "category": "concept",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:20.768Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q12",
+    "query": "Physical AI는 왜 중요한가?",
+    "category": "concept",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:21.020Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q12",
+    "query": "Physical AI는 왜 중요한가?",
+    "category": "concept",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:21.272Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q12",
+    "query": "Physical AI는 왜 중요한가?",
+    "category": "concept",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:21.525Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q13",
+    "query": "Agentic Governance란 무엇인가?",
+    "category": "concept",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:21.778Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q13",
+    "query": "Agentic Governance란 무엇인가?",
+    "category": "concept",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:22.030Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q13",
+    "query": "Agentic Governance란 무엇인가?",
+    "category": "concept",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:22.282Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q13",
+    "query": "Agentic Governance란 무엇인가?",
+    "category": "concept",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:22.536Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q14",
+    "query": "김치 프리미엄은 무엇을 의미하는가?",
+    "category": "concept",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:22.790Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q14",
+    "query": "김치 프리미엄은 무엇을 의미하는가?",
+    "category": "concept",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:23.043Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q14",
+    "query": "김치 프리미엄은 무엇을 의미하는가?",
+    "category": "concept",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:23.295Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q14",
+    "query": "김치 프리미엄은 무엇을 의미하는가?",
+    "category": "concept",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:23.550Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q15",
+    "query": "옵션 만기일이 BTC에 미치는 영향은?",
+    "category": "concept",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:23.803Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q15",
+    "query": "옵션 만기일이 BTC에 미치는 영향은?",
+    "category": "concept",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:24.054Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q15",
+    "query": "옵션 만기일이 BTC에 미치는 영향은?",
+    "category": "concept",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:24.307Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q15",
+    "query": "옵션 만기일이 BTC에 미치는 영향은?",
+    "category": "concept",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:24.561Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q16",
+    "query": "What is the Kimchi Premium and what does it indicate now?",
+    "category": "bilingual-en",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:24.814Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q16",
+    "query": "What is the Kimchi Premium and what does it indicate now?",
+    "category": "bilingual-en",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:25.067Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q16",
+    "query": "What is the Kimchi Premium and what does it indicate now?",
+    "category": "bilingual-en",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:25.317Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q16",
+    "query": "What is the Kimchi Premium and what does it indicate now?",
+    "category": "bilingual-en",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:25.569Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q17",
+    "query": "How does Korean retail react to Fed rate decisions?",
+    "category": "bilingual-en",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:25.821Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q17",
+    "query": "How does Korean retail react to Fed rate decisions?",
+    "category": "bilingual-en",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:26.074Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q17",
+    "query": "How does Korean retail react to Fed rate decisions?",
+    "category": "bilingual-en",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:26.326Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q17",
+    "query": "How does Korean retail react to Fed rate decisions?",
+    "category": "bilingual-en",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:26.580Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q18",
+    "query": "Korean YouTuber sentiment on Bitcoin ETF flows?",
+    "category": "bilingual-en",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:26.833Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q18",
+    "query": "Korean YouTuber sentiment on Bitcoin ETF flows?",
+    "category": "bilingual-en",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:27.083Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q18",
+    "query": "Korean YouTuber sentiment on Bitcoin ETF flows?",
+    "category": "bilingual-en",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:27.336Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q18",
+    "query": "Korean YouTuber sentiment on Bitcoin ETF flows?",
+    "category": "bilingual-en",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:27.586Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q19",
+    "query": "What are the most-discussed crypto narratives in Korea right now?",
+    "category": "bilingual-en",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:27.836Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q19",
+    "query": "What are the most-discussed crypto narratives in Korea right now?",
+    "category": "bilingual-en",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:28.085Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q19",
+    "query": "What are the most-discussed crypto narratives in Korea right now?",
+    "category": "bilingual-en",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:28.335Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q19",
+    "query": "What are the most-discussed crypto narratives in Korea right now?",
+    "category": "bilingual-en",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:28.588Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q20",
+    "query": "What is Mossland's role in the Korean Web3 ecosystem?",
+    "category": "bilingual-en",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:28.840Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q20",
+    "query": "What is Mossland's role in the Korean Web3 ecosystem?",
+    "category": "bilingual-en",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:29.091Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q20",
+    "query": "What is Mossland's role in the Korean Web3 ecosystem?",
+    "category": "bilingual-en",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:29.339Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q20",
+    "query": "What is Mossland's role in the Korean Web3 ecosystem?",
+    "category": "bilingual-en",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:29.592Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q21",
+    "query": "FOMC 9월 결정 이후 한국 시장 반응은?",
+    "category": "timeline",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:29.847Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q21",
+    "query": "FOMC 9월 결정 이후 한국 시장 반응은?",
+    "category": "timeline",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:30.101Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q21",
+    "query": "FOMC 9월 결정 이후 한국 시장 반응은?",
+    "category": "timeline",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:30.356Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q21",
+    "query": "FOMC 9월 결정 이후 한국 시장 반응은?",
+    "category": "timeline",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:30.611Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q22",
+    "query": "BTC ETF 승인 직후 24시간 흐름은?",
+    "category": "timeline",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:30.864Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q22",
+    "query": "BTC ETF 승인 직후 24시간 흐름은?",
+    "category": "timeline",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:31.117Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q22",
+    "query": "BTC ETF 승인 직후 24시간 흐름은?",
+    "category": "timeline",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:31.370Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q22",
+    "query": "BTC ETF 승인 직후 24시간 흐름은?",
+    "category": "timeline",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:31.626Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q23",
+    "query": "일본 BOJ 정책 회의 이후 BTC는?",
+    "category": "timeline",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:31.877Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q23",
+    "query": "일본 BOJ 정책 회의 이후 BTC는?",
+    "category": "timeline",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:32.129Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q23",
+    "query": "일본 BOJ 정책 회의 이후 BTC는?",
+    "category": "timeline",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:32.383Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q23",
+    "query": "일본 BOJ 정책 회의 이후 BTC는?",
+    "category": "timeline",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:32.636Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q24",
+    "query": "5월 6일 BTC 시장에서 무슨 일이 있었나?",
+    "category": "timeline",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:32.888Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q24",
+    "query": "5월 6일 BTC 시장에서 무슨 일이 있었나?",
+    "category": "timeline",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:33.141Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q24",
+    "query": "5월 6일 BTC 시장에서 무슨 일이 있었나?",
+    "category": "timeline",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:33.394Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q24",
+    "query": "5월 6일 BTC 시장에서 무슨 일이 있었나?",
+    "category": "timeline",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:33.645Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q25",
+    "query": "최근 7일 한국 크립토 주요 이벤트는?",
+    "category": "timeline",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:33.899Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q25",
+    "query": "최근 7일 한국 크립토 주요 이벤트는?",
+    "category": "timeline",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:34.150Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q25",
+    "query": "최근 7일 한국 크립토 주요 이벤트는?",
+    "category": "timeline",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:34.403Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q25",
+    "query": "최근 7일 한국 크립토 주요 이벤트는?",
+    "category": "timeline",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:34.658Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q26",
+    "query": "MOC는 어디에 쓰이는 토큰인가?",
+    "category": "mossland",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:34.912Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q26",
+    "query": "MOC는 어디에 쓰이는 토큰인가?",
+    "category": "mossland",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:35.166Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q26",
+    "query": "MOC는 어디에 쓰이는 토큰인가?",
+    "category": "mossland",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:35.420Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q26",
+    "query": "MOC는 어디에 쓰이는 토큰인가?",
+    "category": "mossland",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:35.673Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q27",
+    "query": "Mossland은 지금 무엇을 만들고 있는가?",
+    "category": "mossland",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:35.923Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q27",
+    "query": "Mossland은 지금 무엇을 만들고 있는가?",
+    "category": "mossland",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:36.176Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q27",
+    "query": "Mossland은 지금 무엇을 만들고 있는가?",
+    "category": "mossland",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:36.428Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q27",
+    "query": "Mossland은 지금 무엇을 만들고 있는가?",
+    "category": "mossland",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:36.683Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q28",
+    "query": "Mossland의 AI 전략은?",
+    "category": "mossland",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:36.936Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q28",
+    "query": "Mossland의 AI 전략은?",
+    "category": "mossland",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:37.191Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q28",
+    "query": "Mossland의 AI 전략은?",
+    "category": "mossland",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:37.444Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q28",
+    "query": "Mossland의 AI 전략은?",
+    "category": "mossland",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:37.701Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q29",
+    "query": "MOC 1년 차트와 주요 disclosure는?",
+    "category": "mossland",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:37.955Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q29",
+    "query": "MOC 1년 차트와 주요 disclosure는?",
+    "category": "mossland",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:38.227Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q29",
+    "query": "MOC 1년 차트와 주요 disclosure는?",
+    "category": "mossland",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:38.496Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q29",
+    "query": "MOC 1년 차트와 주요 disclosure는?",
+    "category": "mossland",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:38.765Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q30",
+    "query": "Project 0x00 (100% Agents)이란 무엇인가?",
+    "category": "mossland",
+    "llm": "chatgpt",
+    "ts": "2026-05-06T05:43:39.029Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q30",
+    "query": "Project 0x00 (100% Agents)이란 무엇인가?",
+    "category": "mossland",
+    "llm": "claude",
+    "ts": "2026-05-06T05:43:39.285Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q30",
+    "query": "Project 0x00 (100% Agents)이란 무엇인가?",
+    "category": "mossland",
+    "llm": "gemini",
+    "ts": "2026-05-06T05:43:39.540Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  },
+  {
+    "query_id": "Q30",
+    "query": "Project 0x00 (100% Agents)이란 무엇인가?",
+    "category": "mossland",
+    "llm": "perplexity",
+    "ts": "2026-05-06T05:43:39.794Z",
+    "alpha_cited": false,
+    "notes": "phase4_1_baseline_zero"
+  }
+]
