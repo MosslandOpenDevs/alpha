@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 import { SITE } from "@/lib/seo";
+import { SiteHeader } from "@/components/SiteHeader";
 import { jsonLdScript, websiteJsonLd, organizationJsonLd } from "@/lib/jsonld";
 
 const serifHead = Source_Serif_4({
@@ -91,6 +92,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-bg text-fg font-sans">
+        <SiteHeader />
         {children}
       </body>
     </html>

@@ -45,35 +45,35 @@ export default function Home() {
   const totalEntities = getAllEntities().length;
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-6 py-10 sm:py-16">
-      <header className="mb-10 flex items-baseline gap-3">
-        <span aria-hidden className="font-mono text-2xl text-[--color-moss]">
-          α
-        </span>
-        <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
-          Alpha{" "}
-          <span className="text-[--color-muted] font-normal">by Mossland</span>
+    <main className="mx-auto w-full max-w-4xl px-6 py-10 sm:py-12">
+      <header className="mb-8">
+        <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight mb-3">
+          오늘의 알파, 모든 시각으로
         </h1>
-        <a
-          href={`/brief/${todayKST()}`}
-          className="ml-auto text-xs text-[--color-moss] hover:underline"
-        >
-          오늘 브리프 ▸
-        </a>
-      </header>
-
-      {/* 헤드라인 한 줄 요약 */}
-      <section className="mb-10">
-        <p className="text-lg leading-relaxed">
-          크립토·매크로·국제정세를 한국 유튜브·뉴스 채널 단위로 정리.
-          현재 엔티티{" "}
+        <p className="text-base sm:text-lg leading-relaxed text-zinc-700">
+          크립토·매크로·국제정세를 한국 유튜브·뉴스 채널 단위로 정리한
+          미디어 커뮤니티. 현재 엔티티{" "}
           <span className="font-mono">{totalEntities}</span>개, 토픽{" "}
           <span className="font-mono">{getAllTopics().length}</span>개, 이벤트{" "}
           <span className="font-mono">{getAllEvents().length}</span>개,
           활성 펄스{" "}
           <span className="font-mono">{activePulses.length}</span>건.
         </p>
-      </section>
+        <div className="mt-4 flex items-center gap-3 text-sm">
+          <a
+            href={`/brief/${todayKST()}`}
+            className="rounded-full bg-[--color-moss] text-white px-4 py-1.5 hover:opacity-90"
+          >
+            오늘 브리프 ▸
+          </a>
+          <a
+            href="/pulse"
+            className="rounded-full border border-[--color-line] bg-white px-4 py-1.5 hover:border-[--color-moss]"
+          >
+            Pulse ({activePulses.length})
+          </a>
+        </div>
+      </header>
 
       {/* 활성 Pulse */}
       {activePulses.length > 0 && (
