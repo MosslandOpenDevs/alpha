@@ -105,5 +105,18 @@ module.exports = {
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
+    {
+      // LLM citation audit 주간 측정 — 매주 월요일 02:00 UTC = 11:00 KST
+      // OpenAI gpt-4o web_search 로 30 query × alpha 인용 여부 체크.
+      // 결과: docs/audit-results/[YYYY-MM-DD]-auto.json
+      // 비용 ~$0.20/주. backlink_authority_plan §G 측정 cycle.
+      name: "alpha-audit-cron",
+      cwd: "<PROJECT_ROOT>",
+      script: "./node_modules/.bin/tsx",
+      args: "scripts/audit-auto.ts",
+      cron_restart: "0 2 * * 1",
+      autorestart: false,
+      env: { NODE_ENV: "production" },
+    },
   ],
 };
