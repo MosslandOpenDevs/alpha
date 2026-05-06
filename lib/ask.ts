@@ -14,7 +14,7 @@
 import crypto from "node:crypto";
 import { getDb } from "./db";
 import { chat } from "./grok";
-import { search } from "./search";
+import { search, hybridSearch } from "./search";
 import { getEntity, getTopic, getEvent } from "./mic";
 import { getSynthesis } from "./synthesis";
 
@@ -178,9 +178,12 @@ export async function askAlpha(question: string): Promise<AskResult> {
     allHits.push(h);
   };
 
-  for (const h of search(question, 4)) tryAdd(h);
+  // 키워드+의미 hybrid 검색 (전체 질문)
+  const hybrid = await hybridSearch(question, 8);
+  for (const h of hybrid) tryAdd(h);
+  // 토큰별 키워드 보강
   for (const tok of tokens.slice(0, 6)) {
-    for (const h of search(tok, 4)) tryAdd(h);
+    for (const h of search(tok, 3)) tryAdd(h);
   }
 
   // 점수 순 정렬 + top 10

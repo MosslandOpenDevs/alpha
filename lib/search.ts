@@ -100,3 +100,70 @@ export function search(query: string, limit = 30): SearchHit[] {
   hits.sort((a, b) => b.score - a.score);
   return hits.slice(0, limit);
 }
+
+/**
+ * 키워드 + 의미 검색 hybrid.
+ * - 키워드 검색 결과 < 3 면 embedding 의미 검색으로 보강
+ * - 의미 점수: cosine similarity × 100 + videoCount 보너스
+ * - dedupe: 같은 (kind, id)는 키워드 결과 우선
+ */
+export async function hybridSearch(
+  query: string,
+  limit = 30
+): Promise<SearchHit[]> {
+  const keyword = search(query, limit);
+  if (keyword.length >= 3) return keyword;
+
+  // semantic fallback
+  const { semanticSearch } = await import("./embeddings");
+  const semantic = await semanticSearch(query, limit * 2, 0.25);
+  if (semantic.length === 0) return keyword;
+
+  const seen = new Set<string>();
+  const merged: SearchHit[] = [];
+  for (const h of keyword) {
+    const key = `${h.kind}:${h.kind === "creator" ? h.item.youtube_channel_id : h.item.id}`;
+    seen.add(key);
+    merged.push(h);
+  }
+  for (const s of semantic) {
+    const key = `${s.kind}:${s.id}`;
+    if (seen.has(key)) continue;
+
+    if (s.kind === "entity") {
+      const e = getAllEntities().find((x) => x.id === s.id);
+      if (!e) continue;
+      const href =
+        e.type === "asset"
+          ? `/asset/${e.id}`
+          : `/entity/${encodeURIComponent(e.id)}`;
+      merged.push({
+        kind: "entity",
+        item: e,
+        href,
+        score: Math.round(s.similarity * 100) + Math.min(20, e.videoCount),
+      });
+    } else if (s.kind === "topic") {
+      const t = getAllTopics().find((x) => x.id === s.id);
+      if (!t) continue;
+      merged.push({
+        kind: "topic",
+        item: t,
+        href: `/topic/${encodeURIComponent(t.id)}`,
+        score: Math.round(s.similarity * 100) + Math.min(20, t.videoCount),
+      });
+    } else if (s.kind === "event") {
+      const ev = getAllEvents().find((x) => x.id === s.id);
+      if (!ev) continue;
+      merged.push({
+        kind: "event",
+        item: ev,
+        href: `/event/${encodeURIComponent(ev.id)}`,
+        score: Math.round(s.similarity * 100) + Math.min(20, ev.videoCount),
+      });
+    }
+  }
+
+  merged.sort((a, b) => b.score - a.score);
+  return merged.slice(0, limit);
+}
