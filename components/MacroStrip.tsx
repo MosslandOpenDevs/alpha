@@ -18,7 +18,7 @@ type MergedSeries = {
  * 홈 + asset/btc 등에 노출.
  */
 export function MacroStrip({
-  seriesIds = ["DFF", "KR_BASE_RATE", "DGS10", "KR_GOV3Y", "DEXKOUS", "T10Y2Y"],
+  seriesIds = ["DFF", "KR_BASE_RATE", "DGS10", "KR_GOV3Y", "KR_USDKRW_BOK", "T10Y2Y"],
 }: {
   seriesIds?: string[];
 }) {

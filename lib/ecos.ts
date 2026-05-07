@@ -60,7 +60,7 @@ export const KR_MACRO_SERIES: KrMacroSeries[] = [
   },
   {
     id: "KR_USDKRW_BOK",
-    statCode: "731Y003",
+    statCode: "731Y001",
     itemCode: "0000001",
     label: "원/달러 매매기준율",
     labelEn: "KRW/USD (BoK)",
