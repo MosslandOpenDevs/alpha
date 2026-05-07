@@ -1,4 +1,5 @@
 import type { Synthesis } from "@/lib/synthesis";
+import { fmtKst } from "@/lib/health";
 
 /**
  * AI synthesis card — Smart Brevity 5-블록을 카드 1개에.
@@ -16,8 +17,11 @@ export function SynthesisCard({
       <header className="flex items-baseline gap-2 mb-3 text-xs text-zinc-400">
         <span className="font-mono text-sm text-[var(--accent)]">α</span>
         <span className="uppercase tracking-wider">Alpha 합성</span>
-        <span className="ml-auto">
-          {new Date(synthesis.generatedAt).toLocaleDateString("ko-KR")}
+        <span
+          className="ml-auto font-mono"
+          title={`AI 합성 생성: ${fmtKst(synthesis.generatedAt)}`}
+        >
+          {fmtKst(synthesis.generatedAt)}
         </span>
       </header>
 

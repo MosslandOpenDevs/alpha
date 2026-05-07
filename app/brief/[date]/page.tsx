@@ -12,6 +12,7 @@ import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import { PulseCard } from "@/components/PulseCard";
 import { SynthesisCard } from "@/components/SynthesisCard";
 import { getBriefSummary } from "@/lib/brief";
+import { fmtKst } from "@/lib/health";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -228,11 +229,24 @@ export default async function BriefPage({ params }: Props) {
         </section>
       )}
 
-      <footer className="mt-12 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
-        <span>마지막 업데이트: {new Date().toLocaleString("ko-KR")}</span>
-        <span className="mx-2">·</span>
-        <span>출처: signalmap canonical (Mossland)</span>
-      </footer>
+      {(() => {
+        const briefSummary = getBriefSummary(date);
+        return (
+          <footer className="mt-12 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)] flex flex-wrap gap-x-3 gap-y-1">
+            {briefSummary?.generatedAt && (
+              <span className="font-mono">
+                AI 합성: {fmtKst(briefSummary.generatedAt)}
+              </span>
+            )}
+            <span>·</span>
+            <span>출처: signalmap canonical (Mossland)</span>
+            <span>·</span>
+            <a href="/health" className="hover:text-[var(--fg)]">
+              데이터 신선도 →
+            </a>
+          </footer>
+        );
+      })()}
     </main>
   );
 }
