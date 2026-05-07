@@ -7,13 +7,39 @@ const STATE_LABEL: Record<string, { ko: string; cls: string }> = {
   reviewed: { ko: "검수 완료", cls: "bg-green-50 text-green-700" },
 };
 
-function fmtUsd(n?: number) {
+type PriceUnit = "USD" | "pt" | "KRW";
+
+const KR_INDICES = new Set(["KOSPI", "KOSDAQ", "KOSPI200", "KS11", "KQ11"]);
+const GLOBAL_INDICES = new Set([
+  "NASDAQ", "SP500", "SPX", "DJI", "NIKKEI", "HSI", "DAX", "FTSE", "VIX",
+]);
+
+function priceUnit(asset?: string): PriceUnit {
+  if (!asset) return "USD";
+  const u = asset.toUpperCase();
+  if (KR_INDICES.has(u)) return "pt";
+  if (GLOBAL_INDICES.has(u)) return "pt";
+  // 한국 종목 코드 (6자리 숫자) — KRW
+  if (/^\d{6}$/.test(u)) return "KRW";
+  // 기본: 글로벌 / 크립토 = USD
+  return "USD";
+}
+
+function fmtPrice(asset: string | undefined, n?: number): string {
   if (n == null) return "";
-  return n.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  });
+  const unit = priceUnit(asset);
+  if (unit === "USD") {
+    return n.toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    });
+  }
+  if (unit === "KRW") {
+    return n.toLocaleString("ko-KR", { maximumFractionDigits: 0 }) + "원";
+  }
+  // pt — 지수 (KOSPI 등)
+  return n.toLocaleString("en-US", { maximumFractionDigits: 2 }) + " pt";
 }
 
 function timeAgo(iso?: string): string {
@@ -57,7 +83,7 @@ export function PulseCard({ pulse, compact }: { pulse: Pulse; compact?: boolean 
 
       {pulse.priceFrom != null && pulse.priceTo != null && (
         <div className="mb-3 text-sm text-zinc-700 font-mono">
-          {fmtUsd(pulse.priceFrom)} → {fmtUsd(pulse.priceTo)}
+          {fmtPrice(pulse.asset, pulse.priceFrom)} → {fmtPrice(pulse.asset, pulse.priceTo)}
         </div>
       )}
 
