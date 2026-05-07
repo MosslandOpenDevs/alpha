@@ -9,6 +9,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { getDb } from "./db";
+import { rateLimitSnapshot } from "./rate-limit";
 
 const KST_OFFSET_MS = 9 * 3600_000;
 
@@ -74,10 +75,37 @@ function toSubsystem(args: {
   };
 }
 
+export type CostBudget = {
+  day: string;
+  costUsd: number;
+  callCount: number;
+  capUsd: number;
+  /** Fraction 0..1+ */
+  utilization: number;
+  status: Status;
+};
+
+export function getCostBudget(): CostBudget {
+  const snap = rateLimitSnapshot();
+  const utilization = snap.cap_usd > 0 ? snap.today.costUsd / snap.cap_usd : 0;
+  let status: Status = "ok";
+  if (utilization >= 1.0) status = "fail";
+  else if (utilization >= 0.7) status = "warn";
+  return {
+    day: snap.today.day,
+    costUsd: snap.today.costUsd,
+    callCount: snap.today.callCount,
+    capUsd: snap.cap_usd,
+    utilization,
+    status,
+  };
+}
+
 export function getSystemHealth(): {
   generatedAt: string;
   worstStatus: Status;
   subsystems: SubsystemHealth[];
+  costBudget: CostBudget;
 } {
   const db = getDb();
 
@@ -214,10 +242,13 @@ export function getSystemHealth(): {
   ) ?? "ok";
   void order;
 
+  const costBudget = getCostBudget();
+
   return {
     generatedAt: new Date().toISOString(),
     worstStatus: worst,
     subsystems,
+    costBudget,
   };
 }
 

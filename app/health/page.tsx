@@ -44,12 +44,61 @@ export default function HealthPage() {
         </h1>
         <p className="text-sm text-zinc-700 leading-relaxed">
           Alpha 의 데이터 subsystem 별 마지막 갱신 시각. 운영 / 디버깅 용. JSON
-          버전: <a href="/api/health" className="text-[var(--moss)] hover:underline">/api/health</a>
+          버전: <a href="/api/health" className="text-[var(--moss)] hover:underline">/api/health?detail=1</a>
         </p>
         <p className="mt-2 text-xs text-[var(--muted)] font-mono">
           checked at {fmtKst(health.generatedAt)}
         </p>
       </header>
+
+      {/* LLM cost budget */}
+      <section className="mb-8">
+        <div className="rounded-2xl border border-[var(--line)] bg-white p-5">
+          <div className="flex items-baseline justify-between mb-3">
+            <h2 className="text-base font-semibold flex items-center gap-2">
+              <span
+                className={`inline-block w-2.5 h-2.5 rounded-full ${
+                  STATUS_STYLE[health.costBudget.status].dot
+                }`}
+              />
+              Today's LLM cost budget
+            </h2>
+            <span className="text-xs text-[var(--muted)] font-mono">
+              {health.costBudget.day} KST
+            </span>
+          </div>
+          <div className="flex items-baseline gap-2 mb-2 font-mono">
+            <span className="text-2xl font-semibold">
+              ${health.costBudget.costUsd.toFixed(4)}
+            </span>
+            <span className="text-sm text-[var(--muted)]">
+              / ${health.costBudget.capUsd.toFixed(2)} cap
+            </span>
+            <span className="ml-auto text-xs text-[var(--muted)]">
+              {health.costBudget.callCount} calls today
+            </span>
+          </div>
+          <div className="h-2 rounded-full bg-zinc-100 overflow-hidden">
+            <div
+              className={`h-full ${
+                health.costBudget.status === "fail"
+                  ? "bg-rose-500"
+                  : health.costBudget.status === "warn"
+                  ? "bg-amber-400"
+                  : "bg-emerald-500"
+              }`}
+              style={{
+                width: `${Math.min(100, health.costBudget.utilization * 100).toFixed(1)}%`,
+              }}
+            />
+          </div>
+          <p className="mt-3 text-xs text-[var(--muted)] leading-relaxed">
+            글로벌 일일 cap. 초과 시 모든 paid LLM endpoint (/api/ask · /api/mcp
+            ask_alpha) 가 503 반환. KST 자정에 reset. 개별 IP 는 별도로
+            per-minute / per-day token bucket 적용 (lib/rate-limit.ts).
+          </p>
+        </div>
+      </section>
 
       <section className="mb-8">
         <div className="overflow-x-auto rounded-2xl border border-[var(--line)] bg-white">

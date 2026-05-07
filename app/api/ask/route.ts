@@ -1,5 +1,11 @@
-import { askAlpha } from "@/lib/ask";
+import { askAlpha, getCachedAnswer } from "@/lib/ask";
 import { CORS_POST_HEADERS, corsPreflight } from "@/lib/cors";
+import {
+  checkRateLimit,
+  rateLimitResponse,
+  addCost,
+  RL_ASK,
+} from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -30,8 +36,24 @@ export async function POST(req: Request) {
       { status: 400, headers: CORS_POST_HEADERS }
     );
   }
+
+  // Cached answers are free — serve them without consuming the rate budget.
+  const cached = getCachedAnswer(q);
+  if (cached) {
+    return Response.json(cached, { headers: CORS_POST_HEADERS });
+  }
+
+  // Fresh question — gate on rate + cost limits.
+  const verdict = checkRateLimit(req, RL_ASK);
+  if (!verdict.ok) {
+    return rateLimitResponse(verdict, CORS_POST_HEADERS);
+  }
+
   try {
     const result = await askAlpha(q);
+    if (!result.cached) {
+      addCost(result.costUsd);
+    }
     return Response.json(result, { headers: CORS_POST_HEADERS });
   } catch (err) {
     return Response.json(

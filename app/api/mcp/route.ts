@@ -24,10 +24,12 @@ export async function POST(req: Request) {
     );
   }
 
+  const ctx = { httpReq: req };
+
   // Batch support
   if (Array.isArray(body)) {
     const responses = await Promise.all(
-      body.map((m) => processMcpRequest(m))
+      body.map((m) => processMcpRequest(m, ctx))
     );
     const filtered = responses.filter((r) => r !== null);
     return Response.json(filtered, {
@@ -41,7 +43,8 @@ export async function POST(req: Request) {
   }
 
   const response = await processMcpRequest(
-    body as Parameters<typeof processMcpRequest>[0]
+    body as Parameters<typeof processMcpRequest>[0],
+    ctx
   );
   if (response === null) {
     return new Response(null, {

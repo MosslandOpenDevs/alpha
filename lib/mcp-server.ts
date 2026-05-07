@@ -27,7 +27,13 @@ import {
 import { getSynthesis } from "./synthesis";
 import { getConnectionsForEntity } from "./connections";
 import { getBriefSummary } from "./brief";
-import { askAlpha } from "./ask";
+import { askAlpha, getCachedAnswer } from "./ask";
+import {
+  checkRateLimit,
+  rateLimitResponse,
+  addCost,
+  RL_MCP_ASK,
+} from "./rate-limit";
 import { search } from "./search";
 import { MACRO_SERIES, getLatestObservation } from "./fred";
 import { KR_MACRO_SERIES } from "./ecos";
@@ -325,6 +331,7 @@ const TOOLS: ToolDef[] = [
         })),
         permanent_url: `https://alpha.moss.land/ask/q/${r.questionHash}`,
         cached: r.cached,
+        costUsd: r.costUsd,
       };
     },
   },
@@ -405,7 +412,13 @@ type JsonRpcResponse =
       error: { code: number; message: string; data?: unknown };
     };
 
-async function handleMethod(req: JsonRpcRequest): Promise<unknown> {
+export type McpContext = {
+  /** Underlying HTTP request, when invoked over the JSON-RPC HTTP transport.
+   *  Used by paid-API tools (ask_alpha) for per-IP rate limiting. */
+  httpReq?: Request;
+};
+
+async function handleMethod(req: JsonRpcRequest, ctx: McpContext): Promise<unknown> {
   switch (req.method) {
     case "initialize":
       return {
@@ -439,7 +452,36 @@ async function handleMethod(req: JsonRpcRequest): Promise<unknown> {
           message: `Unknown tool: ${name}`,
         };
       }
+
+      // Paid-API tools: enforce per-IP + global cost ceiling.
+      // Cached answers are free (handler returns cached === true) — only
+      // gate fresh calls so legitimate clients with repeated queries
+      // aren't penalized.
+      if (name === "ask_alpha" && ctx.httpReq) {
+        const q = String(args.question ?? "");
+        const cached = q.length >= 5 ? getCachedAnswer(q) : null;
+        if (!cached) {
+          const verdict = checkRateLimit(ctx.httpReq, RL_MCP_ASK);
+          if (!verdict.ok) {
+            throw {
+              code: -32099,
+              message: `rate_limited: ${verdict.reason}`,
+              data: { retry_after_sec: verdict.retryAfterSec },
+            };
+          }
+        }
+      }
+
       const result = await tool.handler(args);
+
+      // Track LLM cost on fresh ask_alpha calls.
+      if (name === "ask_alpha") {
+        const r = result as { cached?: boolean; costUsd?: number } | undefined;
+        if (r && r.cached === false && typeof r.costUsd === "number") {
+          addCost(r.costUsd);
+        }
+      }
+
       return {
         content: [
           {
@@ -461,7 +503,10 @@ async function handleMethod(req: JsonRpcRequest): Promise<unknown> {
   }
 }
 
-export async function processMcpRequest(req: JsonRpcRequest): Promise<JsonRpcResponse | null> {
+export async function processMcpRequest(
+  req: JsonRpcRequest,
+  ctx: McpContext = {}
+): Promise<JsonRpcResponse | null> {
   // notifications: no response
   if (req.id === undefined || req.id === null) {
     if (req.method === "notifications/initialized") return null;
@@ -469,7 +514,7 @@ export async function processMcpRequest(req: JsonRpcRequest): Promise<JsonRpcRes
     return null;
   }
   try {
-    const result = await handleMethod(req);
+    const result = await handleMethod(req, ctx);
     return { jsonrpc: "2.0", id: req.id, result };
   } catch (err) {
     const errorObj = err as { code?: number; message?: string; data?: unknown };
