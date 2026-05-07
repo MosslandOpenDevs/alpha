@@ -25,14 +25,29 @@ const PROMPT_VERSION = "persona-v1";
 
 export type RefType = "entity" | "topic" | "event" | "asset";
 
-function todayBucket(): string {
-  return new Date().toISOString().slice(0, 10);
+/** Today's date string in KST (Asia/Seoul, UTC+9). The site's daily cadence
+ *  follows KST, so the daily cap should reset at KST midnight, not UTC. */
+function todayKstDate(): string {
+  const KST_OFFSET_MS = 9 * 3600_000;
+  return new Date(Date.now() + KST_OFFSET_MS).toISOString().slice(0, 10);
 }
 
-/** 오늘 페르소나가 발화한 횟수. */
+/** UTC instant corresponding to today's KST midnight (start of KST day). */
+function todayKstMidnightUtc(): string {
+  // KST midnight 00:00 = UTC 15:00 the previous day.
+  const kstDate = todayKstDate(); // e.g. "2026-05-07"
+  const utcMs = Date.parse(kstDate + "T00:00:00Z") - 9 * 3600_000;
+  return new Date(utcMs).toISOString();
+}
+
+function todayBucket(): string {
+  return todayKstDate();
+}
+
+/** 오늘 (KST 기준) 페르소나가 발화한 횟수. */
 function todayPostCount(handle: string): number {
   ensureCommunityTables();
-  const start = new Date().toISOString().slice(0, 10) + "T00:00:00.000Z";
+  const start = todayKstMidnightUtc();
   const row = getDb()
     .prepare(
       `SELECT COUNT(*) AS n FROM alpha_posts

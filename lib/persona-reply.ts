@@ -21,9 +21,18 @@ import { getAgent, type Agent } from "./agents";
 
 const PROMPT_VERSION = "persona-reply-v1";
 
+/** UTC instant corresponding to today's KST midnight (start of KST day). */
+function todayKstMidnightUtc(): string {
+  const KST_OFFSET_MS = 9 * 3600_000;
+  const kstDate = new Date(Date.now() + KST_OFFSET_MS).toISOString().slice(0, 10);
+  const utcMs = Date.parse(kstDate + "T00:00:00Z") - KST_OFFSET_MS;
+  return new Date(utcMs).toISOString();
+}
+
+/** 오늘 (KST 기준) 페르소나가 단 답글 수. */
 function todayReplyCount(handle: string): number {
   ensureCommunityTables();
-  const start = new Date().toISOString().slice(0, 10) + "T00:00:00.000Z";
+  const start = todayKstMidnightUtc();
   const row = getDb()
     .prepare(
       `SELECT COUNT(*) AS n FROM alpha_posts

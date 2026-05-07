@@ -3,6 +3,11 @@
  *
  * `cwd: __dirname` resolves to wherever this file lives, so the same
  * config works on any host (Mac mini, Lightsail, VPS, etc.).
+ *
+ * Cron schedules are interpreted in the host's *local* timezone — on the
+ * production Mac mini that's KST. Times below are written in KST and the
+ * comments explicitly state so. (An earlier version assumed the schedules
+ * were UTC and silently fired 9 hours early. Fixed 2026-05-07.)
  */
 const ROOT = __dirname;
 
@@ -25,97 +30,98 @@ module.exports = {
       watch: false,
     },
     {
-      // IndexNow weekly ping — 매주 월요일 04:00 KST = 일요일 19:00 UTC
+      // IndexNow weekly ping — every Monday 04:00 KST
       name: "alpha-indexnow-cron",
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/indexnow-cron.ts",
-      cron_restart: "0 19 * * 0",
+      cron_restart: "0 4 * * 1",
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
     {
-      // Macro 데이터 daily fetch — 매일 06:00 KST = 21:00 UTC
+      // Macro 데이터 daily fetch — 매일 06:00 KST
       name: "alpha-macro-cron",
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/fetch-macro.ts",
-      cron_restart: "0 21 * * *",
+      cron_restart: "0 6 * * *",
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
     {
-      // Synthesis 자동 갱신 — 매일 07:00 KST = 22:00 UTC (top 30 entity)
+      // Synthesis 자동 갱신 — 매일 07:00 KST (top 30 entity)
       name: "alpha-synthesis-cron",
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/generate-synthesis.ts top --limit=30",
-      cron_restart: "0 22 * * *",
+      cron_restart: "0 7 * * *",
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
     {
-      // Daily brief AI 요약 — 매일 08:30 KST = 23:30 UTC (어제 자료 정리)
+      // Daily brief — 매일 08:30 KST. Generates yesterday-in-KST (the day
+      // that just ended). yesterday() in the script is KST-aware.
       name: "alpha-brief-cron",
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/generate-brief.ts",
-      cron_restart: "30 23 * * *",
+      cron_restart: "30 8 * * *",
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
     {
-      // Persona 일일 tick — 매일 09:00 KST = 00:00 UTC (페르소나 발화 10건)
+      // Persona 일일 tick — 매일 09:00 KST (페르소나 발화 10건). Daily cap
+      // resets at KST midnight (lib/persona-post todayPostCount uses KST).
       name: "alpha-persona-cron",
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/persona-tick.ts --pages=10",
-      cron_restart: "0 0 * * *",
+      cron_restart: "0 9 * * *",
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
     {
-      // Persona 답글 — 매일 12:00 KST = 03:00 UTC (페르소나끼리 8개 답글)
+      // Persona 답글 — 매일 12:00 KST (페르소나끼리 8개 답글)
       name: "alpha-persona-reply-cron",
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/persona-replies.ts --max=8",
-      cron_restart: "0 3 * * *",
+      cron_restart: "0 12 * * *",
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
     {
-      // Trackable calls 일일 cron — 매일 13:00 KST = 04:00 UTC
+      // Trackable calls — 매일 13:00 KST.
       // 1) 신규 asset post에 call 레코드 backfill
       // 2) target_date 도달한 pending call 자동 resolve
       name: "alpha-calls-cron",
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/track-calls.ts",
-      cron_restart: "0 4 * * *",
+      cron_restart: "0 13 * * *",
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
     {
-      // Why-moved 자동 생성 — 매일 23:45 UTC = 다음날 08:45 KST
-      // 새 pulse 들어오면 (asset, date) 조합으로 자동 article 생성
+      // Why-moved — 매일 08:45 KST (brief 직후, pulse → article 자동 생성)
       name: "alpha-why-moved-cron",
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/generate-why-moved.ts",
-      cron_restart: "45 23 * * *",
+      cron_restart: "45 8 * * *",
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
     {
-      // LLM citation audit 주간 측정 — 매주 월요일 02:00 UTC = 11:00 KST
+      // LLM citation audit 주간 측정 — 매주 월요일 11:00 KST
       // OpenAI gpt-4o web_search 로 30 query × alpha 인용 여부 체크.
       // 결과: docs/audit-results/[YYYY-MM-DD]-auto.json
       name: "alpha-audit-cron",
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/audit-auto.ts",
-      cron_restart: "0 2 * * 1",
+      cron_restart: "0 11 * * 1",
       autorestart: false,
       env: { NODE_ENV: "production" },
     },

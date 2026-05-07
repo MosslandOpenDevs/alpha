@@ -72,8 +72,11 @@ export function getBriefSummary(date: string): BriefSummary | null {
   };
 }
 
+/** Bounds for the given calendar date interpreted as KST (Asia/Seoul, UTC+9).
+ *  KST midnight 00:00 corresponds to UTC 15:00 of the previous day. */
 function dayBounds(date: string): { start: number; end: number } {
-  const start = Date.parse(date + "T00:00:00Z");
+  const KST_OFFSET_MS = 9 * 3600_000;
+  const start = Date.parse(date + "T00:00:00Z") - KST_OFFSET_MS;
   const end = start + 24 * 3600_000;
   return { start, end };
 }
@@ -89,22 +92,36 @@ export async function generateBriefSummary(
     return t >= start && t < end;
   };
 
-  const entities: Entity[] = getAllEntities()
-    .filter((e) => updatedToday(e.updatedAt))
-    .sort((a, b) => b.videoCount - a.videoCount)
-    .slice(0, 12);
-  const topics: Topic[] = getAllTopics()
-    .filter((t) => updatedToday(t.updatedAt))
-    .sort((a, b) => b.videoCount - a.videoCount)
-    .slice(0, 8);
-  const events: EventItem[] = getAllEvents()
-    .filter((e) => updatedToday(e.updatedAt))
-    .sort((a, b) => b.videoCount - a.videoCount)
-    .slice(0, 6);
+  // Pulses are the only signal with reliable per-row timestamps —
+  // signalmap stamps entity/topic/event updatedAt to its regeneration
+  // time, so per-day filtering on those collapses to "latest regen day"
+  // and is empty on every other day. Use them as supporting context
+  // (top by video count) instead of strict same-day filter.
   const pulses: Pulse[] = getAllPulses().filter((p) => {
     const t = Date.parse(p.detectedAt);
     return t >= start && t < end;
   });
+
+  const todayEntities = getAllEntities().filter((e) => updatedToday(e.updatedAt));
+  const todayTopics = getAllTopics().filter((t) => updatedToday(t.updatedAt));
+  const todayEvents = getAllEvents().filter((e) => updatedToday(e.updatedAt));
+
+  // If signalmap regenerated on this day, prefer the per-day filter.
+  // Otherwise fall back to the latest top-N snapshot so we still get a
+  // meaningful brief for days when signalmap didn't regenerate.
+  const entitiesPool = todayEntities.length > 0 ? todayEntities : getAllEntities();
+  const topicsPool = todayTopics.length > 0 ? todayTopics : getAllTopics();
+  const eventsPool = todayEvents.length > 0 ? todayEvents : getAllEvents();
+
+  const entities: Entity[] = entitiesPool
+    .sort((a, b) => b.videoCount - a.videoCount)
+    .slice(0, 12);
+  const topics: Topic[] = topicsPool
+    .sort((a, b) => b.videoCount - a.videoCount)
+    .slice(0, 8);
+  const events: EventItem[] = eventsPool
+    .sort((a, b) => b.videoCount - a.videoCount)
+    .slice(0, 6);
 
   if (entities.length + topics.length + events.length + pulses.length === 0) {
     throw new Error(`No data for ${date}`);

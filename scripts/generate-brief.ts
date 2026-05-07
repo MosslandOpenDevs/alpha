@@ -34,9 +34,18 @@ function dateAdd(date: string, days: number): string {
   return new Date(t).toISOString().slice(0, 10);
 }
 
+/** "Today" in KST (Asia/Seoul, UTC+9). Cron fires at 23:30 UTC ≈ 08:30 KST,
+ *  so we want the brief for the KST date the user is reading at that hour
+ *  (which is the day that just ended). At 5/6 23:30 UTC, KST is 5/7 08:30,
+ *  and the user expects yesterday-in-KST = 5/6. UTC-based yesterday() would
+ *  return 5/5 — that's the bug we're fixing. */
 function yesterday(): string {
-  const t = Date.now() - 24 * 3600_000;
-  return new Date(t).toISOString().slice(0, 10);
+  const KST_OFFSET_MS = 9 * 3600_000;
+  const todayKst = new Date(Date.now() + KST_OFFSET_MS)
+    .toISOString()
+    .slice(0, 10);
+  const yesterdayMs = Date.parse(todayKst + "T00:00:00Z") - 24 * 3600_000;
+  return new Date(yesterdayMs).toISOString().slice(0, 10);
 }
 
 async function main() {
