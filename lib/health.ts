@@ -10,6 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { getDb } from "./db";
 import { rateLimitSnapshot } from "./rate-limit";
+import { getHeartbeat } from "./cron-heartbeat";
 
 const KST_OFFSET_MS = 9 * 3600_000;
 
@@ -197,16 +198,25 @@ export function getSystemHealth(): {
       warnAfterSec: 28 * ONE_HOUR,
       failAfterSec: 50 * ONE_HOUR,
     }),
-    toSubsystem({
-      key: "why_moved",
-      label: "Why-moved 자동 article",
-      cadence: "매일 08:45 KST cron · pulse 발생 시만",
-      lastAt: whyMoved?.g ?? null,
-      latestDate: whyMoved?.d,
-      warnAfterSec: 2 * ONE_DAY,
-      failAfterSec: 5 * ONE_DAY,
-      note: "pulse 가 없으면 새 article 도 없음. age 자체로는 fail 결론 짓기 어려움.",
-    }),
+    (() => {
+      // Event-driven: a quiet day with no new pulses produces no new article.
+      // Health is therefore based on the cron's heartbeat (last successful
+      // run) — not on content freshness. Stale content age is shown as info.
+      const hb = getHeartbeat("alpha-why-moved-cron");
+      const sub = toSubsystem({
+        key: "why_moved",
+        label: "Why-moved 자동 article",
+        cadence: "매일 08:45 KST cron · pulse 발생 시만",
+        lastAt: hb?.lastRunAt ?? whyMoved?.g ?? null,
+        latestDate: whyMoved?.d,
+        warnAfterSec: 28 * ONE_HOUR,
+        failAfterSec: 50 * ONE_HOUR,
+        note: hb
+          ? `cron 마지막 실행 OK (${hb.lastStatus}). latest article ${whyMoved?.d ?? "-"}.`
+          : "heartbeat 없음 — cron 실행 여부 확인 필요.",
+      });
+      return sub;
+    })(),
     toSubsystem({
       key: "macro",
       label: "Macro 데이터 fetch (FRED + ECOS)",
@@ -216,15 +226,23 @@ export function getSystemHealth(): {
       warnAfterSec: 26 * ONE_HOUR,
       failAfterSec: 50 * ONE_HOUR,
     }),
-    toSubsystem({
-      key: "trackable_calls",
-      label: "Trackable price calls",
-      cadence: "매일 13:00 KST cron",
-      lastAt: trackable?.c ?? null,
-      latestDate: trackable?.d ?? null,
-      warnAfterSec: 28 * ONE_HOUR,
-      failAfterSec: 50 * ONE_HOUR,
-    }),
+    (() => {
+      // Event-driven: only crypto-mapped persona posts produce calls.
+      // Health based on heartbeat; latest call age shown as info.
+      const hb = getHeartbeat("alpha-calls-cron");
+      return toSubsystem({
+        key: "trackable_calls",
+        label: "Trackable price calls",
+        cadence: "매일 13:00 KST cron · CoinGecko 매핑 자산만",
+        lastAt: hb?.lastRunAt ?? trackable?.c ?? null,
+        latestDate: trackable?.d ?? null,
+        warnAfterSec: 28 * ONE_HOUR,
+        failAfterSec: 50 * ONE_HOUR,
+        note: hb
+          ? `cron 마지막 실행 OK (${hb.lastStatus}). latest call created ${trackable?.c?.slice(0, 10) ?? "-"}.`
+          : "heartbeat 없음 — cron 실행 여부 확인 필요.",
+      });
+    })(),
     toSubsystem({
       key: "connections",
       label: "Entity connection 가설",

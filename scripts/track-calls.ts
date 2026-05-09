@@ -126,6 +126,13 @@ async function main() {
   }
 
   dbReadonly.close();
+
+  const { recordHeartbeat } = await import("../lib/cron-heartbeat");
+  recordHeartbeat(
+    "alpha-calls-cron",
+    "ok",
+    `skipBackfill=${skipBackfill} skipResolve=${skipResolve}`
+  );
 }
 
 main().catch((err) => {

@@ -97,6 +97,15 @@ async function main() {
   console.log(
     `\nDone. Created ${total}, cached ${cached}, skipped ${skipped}, failed ${failed}.`
   );
+
+  // Heartbeat — record that this cron ran successfully even if no new
+  // articles were created (event-driven; quiet days are valid).
+  const { recordHeartbeat } = await import("../lib/cron-heartbeat");
+  recordHeartbeat(
+    "alpha-why-moved-cron",
+    total > 0 ? "ok" : "noop",
+    `created=${total} cached=${cached} skipped=${skipped} failed=${failed}`
+  );
 }
 
 main().catch((err) => {
