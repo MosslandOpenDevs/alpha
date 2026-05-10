@@ -10,6 +10,8 @@ import { upsertSeoPage } from "@/lib/db";
 import { SITE } from "@/lib/seo";
 import { PulseCard } from "@/components/PulseCard";
 import { MacroStrip } from "@/components/MacroStrip";
+import { DailyMoversStrip } from "@/components/DailyMoversStrip";
+import { getDailyMovers } from "@/lib/daily-mover";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 60;
@@ -20,7 +22,7 @@ function todayKST(): string {
   return new Date(Date.now() + KST_OFFSET_MS).toISOString().slice(0, 10);
 }
 
-export default function Home() {
+export default async function Home() {
   upsertSeoPage({
     path: "/",
     page_type: "home",
@@ -34,6 +36,13 @@ export default function Home() {
   });
 
   const activePulses = getActivePulses(48);
+  // Daily movers — 24h |Δ| per asset. Always-on signal complement to
+  // pulses. Fetched server-side; cached 5min via SQLite.
+  const dailyMovers = await getDailyMovers({ allowStale: true });
+  const oldestFetchAt = dailyMovers.reduce<string | null>((acc, m) => {
+    if (!acc) return m.fetchedAt;
+    return Date.parse(m.fetchedAt) < Date.parse(acc) ? m.fetchedAt : acc;
+  }, null);
   const assets = getAssetEntities()
     .sort((a, b) => b.videoCount - a.videoCount)
     .slice(0, 12);
@@ -78,6 +87,9 @@ export default function Home() {
 
       {/* Macro Strip */}
       <MacroStrip />
+
+      {/* Daily movers — 24h Δ per asset. Always-on, complements pulses. */}
+      <DailyMoversStrip movers={dailyMovers} fetchedAt={oldestFetchAt} />
 
       {/* 활성 Pulse */}
       {activePulses.length > 0 && (
