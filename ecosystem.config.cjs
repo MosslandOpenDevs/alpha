@@ -71,6 +71,17 @@ module.exports = {
       env: { NODE_ENV: "production" },
     },
     {
+      // English brief 번역 — 매일 08:40 KST (Korean brief 10분 후).
+      // Daily Korean brief 직후 영문 자동 번역. Cached by source-hash.
+      name: "alpha-translate-briefs-cron",
+      cwd: ROOT,
+      script: "./node_modules/.bin/tsx",
+      args: "scripts/translate-briefs.ts --days=14",
+      cron_restart: "40 8 * * *",
+      autorestart: false,
+      env: { NODE_ENV: "production" },
+    },
+    {
       // Persona 일일 tick — 매일 09:00 KST (페르소나 발화 10건). Daily cap
       // resets at KST midnight (lib/persona-post todayPostCount uses KST).
       name: "alpha-persona-cron",
