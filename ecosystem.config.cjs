@@ -114,6 +114,17 @@ module.exports = {
       env: { NODE_ENV: "production" },
     },
     {
+      // Connection 가설 자동 갱신 — 매일 07:15 KST (synthesis 직후)
+      // top 80 co-mention pair 의 인과 가설 1줄 생성.
+      name: "alpha-connections-cron",
+      cwd: ROOT,
+      script: "./node_modules/.bin/tsx",
+      args: "scripts/generate-connections.ts top --limit=80",
+      cron_restart: "15 7 * * *",
+      autorestart: false,
+      env: { NODE_ENV: "production" },
+    },
+    {
       // LLM citation audit 주간 측정 — 매주 월요일 11:00 KST
       // OpenAI gpt-4o web_search 로 30 query × alpha 인용 여부 체크.
       // 결과: docs/audit-results/[YYYY-MM-DD]-auto.json

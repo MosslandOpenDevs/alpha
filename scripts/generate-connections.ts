@@ -120,7 +120,12 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+main()
+  .then(async () => {
+    const { recordHeartbeat } = await import("../lib/cron-heartbeat");
+    recordHeartbeat("alpha-connections-cron", "ok");
+  })
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });

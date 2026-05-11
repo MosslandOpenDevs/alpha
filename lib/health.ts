@@ -243,15 +243,20 @@ export function getSystemHealth(): {
           : "heartbeat 없음 — cron 실행 여부 확인 필요.",
       });
     })(),
-    toSubsystem({
-      key: "connections",
-      label: "Entity connection 가설",
-      cadence: "수동 / synthesis 와 함께 갱신",
-      lastAt: connections?.g ?? null,
-      warnAfterSec: 3 * ONE_DAY,
-      failAfterSec: 7 * ONE_DAY,
-      note: "전용 cron 없음. synthesis 옆에 묶을지 검토 중.",
-    }),
+    (() => {
+      const hb = getHeartbeat("alpha-connections-cron");
+      return toSubsystem({
+        key: "connections",
+        label: "Entity connection 가설",
+        cadence: "매일 07:15 KST cron",
+        lastAt: hb?.lastRunAt ?? connections?.g ?? null,
+        warnAfterSec: 28 * ONE_HOUR,
+        failAfterSec: 50 * ONE_HOUR,
+        note: hb
+          ? `cron 마지막 실행 OK (${hb.lastStatus}). latest connection ${connections?.g?.slice(0, 10) ?? "-"}.`
+          : "heartbeat 없음 — cron 첫 실행 대기 중.",
+      });
+    })(),
   ];
 
   const order = ["fail", "warn", "ok", "info"] as const;
