@@ -78,20 +78,38 @@ export default async function QPage({ params }: Props) {
   ]);
 
   // QAPage schema (Google은 1 question per page를 권장)
+  // Required: answerCount on Question, text on Question, author on Question,
+  //           url on Answer, upvoteCount on Answer, url on Answer.author
+  const qaUrl = `${SITE.baseUrl}/ask/q/${hash}`;
   const qaLd = {
     "@context": "https://schema.org",
     "@type": "QAPage",
     mainEntity: {
       "@type": "Question",
       name: a.question,
+      text: a.question,
+      answerCount: 1,
+      upvoteCount: 0,
+      dateCreated: a.generatedAt,
+      author: {
+        "@type": "Organization",
+        name: "Alpha by Mossland",
+        url: SITE.baseUrl,
+      },
       acceptedAnswer: {
         "@type": "Answer",
         text: a.answer,
-        author: { "@type": "Organization", name: "Alpha by Mossland" },
+        url: qaUrl,
+        upvoteCount: 0,
         dateCreated: a.generatedAt,
+        author: {
+          "@type": "Organization",
+          name: "Alpha by Mossland",
+          url: SITE.baseUrl,
+        },
       },
     },
-    url: `${SITE.baseUrl}/ask/q/${hash}`,
+    url: qaUrl,
   };
 
   return (
