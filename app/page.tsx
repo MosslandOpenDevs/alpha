@@ -11,6 +11,7 @@ import { SITE } from "@/lib/seo";
 import { PulseCard } from "@/components/PulseCard";
 import { MacroStrip } from "@/components/MacroStrip";
 import { DailyMoversStrip } from "@/components/DailyMoversStrip";
+import { FreshnessTime } from "@/components/FreshnessTime";
 import { getDailyMovers } from "@/lib/daily-mover";
 
 export const dynamic = "force-dynamic";
@@ -163,8 +164,14 @@ export default async function Home() {
                     {t.description}
                   </p>
                 )}
-                <div className="text-[10px] text-[var(--muted)] mt-1">
-                  영상 {t.videoCount}
+                <div className="text-[10px] text-[var(--muted)] mt-1 flex gap-2">
+                  <span>영상 {t.videoCount}</span>
+                  {t.updatedAt && (
+                    <>
+                      <span>·</span>
+                      <FreshnessTime iso={t.updatedAt} compact />
+                    </>
+                  )}
                 </div>
               </li>
             ))}
@@ -190,6 +197,11 @@ export default async function Home() {
                 <span className="text-xs text-[var(--muted)]">
                   · 영상 {e.videoCount}
                 </span>
+                {e.updatedAt && (
+                  <span className="text-xs ml-1">
+                    · <FreshnessTime iso={e.updatedAt} compact />
+                  </span>
+                )}
               </li>
             ))}
           </ul>

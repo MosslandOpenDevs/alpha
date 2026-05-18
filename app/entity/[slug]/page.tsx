@@ -14,6 +14,7 @@ import { SynthesisCard } from "@/components/SynthesisCard";
 import { getSynthesis } from "@/lib/synthesis";
 import { ConnectionList } from "@/components/ConnectionList";
 import { CommunitySection } from "@/components/CommunitySection";
+import { FreshnessTime } from "@/components/FreshnessTime";
 import { listPostsWithRepliesForRef } from "@/lib/community";
 import type { Metadata } from "next";
 
@@ -169,7 +170,9 @@ export default async function EntityPage({ params }: Props) {
       />
 
       <footer className="mt-12 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
-        <span>마지막 업데이트: {new Date(entity.updatedAt).toLocaleString("ko-KR")}</span>
+        <span>
+          마지막 업데이트: <FreshnessTime iso={entity.updatedAt} />
+        </span>
         <span className="mx-2">·</span>
         <span>출처: signalmap canonical (Mossland)</span>
       </footer>

@@ -10,6 +10,7 @@ import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import { StanceBar } from "@/components/StanceBar";
 import { VideoCard } from "@/components/VideoCard";
 import { SynthesisCard } from "@/components/SynthesisCard";
+import { FreshnessTime } from "@/components/FreshnessTime";
 import { getSynthesis } from "@/lib/synthesis";
 import type { Metadata } from "next";
 
@@ -138,7 +139,9 @@ export default async function TopicPage({ params }: Props) {
       </section>
 
       <footer className="mt-12 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
-        <span>마지막 업데이트: {new Date(topic.updatedAt).toLocaleString("ko-KR")}</span>
+        <span>
+          마지막 업데이트: <FreshnessTime iso={topic.updatedAt} />
+        </span>
         <span className="mx-2">·</span>
         <span>출처: signalmap canonical (Mossland)</span>
       </footer>

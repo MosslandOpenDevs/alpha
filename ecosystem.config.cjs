@@ -60,6 +60,18 @@ module.exports = {
       env: { NODE_ENV: "production" },
     },
     {
+      // Dynamic Q&A seeding — 매일 07:15 KST.
+      // Generates ~20 new /ask/q/[hash] pages per day from top
+      // topics/events/entities. Idempotent (skips cached). ~$0.005/run.
+      name: "alpha-seed-qa-cron",
+      cwd: ROOT,
+      script: "./node_modules/.bin/tsx",
+      args: "scripts/seed-qa-dynamic.ts --limit=20",
+      cron_restart: "15 7 * * *",
+      autorestart: false,
+      env: { NODE_ENV: "production" },
+    },
+    {
       // Daily brief — 매일 08:30 KST. Generates yesterday-in-KST (the day
       // that just ended). yesterday() in the script is KST-aware.
       name: "alpha-brief-cron",
