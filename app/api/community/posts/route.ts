@@ -1,12 +1,14 @@
 import {
   createPost,
   validateBody,
+  validateParent,
   checkRateLimit,
   hashIp,
   ensureCommunityTables,
   type Stance,
   type Post,
 } from "@/lib/community";
+import { clientIp } from "@/lib/rate-limit";
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
 
@@ -29,17 +31,10 @@ async function getOrCreateAnonToken(): Promise<string> {
   return token;
 }
 
-function getClientIp(req: Request): string {
-  const xff = req.headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0].trim();
-  const real = req.headers.get("x-real-ip");
-  if (real) return real;
-  return "unknown";
-}
-
 export async function POST(req: Request) {
   ensureCommunityTables();
-  const ip = getClientIp(req);
+  // Shared, trusted-proxy-aware IP derivation (not the spoofable leftmost XFF).
+  const ip = clientIp(req);
   const ipHash = hashIp(ip);
 
   if (!checkRateLimit(ipHash, 3)) {
@@ -85,12 +80,26 @@ export async function POST(req: Request) {
       ? (body.stance as Stance)
       : null;
 
+  // Replies must attach to an existing top-level post on the same ref —
+  // otherwise a crafted parentId could inject content under an unrelated
+  // page or create orphaned/invisible rows.
+  const parentId = body.parentId ?? null;
+  if (parentId) {
+    const parentCheck = validateParent(parentId, refType, refId);
+    if (!parentCheck.ok) {
+      return Response.json(
+        { error: "invalid_parent", reason: parentCheck.reason },
+        { status: 400 }
+      );
+    }
+  }
+
   const token = await getOrCreateAnonToken();
 
   const post = createPost({
     refType,
     refId,
-    parentId: body.parentId ?? null,
+    parentId,
     body: text,
     stance,
     authorKind: "anonymous",

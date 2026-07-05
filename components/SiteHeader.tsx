@@ -4,9 +4,9 @@
  */
 export function SiteHeader() {
   return (
-    <div className="border-b border-[var(--line)] bg-white">
+    <header className="border-b border-[var(--line)] bg-white">
       <div className="mx-auto w-full max-w-4xl px-6 py-3 flex items-center gap-4">
-        <a href="/" className="flex items-baseline gap-2">
+        <a href="/" className="flex items-baseline gap-2" aria-label="Alpha 홈">
           <span className="font-mono text-xl text-[var(--moss)]">α</span>
           <span className="font-semibold">Alpha</span>
           <span className="text-xs text-[var(--muted)] hidden sm:inline">
@@ -16,16 +16,18 @@ export function SiteHeader() {
         <form
           action="/search"
           method="GET"
+          role="search"
           className="flex-1 max-w-md ml-4"
         >
           <input
             type="search"
             name="q"
+            aria-label="검색"
             placeholder="BTC, FOMC, 이재명, AI 코인…"
-            className="w-full rounded-full border border-[var(--line)] px-4 py-1.5 text-sm focus:border-[var(--moss)] focus:outline-none"
+            className="w-full rounded-full border border-[var(--line)] px-4 py-1.5 text-sm focus:border-[var(--moss)]"
           />
         </form>
-        <nav className="flex items-center gap-3 text-xs text-[var(--muted)] ml-auto">
+        <nav aria-label="주요" className="flex items-center gap-3 text-xs text-[var(--muted)] ml-auto">
           <a href="/ask" className="hover:text-[var(--fg)] font-medium text-[var(--moss)]">
             Ask
           </a>
@@ -43,6 +45,6 @@ export function SiteHeader() {
           </a>
         </nav>
       </div>
-    </div>
+    </header>
   );
 }

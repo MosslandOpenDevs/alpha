@@ -14,7 +14,10 @@ import { getDb } from "./db";
 
 const KST_OFFSET_MS = 9 * 3600_000;
 
+let _tablesEnsured = false;
+
 function ensureTables() {
+  if (_tablesEnsured) return;
   const db = getDb();
   db.exec(`
     CREATE TABLE IF NOT EXISTS alpha_api_rate_limit (
@@ -36,6 +39,28 @@ function ensureTables() {
       updated_at TEXT NOT NULL
     );
   `);
+  _tablesEnsured = true;
+}
+
+// Opportunistic pruning of stale rate-limit buckets so the tables don't grow
+// forever (every distinct IP/minute mints a row). Throttled to once per hour
+// per process; the buckets are only meaningful for the current minute/day.
+let _lastPruneMs = 0;
+function maybePruneOldBuckets() {
+  const now = Date.now();
+  if (now - _lastPruneMs < 3600_000) return;
+  _lastPruneMs = now;
+  const cutoff = new Date(now - 2 * 24 * 3600_000).toISOString();
+  const cutoffHour = new Date(now - 2 * 24 * 3600_000).toISOString().slice(0, 13);
+  try {
+    const db = getDb();
+    db.prepare(`DELETE FROM alpha_api_rate_limit WHERE first_at < ?`).run(cutoff);
+    db.prepare(`DELETE FROM alpha_post_rate_limit WHERE bucket_hour < ?`).run(
+      cutoffHour
+    );
+  } catch {
+    // pruning is best-effort; never fail a request over it
+  }
 }
 
 /** Anonymize IP for storage. */
@@ -43,10 +68,34 @@ function ipHash(ip: string): string {
   return crypto.createHash("sha256").update("alpha:rl:").update(ip).digest("hex").slice(0, 16);
 }
 
-/** Extract client IP from a Request — honors common proxy headers. */
+/**
+ * Extract client IP from a Request.
+ *
+ * X-Forwarded-For is `client, proxy1, proxy2, …`. The LEFTMOST entry is
+ * fully attacker-controllable (anyone can send the header), so trusting it
+ * lets a caller mint a fresh rate-limit bucket per request. Instead we count
+ * `TRUSTED_PROXY_HOPS` proxies in from the RIGHT — the right end is appended
+ * by our own infrastructure and cannot be forged past the nearest trusted
+ * proxy. Default 0 → the IP our nearest trusted proxy actually connected
+ * from (safer than the spoofable leftmost). Set it to the number of proxies
+ * in front of the app (e.g. 1 when behind a CDN → reverse proxy).
+ */
 export function clientIp(req: Request): string {
+  const hops = Math.max(
+    0,
+    Number.parseInt(process.env.TRUSTED_PROXY_HOPS || "0", 10) || 0
+  );
   const xff = req.headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0].trim();
+  if (xff) {
+    const parts = xff
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (parts.length > 0) {
+      const idx = parts.length - 1 - hops;
+      return parts[idx >= 0 ? idx : 0];
+    }
+  }
   const xri = req.headers.get("x-real-ip");
   if (xri) return xri.trim();
   return "unknown";
@@ -131,6 +180,7 @@ export function addCost(costUsd: number) {
 /** Check the per-IP + global cost ceilings BEFORE doing the paid call. */
 export function checkRateLimit(req: Request, cfg: RateConfig): RateLimitVerdict {
   ensureTables();
+  maybePruneOldBuckets();
 
   // 1. Global daily cost ceiling — applies to everyone, even fresh IPs
   const cost = todayCostUsd();

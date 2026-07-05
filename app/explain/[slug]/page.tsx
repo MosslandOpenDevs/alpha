@@ -83,7 +83,7 @@ export default async function ExplainPage({ params }: Props) {
     .filter((t): t is NonNullable<typeof t> => !!t);
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-10">
+    <main id="main" className="mx-auto w-full max-w-3xl px-6 py-10">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdScript(breadcrumb) }}

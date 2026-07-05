@@ -44,7 +44,7 @@ export default async function WhyMovedPage({ params }: Props) {
   if (!article) {
     // 페이지는 살아있으나 데이터 없음 → noindex
     return (
-      <main className="mx-auto w-full max-w-3xl px-6 py-10">
+      <main id="main" className="mx-auto w-full max-w-3xl px-6 py-10">
         <nav className="text-xs text-[var(--muted)] mb-4">
           <a href="/" className="hover:underline">α Alpha</a>
           <span className="mx-2">/</span>
@@ -112,7 +112,7 @@ export default async function WhyMovedPage({ params }: Props) {
   };
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-10">
+    <main id="main" className="mx-auto w-full max-w-3xl px-6 py-10">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdScript(breadcrumb) }}

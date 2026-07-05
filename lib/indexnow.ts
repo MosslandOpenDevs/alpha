@@ -25,11 +25,23 @@ export async function submitUrls(urls: string[]): Promise<{
     return { ok: false, status: 0, count: 0 };
   }
   const host = new URL(SITE.baseUrl).host;
+  // IndexNow rejects host-mismatched URLs, and this list can originate from
+  // a caller-supplied POST body — only submit URLs that belong to our host.
+  const sameHost = urls.filter((u) => {
+    try {
+      return new URL(u).host === host;
+    } catch {
+      return false;
+    }
+  });
+  if (sameHost.length === 0) {
+    return { ok: false, status: 0, count: 0 };
+  }
   const body = {
     host,
     key: INDEXNOW_KEY,
     keyLocation: INDEXNOW_KEY_LOCATION,
-    urlList: urls.slice(0, 10000),
+    urlList: sameHost.slice(0, 10000),
   };
   try {
     const res = await fetch(INDEXNOW_ENDPOINT, {
@@ -38,10 +50,10 @@ export async function submitUrls(urls: string[]): Promise<{
       body: JSON.stringify(body),
       cache: "no-store",
     });
-    return { ok: res.ok, status: res.status, count: urls.length };
+    return { ok: res.ok, status: res.status, count: sameHost.length };
   } catch (err) {
     void err;
-    return { ok: false, status: -1, count: urls.length };
+    return { ok: false, status: -1, count: sameHost.length };
   }
 }
 
