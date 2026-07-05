@@ -38,7 +38,7 @@ export default function CreatorsIndex() {
   }, {});
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-10">
+    <main id="main" className="mx-auto w-full max-w-3xl px-6 py-10">
       <nav className="text-xs text-[var(--muted)] mb-4">
         <a href="/" className="hover:underline">α Alpha</a>
         <span className="mx-2">/</span>

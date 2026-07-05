@@ -44,7 +44,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description: desc,
-    alternates: { canonical: `${SITE.baseUrl}/brief/${date}` },
+    alternates: {
+      canonical: `${SITE.baseUrl}/brief/${date}`,
+      // Reciprocal hreflang — the English brief already points back here.
+      languages: {
+        ko: `${SITE.baseUrl}/brief/${date}`,
+        en: `${SITE.baseUrl}/en/brief/${date}`,
+      },
+    },
     openGraph: { title, description: desc, type: "article" },
   };
 }
@@ -111,7 +118,7 @@ export default async function BriefPage({ params }: Props) {
   };
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-10">
+    <main id="main" className="mx-auto w-full max-w-3xl px-6 py-10">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdScript(breadcrumb) }}

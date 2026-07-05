@@ -90,7 +90,7 @@ export default async function BriefEnPage({ params }: Props) {
   };
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-10">
+    <main id="main" lang="en" className="mx-auto w-full max-w-3xl px-6 py-10">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdScript(breadcrumb) }}

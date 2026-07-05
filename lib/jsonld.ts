@@ -35,7 +35,7 @@ export function organizationJsonLd() {
     sameAs: SITE.publisher.sameAs,
     logo: {
       "@type": "ImageObject",
-      url: `${SITE.baseUrl}/og-default.png`,
+      url: `${SITE.baseUrl}/logo.svg`,
     },
   };
 }

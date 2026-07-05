@@ -56,8 +56,11 @@ export async function POST(req: Request) {
     }
     return Response.json(result, { headers: CORS_POST_HEADERS });
   } catch (err) {
+    // Log full detail server-side; never forward upstream provider error
+    // text (e.g. Grok API bodies, "GROK_API_KEY not set") to the client.
+    console.error("[/api/ask] askAlpha failed:", err);
     return Response.json(
-      { error: "internal", message: (err as Error).message },
+      { error: "internal" },
       { status: 500, headers: CORS_POST_HEADERS }
     );
   }

@@ -1,10 +1,10 @@
 import type { VideoRecord } from "@/lib/mic";
 
 const STANCE_LABEL: Record<string, { ko: string; cls: string }> = {
-  agree: { ko: "같은 방향", cls: "text-[var(--bull)] bg-green-50" },
-  disagree: { ko: "다른 방향", cls: "text-[var(--bear)] bg-red-50" },
-  observe: { ko: "관찰", cls: "text-zinc-700 bg-zinc-100" },
-  neutral: { ko: "중립", cls: "text-zinc-700 bg-zinc-100" },
+  agree: { ko: "같은 방향", cls: "text-green-800 bg-green-50" },
+  disagree: { ko: "다른 방향", cls: "text-red-800 bg-red-50" },
+  observe: { ko: "관찰", cls: "text-zinc-800 bg-zinc-100" },
+  neutral: { ko: "중립", cls: "text-zinc-800 bg-zinc-100" },
 };
 
 function timeAgo(iso?: string): string {

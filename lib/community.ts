@@ -42,7 +42,12 @@ export type Post = {
   is_deleted: number;
 };
 
+let _tablesEnsured = false;
+
 export function ensureCommunityTables() {
+  // Idempotent DDL — run once per process, not on every query. getDb() keeps
+  // one connection, so the tables persist after the first call.
+  if (_tablesEnsured) return;
   getDb().exec(`
     CREATE TABLE IF NOT EXISTS alpha_posts (
       id TEXT PRIMARY KEY,
@@ -71,6 +76,38 @@ export function ensureCommunityTables() {
       PRIMARY KEY (ip_hash, bucket_hour)
     );
   `);
+  _tablesEnsured = true;
+}
+
+/**
+ * Validate a client-supplied parentId for a reply.
+ * Replies are single-level and must attach to a top-level post that shares
+ * the same (ref_type, ref_id). Returns the reason string on failure.
+ */
+export function validateParent(
+  parentId: string,
+  refType: Post["ref_type"],
+  refId: string | null
+): { ok: true } | { ok: false; reason: string } {
+  ensureCommunityTables();
+  const parent = getDb()
+    .prepare(
+      `SELECT ref_type, ref_id, parent_id, is_deleted FROM alpha_posts WHERE id = ?`
+    )
+    .get(parentId) as
+    | {
+        ref_type: string;
+        ref_id: string | null;
+        parent_id: string | null;
+        is_deleted: number;
+      }
+    | undefined;
+  if (!parent || parent.is_deleted) return { ok: false, reason: "부모 글 없음" };
+  if (parent.parent_id !== null)
+    return { ok: false, reason: "답글에는 답글 불가" };
+  if (parent.ref_type !== refType || parent.ref_id !== refId)
+    return { ok: false, reason: "부모 글의 대상이 다름" };
+  return { ok: true };
 }
 
 export function generateNickname(seed?: string): string {
@@ -215,10 +252,28 @@ export function listPostsWithRepliesForRef(
   limit = 30
 ): PostWithReplies[] {
   const parents = listPostsForRef(refType, refId, limit);
-  return parents.map((p) => ({
-    ...p,
-    replies: listReplies(p.id),
-  }));
+  if (parents.length === 0) return [];
+
+  // Fetch every reply in ONE query instead of one query per parent (N+1).
+  const ids = parents.map((p) => p.id);
+  const placeholders = ids.map(() => "?").join(",");
+  const replies = getDb()
+    .prepare(
+      `SELECT * FROM alpha_posts
+       WHERE parent_id IN (${placeholders}) AND is_deleted = 0
+       ORDER BY created_at ASC`
+    )
+    .all(...ids) as Post[];
+
+  const byParent = new Map<string, Post[]>();
+  for (const r of replies) {
+    if (!r.parent_id) continue;
+    const arr = byParent.get(r.parent_id);
+    if (arr) arr.push(r);
+    else byParent.set(r.parent_id, [r]);
+  }
+
+  return parents.map((p) => ({ ...p, replies: byParent.get(p.id) ?? [] }));
 }
 
 export function listRecentPosts(limit = 30): Post[] {

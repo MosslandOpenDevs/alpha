@@ -99,9 +99,10 @@ export function upsertSeoPage(p: SeoPage) {
 
 export function getSeoPage(path: string): SeoPage | null {
   const db = getDb();
-  return db
+  // better-sqlite3 .get() returns undefined (not null) on no match.
+  return (db
     .prepare(`SELECT * FROM alpha_seo_pages WHERE path = ?`)
-    .get(path) as SeoPage | null;
+    .get(path) as SeoPage | undefined) ?? null;
 }
 
 export function listIndexedPages(): SeoPage[] {

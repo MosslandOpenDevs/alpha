@@ -28,6 +28,31 @@ export async function POST(req: Request) {
 
   // Batch support
   if (Array.isArray(body)) {
+    // Cap batch size — an unbounded array would fan out into that many
+    // handler invocations (DB/search work) on a single unauthenticated
+    // request, starving the event loop.
+    const MAX_BATCH = 20;
+    if (body.length > MAX_BATCH) {
+      return Response.json(
+        {
+          jsonrpc: "2.0",
+          id: null,
+          error: {
+            code: -32600,
+            message: `Batch too large (max ${MAX_BATCH} messages)`,
+          },
+        },
+        {
+          status: 400,
+          headers: {
+            "Cache-Control": "no-store",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Mcp-Session-Id",
+          },
+        }
+      );
+    }
     const responses = await Promise.all(
       body.map((m) => processMcpRequest(m, ctx))
     );

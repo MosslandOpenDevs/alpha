@@ -10,9 +10,10 @@ type Props = {
 };
 
 const STANCE_LABEL: Record<string, { ko: string; cls: string }> = {
-  agree: { ko: "같은 방향", cls: "text-[var(--bull)] bg-green-50" },
-  disagree: { ko: "다른 방향", cls: "text-[var(--bear)] bg-red-50" },
-  observe: { ko: "관찰", cls: "bg-zinc-100 text-zinc-700" },
+  // Darker text on the -50 tints to clear WCAG AA (var(--bull)/--bear failed).
+  agree: { ko: "같은 방향", cls: "text-green-800 bg-green-50" },
+  disagree: { ko: "다른 방향", cls: "text-red-800 bg-red-50" },
+  observe: { ko: "관찰", cls: "bg-zinc-100 text-zinc-800" },
 };
 
 function timeAgo(iso: string): string {
@@ -80,35 +81,45 @@ export function CommunitySection({ refType, refId, initialPosts }: Props) {
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
+          aria-label="의견 작성"
           placeholder="이 페이지에 대한 의견을 남겨주세요. 익명으로 자동 닉네임이 부여됩니다. 출처 직링크 권장."
           rows={3}
           maxLength={2000}
-          className="w-full resize-none border-0 focus:outline-none text-sm leading-relaxed bg-transparent"
+          className="w-full resize-none border-0 text-sm leading-relaxed bg-transparent"
         />
         <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[var(--line)]">
           <button
             type="button"
+            aria-pressed={stance === "agree"}
             onClick={() => setStance(stance === "agree" ? "" : "agree")}
             className={`px-2 py-1 rounded text-xs font-medium ${
-              stance === "agree" ? STANCE_LABEL.agree.cls : "text-[var(--muted)] hover:bg-zinc-50"
+              stance === "agree"
+                ? `${STANCE_LABEL.agree.cls} ring-1 ring-green-700`
+                : "text-[var(--muted)] hover:bg-zinc-50"
             }`}
           >
             👍 같은 방향
           </button>
           <button
             type="button"
+            aria-pressed={stance === "disagree"}
             onClick={() => setStance(stance === "disagree" ? "" : "disagree")}
             className={`px-2 py-1 rounded text-xs font-medium ${
-              stance === "disagree" ? STANCE_LABEL.disagree.cls : "text-[var(--muted)] hover:bg-zinc-50"
+              stance === "disagree"
+                ? `${STANCE_LABEL.disagree.cls} ring-1 ring-red-700`
+                : "text-[var(--muted)] hover:bg-zinc-50"
             }`}
           >
             👎 다른 방향
           </button>
           <button
             type="button"
+            aria-pressed={stance === "observe"}
             onClick={() => setStance(stance === "observe" ? "" : "observe")}
             className={`px-2 py-1 rounded text-xs font-medium ${
-              stance === "observe" ? STANCE_LABEL.observe.cls : "text-[var(--muted)] hover:bg-zinc-50"
+              stance === "observe"
+                ? `${STANCE_LABEL.observe.cls} ring-1 ring-zinc-400`
+                : "text-[var(--muted)] hover:bg-zinc-50"
             }`}
           >
             👀 관찰
@@ -192,7 +203,7 @@ export function CommunitySection({ refType, refId, initialPosts }: Props) {
                             </span>
                             {rs && (
                               <span
-                                className={`ml-auto px-1.5 py-0.5 rounded-full text-[9px] font-medium ${rs.cls}`}
+                                className={`ml-auto px-1.5 py-0.5 rounded-full text-[10px] font-medium ${rs.cls}`}
                               >
                                 {rs.ko}
                               </span>

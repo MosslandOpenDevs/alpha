@@ -56,7 +56,7 @@ export default async function Home() {
   const totalEntities = getAllEntities().length;
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-6 py-10 sm:py-12">
+    <main id="main" className="mx-auto w-full max-w-4xl px-6 py-10 sm:py-12">
       <header className="mb-8">
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight mb-3">
           오늘의 알파, 모든 시각으로

@@ -1,9 +1,19 @@
 import { ImageResponse } from "next/og";
 import { SITE } from "@/lib/seo";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 export const alt = "Alpha by Mossland — 오늘의 알파, 모든 시각으로";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+
+// Satori (next/og) ships only a Latin fallback — without an explicit fonts
+// array the Korean text renders as tofu. These are Pretendard subsets
+// containing exactly the glyphs used on this static card (~14KB each).
+const ogFontDir = join(process.cwd(), "app/fonts/og");
+const fontRegular = readFileSync(join(ogFontDir, "Pretendard-Regular.subset.otf"));
+const fontSemiBold = readFileSync(join(ogFontDir, "Pretendard-SemiBold.subset.otf"));
+const fontBold = readFileSync(join(ogFontDir, "Pretendard-Bold.subset.otf"));
 
 export default async function Image() {
   return new ImageResponse(
@@ -17,7 +27,7 @@ export default async function Image() {
           background:
             "linear-gradient(135deg, #FAFAF7 0%, #FAFAF7 70%, #d8e8de 100%)",
           padding: 80,
-          fontFamily: "Pretendard, sans-serif",
+          fontFamily: "Pretendard",
         }}
       >
         <div
@@ -32,7 +42,7 @@ export default async function Image() {
             style={{
               fontSize: 96,
               color: SITE.brandColor,
-              fontFamily: "monospace",
+              fontWeight: 700,
               lineHeight: 1,
             }}
           >
@@ -90,6 +100,11 @@ export default async function Image() {
     ),
     {
       ...size,
+      fonts: [
+        { name: "Pretendard", data: fontRegular, weight: 400, style: "normal" },
+        { name: "Pretendard", data: fontSemiBold, weight: 600, style: "normal" },
+        { name: "Pretendard", data: fontBold, weight: 700, style: "normal" },
+      ],
     }
   );
 }

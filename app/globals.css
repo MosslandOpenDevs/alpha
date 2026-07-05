@@ -4,7 +4,7 @@
   /* Mossland 톤 — service_plan §9.2 */
   --bg: #FAFAF7;       /* off-white */
   --fg: #1a1a1a;       /* near-black */
-  --muted: #6b7280;
+  --muted: #565d68;    /* darkened for AA contrast on --bg (was #6b7280) */
   --line: #e5e7eb;
   --moss: #3D7A5D;     /* Mossland mint */
   --accent: #FF7A45;   /* signalmap orange */
@@ -21,9 +21,9 @@
   --color-accent: var(--accent);
   --color-bull: var(--bull);
   --color-bear: var(--bear);
-  --font-sans: "Pretendard Variable", Pretendard, -apple-system,
-    BlinkMacSystemFont, system-ui, "Segoe UI", "Helvetica Neue", "Apple SD Gothic Neo",
-    "Noto Sans KR", sans-serif;
+  --font-sans: var(--font-pretendard), "Pretendard Variable", Pretendard,
+    -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", "Helvetica Neue",
+    "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
   --font-serif-head: var(--font-serif-head);
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
@@ -43,4 +43,12 @@ h2,
 h3 {
   font-family: var(--font-serif-head), Georgia, serif;
   letter-spacing: -0.01em;
+}
+
+/* Consistent, visible keyboard focus for every interactive element.
+   Never rely on per-element focus:outline-none without a replacement. */
+:focus-visible {
+  outline: 2px solid var(--moss);
+  outline-offset: 2px;
+  border-radius: 3px;
 }

@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Source_Serif_4 } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { SITE } from "@/lib/seo";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -9,6 +10,17 @@ const serifHead = Source_Serif_4({
   variable: "--font-serif-head",
   subsets: ["latin"],
   weight: ["400", "600", "700"],
+});
+
+// Self-hosted Pretendard (was a render-blocking third-party CDN stylesheet).
+// next/font inlines the @font-face, preloads the exact file, and gives us
+// font-display: swap — no extra DNS/TLS round-trip, no supply-chain/SRI risk.
+const pretendard = localFont({
+  src: "./fonts/PretendardVariable.woff2",
+  variable: "--font-pretendard",
+  display: "swap",
+  weight: "45 920",
+  style: "normal",
 });
 
 export const metadata: Metadata = {
@@ -49,17 +61,25 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: SITE.baseUrl,
+    languages: {
+      ko: `${SITE.baseUrl}/`,
+      en: `${SITE.baseUrl}/en`,
+    },
     types: {
       "application/rss+xml": `${SITE.baseUrl}/rss.xml`,
     },
   },
   robots: { index: true, follow: true },
-  icons: {
-    icon: "/favicon.ico",
-  },
+  // Icons/manifest are wired via file conventions: app/favicon.ico,
+  // app/icon.svg, app/apple-icon.tsx, app/manifest.ts.
   other: {
     "format-detection": "telephone=no",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: SITE.brandColor,
+  colorScheme: "light",
 };
 
 export default function RootLayout({
@@ -68,17 +88,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className={`${serifHead.variable} h-full antialiased`}>
+    <html
+      lang="ko"
+      className={`${serifHead.variable} ${pretendard.variable} h-full antialiased`}
+    >
       <head>
-        <link
-          rel="preconnect"
-          href="https://cdn.jsdelivr.net"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css"
-        />
         {/* robots는 각 페이지의 generateMetadata에서 결정 (alpha_dev_plan §2.2) */}
         <script
           type="application/ld+json"
@@ -92,6 +106,12 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-bg text-fg font-sans">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:rounded-lg focus:bg-[var(--moss)] focus:px-4 focus:py-2 focus:text-white focus:shadow"
+        >
+          본문 바로가기
+        </a>
         <SiteHeader />
         {children}
       </body>

@@ -89,7 +89,7 @@ export default async function AssetPage({ params }: Props) {
   };
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-10">
+    <main id="main" className="mx-auto w-full max-w-3xl px-6 py-10">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdScript(breadcrumb) }}
