@@ -48,12 +48,13 @@ Alpha (Next.js 16 + Tailwind v4 + SQLite)
 ## Stack
 
 - **Runtime**: Next.js 16 (App Router) + React 19 + TypeScript
-- **Style**: Tailwind v4, Pretendard Variable + Source Serif 4
+- **Style**: Tailwind v4, Pretendard Variable (self-hosted via `next/font/local`) + Source Serif 4
 - **DB**: SQLite (better-sqlite3, WAL)
 - **AI**: xAI Grok (`grok-4-1-fast-non-reasoning`) + OpenAI embeddings (`text-embedding-3-small`)
 - **Macro**: BOK ECOS (KR) + FRED (US) + CoinGecko free tier
 - **Process**: PM2 (10 apps: 1 web + 9 cron)
-- **SEO**: 3-class robots.txt (search/user/training bots), JSON-LD (Article, NewsArticle, QAPage, FAQPage, NewsEvent, DefinedTerm, Person, Organization, BreadcrumbList), llms.txt, sitemap
+- **SEO**: 3-class robots.txt (search/user/training bots), JSON-LD (Article, NewsArticle, QAPage, FAQPage, NewsEvent, DefinedTerm, Person, Organization, BreadcrumbList), reciprocal ko↔en hreflang, dynamic OG images, favicon + apple-touch-icon + web manifest (PWA), llms.txt, sitemap
+- **Hardening**: security response headers (CSP, HSTS, X-Frame-Options, …) via `next.config.ts`; per-IP + global-cost rate limits on paid endpoints
 
 ## Local development
 
@@ -78,6 +79,8 @@ pnpm dev    # http://localhost:6900
 | `SIGNALMAP_ROOT` | (optional) checked-out SignalMap repo for `seed/channels.json` | `../signalmap` |
 | `GROK_API_KEY` | xAI Grok | required for AI features |
 | `OPENAI_API_KEY` | embeddings + audit | required for hybrid search |
+| `TRUSTED_PROXY_HOPS` | reverse proxies in front of the app; picks the real client IP for rate limiting (not the spoofable leftmost `X-Forwarded-For`) | `0` |
+| `INDEXNOW_ADMIN_TOKEN` | bearer token to authorize `GET/POST /api/admin/indexnow`; the endpoint is disabled when unset | optional |
 
 Full template in [`.env.example`](./.env.example).
 
@@ -100,6 +103,8 @@ pnpm build
 pm2 start ecosystem.config.cjs
 pm2 save
 ```
+
+When Alpha runs behind a reverse proxy or CDN, set `TRUSTED_PROXY_HOPS` to the number of trusted hops so per-IP rate limits key on the real client address (the leftmost `X-Forwarded-For` entry is caller-spoofable). Security response headers are emitted by `next.config.ts` and need no proxy configuration.
 
 The 9 cron apps cover macro fetch, AI synthesis, daily brief, persona ticks, persona replies, trackable call resolution, why-moved article generation, IndexNow weekly ping, and a weekly LLM-citation audit.
 
