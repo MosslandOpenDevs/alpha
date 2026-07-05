@@ -110,8 +110,22 @@ export function getSystemHealth(): {
 } {
   const db = getDb();
 
-  const row = <T,>(sql: string): T | undefined =>
-    db.prepare(sql).get() as T | undefined;
+  // Each subsystem's table is created lazily by its own module (e.g.
+  // alpha_brief_summaries by lib/brief.ts) the first time it writes. On a
+  // fresh DB — before any cron has run — those tables don't exist yet, so a
+  // raw SELECT would throw "no such table" and crash the whole health page.
+  // Treat a missing table as no-data (undefined → lastAt null → fail status),
+  // which is the honest representation; rethrow anything else.
+  const row = <T,>(sql: string): T | undefined => {
+    try {
+      return db.prepare(sql).get() as T | undefined;
+    } catch (err) {
+      if (err instanceof Error && /no such table/i.test(err.message)) {
+        return undefined;
+      }
+      throw err;
+    }
+  };
 
   // ─── DB-backed subsystems ───────────────────────────────────────
   const brief = row<{ d: string; g: string }>(
