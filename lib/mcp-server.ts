@@ -42,7 +42,8 @@ import { AGENTS } from "./agents";
 const PROTOCOL_VERSION = "2025-06-18";
 const SERVER_INFO = {
   name: "alpha-by-mossland",
-  version: "0.1.0",
+  // Matches the version published to the MCP Registry (land.moss/alpha-mcp).
+  version: "1.0.0",
 };
 
 // ─── Tool definitions ─────────────────────────────────────────────
