@@ -4,10 +4,20 @@
  * `cwd: __dirname` resolves to wherever this file lives, so the same
  * config works on any host (Mac mini, Lightsail, VPS, etc.).
  *
- * Cron schedules are interpreted in the host's *local* timezone — on the
- * production Mac mini that's KST. Times below are written in KST and the
- * comments explicitly state so. (An earlier version assumed the schedules
- * were UTC and silently fired 9 hours early. Fixed 2026-05-07.)
+ * Cron schedules are interpreted in the host's *local* timezone, and the
+ * production host — a Linux VM, not a Mac mini — is on **Etc/UTC**.
+ * Verified with `timedatectl`, not assumed.
+ *
+ * So every `cron_restart` below is written in **UTC**, and the comment on
+ * each app states the KST time it is meant to land on. KST is UTC+9, so a
+ * morning-KST job runs the previous evening in UTC (06:00 KST = 21:00 UTC
+ * the day before).
+ *
+ * History: the 2026-05-07 note here claimed the box was a KST Mac mini and
+ * rewrote every schedule into KST wall-clock. The box was already UTC, so
+ * that change moved the jobs 9 hours the wrong way — the daily brief
+ * "08:30 KST" was firing at 17:30 KST. Corrected, this time against the
+ * host's actual timezone.
  */
 const ROOT = __dirname;
 
@@ -35,7 +45,7 @@ module.exports = {
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/indexnow-cron.ts",
-      cron_restart: "0 4 * * 1",
+      cron_restart: "0 19 * * 0", // UTC = 04:00 KST 익일
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
@@ -45,7 +55,7 @@ module.exports = {
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/fetch-macro.ts",
-      cron_restart: "0 6 * * *",
+      cron_restart: "0 21 * * *", // UTC = 06:00 KST 익일
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
@@ -55,7 +65,7 @@ module.exports = {
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/generate-synthesis.ts top --limit=30",
-      cron_restart: "0 7 * * *",
+      cron_restart: "0 22 * * *", // UTC = 07:00 KST 익일
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
@@ -67,7 +77,7 @@ module.exports = {
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/seed-qa-dynamic.ts --limit=20",
-      cron_restart: "15 7 * * *",
+      cron_restart: "15 22 * * *", // UTC = 07:15 KST 익일
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
@@ -78,7 +88,7 @@ module.exports = {
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/generate-brief.ts",
-      cron_restart: "30 8 * * *",
+      cron_restart: "30 23 * * *", // UTC = 08:30 KST 익일
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
@@ -89,7 +99,7 @@ module.exports = {
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/translate-briefs.ts --days=14",
-      cron_restart: "40 8 * * *",
+      cron_restart: "40 23 * * *", // UTC = 08:40 KST 익일
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
@@ -100,7 +110,7 @@ module.exports = {
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/persona-tick.ts --pages=10",
-      cron_restart: "0 9 * * *",
+      cron_restart: "0 0 * * *", // UTC = 09:00 KST
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
@@ -110,7 +120,7 @@ module.exports = {
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/persona-replies.ts --max=8",
-      cron_restart: "0 12 * * *",
+      cron_restart: "0 3 * * *", // UTC = 12:00 KST
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
@@ -122,7 +132,7 @@ module.exports = {
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/track-calls.ts",
-      cron_restart: "0 13 * * *",
+      cron_restart: "0 4 * * *", // UTC = 13:00 KST
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
@@ -132,7 +142,7 @@ module.exports = {
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/generate-why-moved.ts",
-      cron_restart: "45 8 * * *",
+      cron_restart: "45 23 * * *", // UTC = 08:45 KST 익일
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
@@ -143,7 +153,7 @@ module.exports = {
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/generate-connections.ts top --limit=80",
-      cron_restart: "15 7 * * *",
+      cron_restart: "15 22 * * *", // UTC = 07:15 KST 익일
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
@@ -155,7 +165,7 @@ module.exports = {
       cwd: ROOT,
       script: "./node_modules/.bin/tsx",
       args: "scripts/audit-auto.ts",
-      cron_restart: "0 11 * * 1",
+      cron_restart: "0 2 * * 1", // UTC = 11:00 KST
       autorestart: false,
       env: { NODE_ENV: "production" },
     },
