@@ -13,6 +13,7 @@
 import { getDb } from "./db";
 import { chat } from "./grok";
 import {
+  formatPulseLoadDiagnostics,
   getAllPulses,
   getEntity,
   getPulseLoadDiagnostics,
@@ -184,7 +185,9 @@ export function kstDateForTimestamp(timestamp: string): string | null {
   return new Date(time + KST_OFFSET_MS).toISOString().slice(0, 10);
 }
 
-function dayBounds(date: string): { start: number; end: number } {
+/** [start, end) epoch-ms bounds of a KST calendar day. Throws on an
+ *  invalid date so callers cannot silently query an empty window. */
+export function kstDayBounds(date: string): { start: number; end: number } {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     throw new Error(`Invalid calendar date: ${date}`);
   }
@@ -252,12 +255,12 @@ export async function generateWhyMoved(
   asset = asset.toLowerCase();
 
   // pulse 찾기
-  const { start, end } = dayBounds(date);
+  const { start, end } = kstDayBounds(date);
   const allPulses = getAllPulses();
   const diagnostics = getPulseLoadDiagnostics();
   if (diagnostics.invalidFiles.length || diagnostics.duplicateIds.length) {
     throw new Error(
-      `Pulse input integrity check failed: invalid_files=${diagnostics.invalidFiles.length} duplicate_ids=${diagnostics.duplicateIds.length}`
+      `Pulse input integrity check failed: ${formatPulseLoadDiagnostics(diagnostics)}`
     );
   }
   const pulses = allPulses.filter((p) => {

@@ -2,6 +2,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { getWhyMoved } from "@/lib/why-moved";
 import { assetSlugFromEntity, getAssetOrStub } from "@/lib/mic";
 import { registerSeoPage } from "@/lib/seo-register";
+import { deleteSeoPage } from "@/lib/db";
 import { SITE } from "@/lib/seo";
 import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import { PulseCard } from "@/components/PulseCard";
@@ -49,6 +50,7 @@ export default async function WhyMovedPage({ params }: Props) {
     ? assetSlugFromEntity(entity)
     : symbol.toLowerCase();
   if (symbol.toLowerCase() !== canonicalSymbol) {
+    deleteSeoPage(`/asset/${symbol.toLowerCase()}/why-moved/${date}`);
     permanentRedirect(`/asset/${canonicalSymbol}/why-moved/${date}`);
   }
 

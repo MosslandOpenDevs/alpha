@@ -371,11 +371,20 @@ export function getAllPulses(): Pulse[] {
     (a, b) => Date.parse(b.detectedAt) - Date.parse(a.detectedAt)
   );
   const loadedAt = Date.now();
-  _pulsesCache = { data: pulses, loadedAt };
-  _pulseDiagnosticsCache = {
-    data: { invalidFiles, duplicateIds: [...duplicateIds].sort() },
-    loadedAt,
+  const diagnostics: PulseLoadDiagnostics = {
+    invalidFiles,
+    duplicateIds: [...duplicateIds].sort(),
   };
+  _pulsesCache = { data: pulses, loadedAt };
+  _pulseDiagnosticsCache = { data: diagnostics, loadedAt };
+  if (invalidFiles.length || duplicateIds.size) {
+    // Rejected files vanish from every pulse surface (/pulse, asset pages,
+    // /api/pulse/active.json, briefs). Say so once per (re)load so the web
+    // side is not silent; the generator additionally fails closed.
+    console.warn(
+      `[mic] pulses: dropped ${formatPulseLoadDiagnostics(diagnostics)}`
+    );
+  }
   return pulses;
 }
 
@@ -389,6 +398,22 @@ export function getPulseLoadDiagnostics(): PulseLoadDiagnostics {
     invalidFiles: [...diagnostics.invalidFiles],
     duplicateIds: [...diagnostics.duplicateIds],
   };
+}
+
+/** Human-readable summary of pulse loader rejections, capped at `max` names
+ *  per category so a bad batch does not flood logs. */
+export function formatPulseLoadDiagnostics(
+  d: PulseLoadDiagnostics,
+  max = 20
+): string {
+  const list = (xs: string[]) =>
+    xs.length
+      ? ` [${xs.slice(0, max).join(", ")}${xs.length > max ? `, +${xs.length - max} more` : ""}]`
+      : "";
+  return (
+    `invalid_files=${d.invalidFiles.length}${list(d.invalidFiles)} ` +
+    `duplicate_ids=${d.duplicateIds.length}${list(d.duplicateIds)}`
+  );
 }
 
 export function getPulse(id: string): Pulse | null {

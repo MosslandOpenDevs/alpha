@@ -7,6 +7,7 @@ import {
   getActivePulses,
 } from "@/lib/mic";
 import { registerSeoPage } from "@/lib/seo-register";
+import { deleteSeoPage } from "@/lib/db";
 import { SITE } from "@/lib/seo";
 import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import { StanceBar } from "@/components/StanceBar";
@@ -55,6 +56,9 @@ export default async function AssetPage({ params }: Props) {
   }
   const canonicalSymbol = assetSlugFromEntity(entity);
   if (symbol.toLowerCase() !== canonicalSymbol) {
+    // Earlier renders registered the alias path itself; drop it so the
+    // sitemap stops advertising a URL that now 308s to the canonical slug.
+    deleteSeoPage(`/asset/${symbol.toLowerCase()}`);
     permanentRedirect(`/asset/${canonicalSymbol}`);
   }
 
