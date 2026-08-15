@@ -60,8 +60,13 @@ function loadState(): State {
 function saveState(state: State) {
   fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true });
   const tempFile = `${STATE_FILE}.${process.pid}.tmp`;
-  fs.writeFileSync(tempFile, JSON.stringify(state, null, 2), { mode: 0o644 });
-  fs.renameSync(tempFile, STATE_FILE);
+  try {
+    fs.writeFileSync(tempFile, JSON.stringify(state, null, 2), { mode: 0o644 });
+    fs.renameSync(tempFile, STATE_FILE);
+  } catch (error) {
+    fs.rmSync(tempFile, { force: true });
+    throw error;
+  }
 }
 
 async function main() {
@@ -85,7 +90,10 @@ async function main() {
   }
 
   const state = loadState();
-  const lastPingTs = state.lastPingedAt ? Date.parse(state.lastPingedAt) : 0;
+  // An unparseable watermark (hand-edited file) would make every comparison
+  // below false and silently stop pinging forever — treat it as a first run.
+  const parsedLastPing = state.lastPingedAt ? Date.parse(state.lastPingedAt) : 0;
+  const lastPingTs = Number.isFinite(parsedLastPing) ? parsedLastPing : 0;
 
   const pages = listIndexedPages();
   const candidates = all
