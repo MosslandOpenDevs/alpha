@@ -4,22 +4,54 @@
  * `cwd: __dirname` resolves to wherever this file lives, so the same
  * config works on any host (Mac mini, Lightsail, VPS, etc.).
  *
- * Cron schedules are interpreted in the host's *local* timezone, and the
- * production host — a Linux VM, not a Mac mini — is on **Etc/UTC**.
- * Verified with `timedatectl`, not assumed.
+ * ── Timezone ────────────────────────────────────────────────────────────
+ * `cron_restart` is evaluated by the PM2 *daemon*, in the daemon's local
+ * timezone — an app-level `TZ` does not move it. The production host — the
+ * Tailscale node `atrn-vm-linux`, not a Mac mini — is on **Etc/UTC**,
+ * verified with `timedatectl`, not assumed. So every `cron_restart` below
+ * is written in **UTC** and each comment states the KST time it lands on.
+ * KST is UTC+9, so a morning-KST job runs the previous evening in UTC
+ * (06:00 KST = 21:00 UTC the day before).
  *
- * So every `cron_restart` below is written in **UTC**, and the comment on
- * each app states the KST time it is meant to land on. KST is UTC+9, so a
- * morning-KST job runs the previous evening in UTC (06:00 KST = 21:00 UTC
- * the day before).
+ * Deploying on a host whose PM2 daemon is not UTC requires either pinning
+ * the daemon's TZ (systemd unit) or converting these expressions.
  *
  * History: the 2026-05-07 note here claimed the box was a KST Mac mini and
  * rewrote every schedule into KST wall-clock. The box was already UTC, so
  * that change moved the jobs 9 hours the wrong way — the daily brief
  * "08:30 KST" was firing at 17:30 KST. Corrected, this time against the
  * host's actual timezone.
+ *
+ * ── Why `interpreter: "none"` ───────────────────────────────────────────
+ * pnpm writes `node_modules/.bin/tsx` as a POSIX `#!/bin/sh` cmd-shim on
+ * Linux. PM2 picks its interpreter from the file extension; `.bin/tsx` has
+ * none, so PM2 defaults to `node` and its fork container `require()`s the
+ * shim → `SyntaxError: basedir=$(dirname …)` and every cron app lands in
+ * `errored`. `interpreter: "none"` makes PM2 exec the file directly, which
+ * works for both pnpm's shell shim and npm's `#!/usr/bin/env node` symlink.
+ *
+ * The cron children also get `TZ: "Asia/Seoul"`: the scripts are written to
+ * be TZ-independent (explicit UTC+9 math or `timeZone: "Asia/Seoul"`), and
+ * this keeps any future `new Date()` formatting on Korean market days.
  */
 const ROOT = __dirname;
+
+/** One tsx cron app. `cronRestart` is UTC; `note` states the KST intent. */
+function cronApp({ name, script, cronRestart, note }) {
+  return {
+    name,
+    cwd: ROOT,
+    script: "./node_modules/.bin/tsx",
+    args: script,
+    // See header: pnpm's .bin/tsx is a shell shim, not JavaScript.
+    interpreter: "none",
+    cron_restart: cronRestart,
+    autorestart: false,
+    env: { NODE_ENV: "production", TZ: "Asia/Seoul" },
+    // Not used by PM2 — kept so `pm2 describe` output carries the intent.
+    _kst: note,
+  };
+}
 
 module.exports = {
   apps: [
@@ -39,135 +71,79 @@ module.exports = {
       autorestart: true,
       watch: false,
     },
-    {
-      // IndexNow weekly ping — every Monday 04:00 KST
+
+    cronApp({
       name: "alpha-indexnow-cron",
-      cwd: ROOT,
-      script: "./node_modules/.bin/tsx",
-      args: "scripts/indexnow-cron.ts",
-      cron_restart: "0 19 * * 0", // UTC = 04:00 KST 익일
-      autorestart: false,
-      env: { NODE_ENV: "production" },
-    },
-    {
-      // Macro 데이터 daily fetch — 매일 06:00 KST
+      script: "scripts/indexnow-cron.ts",
+      cronRestart: "0 19 * * 0",
+      note: "매주 월요일 04:00 KST — IndexNow weekly ping",
+    }),
+    cronApp({
       name: "alpha-macro-cron",
-      cwd: ROOT,
-      script: "./node_modules/.bin/tsx",
-      args: "scripts/fetch-macro.ts",
-      cron_restart: "0 21 * * *", // UTC = 06:00 KST 익일
-      autorestart: false,
-      env: { NODE_ENV: "production" },
-    },
-    {
-      // Synthesis 자동 갱신 — 매일 07:00 KST (top 30 entity)
+      script: "scripts/fetch-macro.ts",
+      cronRestart: "0 21 * * *",
+      note: "매일 06:00 KST — Macro 데이터 fetch",
+    }),
+    cronApp({
       name: "alpha-synthesis-cron",
-      cwd: ROOT,
-      script: "./node_modules/.bin/tsx",
-      args: "scripts/generate-synthesis.ts top --limit=30",
-      cron_restart: "0 22 * * *", // UTC = 07:00 KST 익일
-      autorestart: false,
-      env: { NODE_ENV: "production" },
-    },
-    {
-      // Dynamic Q&A seeding — 매일 07:15 KST.
-      // Generates ~20 new /ask/q/[hash] pages per day from top
-      // topics/events/entities. Idempotent (skips cached). ~$0.005/run.
+      script: "scripts/generate-synthesis.ts top --limit=30",
+      cronRestart: "0 22 * * *",
+      note: "매일 07:00 KST — top 30 entity synthesis",
+    }),
+    cronApp({
       name: "alpha-seed-qa-cron",
-      cwd: ROOT,
-      script: "./node_modules/.bin/tsx",
-      args: "scripts/seed-qa-dynamic.ts --limit=20",
-      cron_restart: "15 22 * * *", // UTC = 07:15 KST 익일
-      autorestart: false,
-      env: { NODE_ENV: "production" },
-    },
-    {
-      // Daily brief — 매일 08:30 KST. Generates yesterday-in-KST (the day
-      // that just ended). yesterday() in the script is KST-aware.
-      name: "alpha-brief-cron",
-      cwd: ROOT,
-      script: "./node_modules/.bin/tsx",
-      args: "scripts/generate-brief.ts",
-      cron_restart: "30 23 * * *", // UTC = 08:30 KST 익일
-      autorestart: false,
-      env: { NODE_ENV: "production" },
-    },
-    {
-      // English brief 번역 — 매일 08:40 KST (Korean brief 10분 후).
-      // Daily Korean brief 직후 영문 자동 번역. Cached by source-hash.
-      name: "alpha-translate-briefs-cron",
-      cwd: ROOT,
-      script: "./node_modules/.bin/tsx",
-      args: "scripts/translate-briefs.ts --days=14",
-      cron_restart: "40 23 * * *", // UTC = 08:40 KST 익일
-      autorestart: false,
-      env: { NODE_ENV: "production" },
-    },
-    {
-      // Persona 일일 tick — 매일 09:00 KST (페르소나 발화 10건). Daily cap
-      // resets at KST midnight (lib/persona-post todayPostCount uses KST).
-      name: "alpha-persona-cron",
-      cwd: ROOT,
-      script: "./node_modules/.bin/tsx",
-      args: "scripts/persona-tick.ts --pages=10",
-      cron_restart: "0 0 * * *", // UTC = 09:00 KST
-      autorestart: false,
-      env: { NODE_ENV: "production" },
-    },
-    {
-      // Persona 답글 — 매일 12:00 KST (페르소나끼리 8개 답글)
-      name: "alpha-persona-reply-cron",
-      cwd: ROOT,
-      script: "./node_modules/.bin/tsx",
-      args: "scripts/persona-replies.ts --max=8",
-      cron_restart: "0 3 * * *", // UTC = 12:00 KST
-      autorestart: false,
-      env: { NODE_ENV: "production" },
-    },
-    {
-      // Trackable calls — 매일 13:00 KST.
-      // 1) 신규 asset post에 call 레코드 backfill
-      // 2) target_date 도달한 pending call 자동 resolve
-      name: "alpha-calls-cron",
-      cwd: ROOT,
-      script: "./node_modules/.bin/tsx",
-      args: "scripts/track-calls.ts",
-      cron_restart: "0 4 * * *", // UTC = 13:00 KST
-      autorestart: false,
-      env: { NODE_ENV: "production" },
-    },
-    {
-      // Why-moved — 매일 08:45 KST (brief 직후, pulse → article 자동 생성)
-      name: "alpha-why-moved-cron",
-      cwd: ROOT,
-      script: "./node_modules/.bin/tsx",
-      args: "scripts/generate-why-moved.ts",
-      cron_restart: "45 23 * * *", // UTC = 08:45 KST 익일
-      autorestart: false,
-      env: { NODE_ENV: "production" },
-    },
-    {
-      // Connection 가설 자동 갱신 — 매일 07:15 KST (synthesis 직후)
-      // top 80 co-mention pair 의 인과 가설 1줄 생성.
+      script: "scripts/seed-qa-dynamic.ts --limit=20",
+      cronRestart: "15 22 * * *",
+      note: "매일 07:15 KST — ~20 new /ask/q/[hash] pages, idempotent, ~$0.005/run",
+    }),
+    cronApp({
       name: "alpha-connections-cron",
-      cwd: ROOT,
-      script: "./node_modules/.bin/tsx",
-      args: "scripts/generate-connections.ts top --limit=80",
-      cron_restart: "15 22 * * *", // UTC = 07:15 KST 익일
-      autorestart: false,
-      env: { NODE_ENV: "production" },
-    },
-    {
-      // LLM citation audit 주간 측정 — 매주 월요일 11:00 KST
-      // OpenAI gpt-4o web_search 로 30 query × alpha 인용 여부 체크.
-      // 결과: docs/audit-results/[YYYY-MM-DD]-auto.json
+      script: "scripts/generate-connections.ts top --limit=80",
+      // Staggered 15 min after seed QA so two Grok+SQLite jobs do not overlap.
+      cronRestart: "30 22 * * *",
+      note: "매일 07:30 KST — top 80 co-mention pair 인과 가설",
+    }),
+    cronApp({
+      name: "alpha-brief-cron",
+      script: "scripts/generate-brief.ts",
+      cronRestart: "30 23 * * *",
+      note: "매일 08:30 KST — 어제(KST) daily brief",
+    }),
+    cronApp({
+      name: "alpha-translate-briefs-cron",
+      script: "scripts/translate-briefs.ts --days=14",
+      cronRestart: "40 23 * * *",
+      note: "매일 08:40 KST — English brief 번역 (source-hash 캐시)",
+    }),
+    cronApp({
+      name: "alpha-why-moved-cron",
+      script: "scripts/generate-why-moved.ts",
+      cronRestart: "45 23 * * *",
+      note: "매일 08:45 KST — pulse → why-moved article",
+    }),
+    cronApp({
+      name: "alpha-persona-cron",
+      script: "scripts/persona-tick.ts --pages=10",
+      cronRestart: "0 0 * * *",
+      note: "매일 09:00 KST — 페르소나 발화 10건 (daily cap resets at KST midnight)",
+    }),
+    cronApp({
+      name: "alpha-persona-reply-cron",
+      script: "scripts/persona-replies.ts --max=8",
+      cronRestart: "0 3 * * *",
+      note: "매일 12:00 KST — 페르소나 답글 8건",
+    }),
+    cronApp({
+      name: "alpha-calls-cron",
+      script: "scripts/track-calls.ts",
+      cronRestart: "0 4 * * *",
+      note: "매일 13:00 KST — call backfill + pending resolve",
+    }),
+    cronApp({
       name: "alpha-audit-cron",
-      cwd: ROOT,
-      script: "./node_modules/.bin/tsx",
-      args: "scripts/audit-auto.ts",
-      cron_restart: "0 2 * * 1", // UTC = 11:00 KST
-      autorestart: false,
-      env: { NODE_ENV: "production" },
-    },
+      script: "scripts/audit-auto.ts",
+      cronRestart: "0 2 * * 1",
+      note: "매주 월요일 11:00 KST — LLM citation audit (30 query × gpt-4o web_search)",
+    }),
   ],
 };
