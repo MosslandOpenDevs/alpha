@@ -1,6 +1,6 @@
 /**
- * Cron heartbeat — records that a cron script *ran successfully* even when
- * it produced no new content.
+ * Cron heartbeat — records the most recent cron attempt, including successful
+ * no-op runs and explicit failures.
  *
  * Background: event-driven crons (alpha-why-moved-cron, alpha-calls-cron)
  * legitimately produce nothing on quiet days. Without a heartbeat the
@@ -24,8 +24,8 @@ function ensureTable() {
   `);
 }
 
-/** Call this at the end of any cron's main() — even if no records were
- *  produced this run. status='noop' is a *successful* run with no work. */
+/** Record one terminal status per cron attempt. status='noop' is a
+ * successful run with no work; status='error' is a failed attempt. */
 export function recordHeartbeat(
   name: string,
   status: HeartbeatStatus = "ok",

@@ -76,6 +76,18 @@ function toSubsystem(args: {
   };
 }
 
+function applyHeartbeatFailure(
+  subsystem: SubsystemHealth,
+  heartbeat: ReturnType<typeof getHeartbeat>
+): SubsystemHealth {
+  if (heartbeat?.lastStatus !== "error") return subsystem;
+  return {
+    ...subsystem,
+    status: "fail",
+    note: `cron 마지막 실행 실패. ${heartbeat.lastNote ?? "상세 기록 없음"}`,
+  };
+}
+
 export type CostBudget = {
   day: string;
   costUsd: number;
@@ -226,10 +238,10 @@ export function getSystemHealth(): {
         warnAfterSec: 28 * ONE_HOUR,
         failAfterSec: 50 * ONE_HOUR,
         note: hb
-          ? `cron 마지막 실행 OK (${hb.lastStatus}). latest article ${whyMoved?.d ?? "-"}.`
+          ? `cron 마지막 실행 ${hb.lastStatus}. latest article ${whyMoved?.d ?? "-"}.`
           : "heartbeat 없음 — cron 실행 여부 확인 필요.",
       });
-      return sub;
+      return applyHeartbeatFailure(sub, hb);
     })(),
     toSubsystem({
       key: "macro",
@@ -244,7 +256,7 @@ export function getSystemHealth(): {
       // Event-driven: only crypto-mapped persona posts produce calls.
       // Health based on heartbeat; latest call age shown as info.
       const hb = getHeartbeat("alpha-calls-cron");
-      return toSubsystem({
+      const sub = toSubsystem({
         key: "trackable_calls",
         label: "Trackable price calls",
         cadence: "매일 13:00 KST cron · CoinGecko 매핑 자산만",
@@ -253,13 +265,14 @@ export function getSystemHealth(): {
         warnAfterSec: 28 * ONE_HOUR,
         failAfterSec: 50 * ONE_HOUR,
         note: hb
-          ? `cron 마지막 실행 OK (${hb.lastStatus}). latest call created ${trackable?.c?.slice(0, 10) ?? "-"}.`
+          ? `cron 마지막 실행 ${hb.lastStatus}. latest call created ${trackable?.c?.slice(0, 10) ?? "-"}.`
           : "heartbeat 없음 — cron 실행 여부 확인 필요.",
       });
+      return applyHeartbeatFailure(sub, hb);
     })(),
     (() => {
       const hb = getHeartbeat("alpha-connections-cron");
-      return toSubsystem({
+      const sub = toSubsystem({
         key: "connections",
         label: "Entity connection 가설",
         cadence: "매일 07:15 KST cron",
@@ -267,9 +280,10 @@ export function getSystemHealth(): {
         warnAfterSec: 28 * ONE_HOUR,
         failAfterSec: 50 * ONE_HOUR,
         note: hb
-          ? `cron 마지막 실행 OK (${hb.lastStatus}). latest connection ${connections?.g?.slice(0, 10) ?? "-"}.`
+          ? `cron 마지막 실행 ${hb.lastStatus}. latest connection ${connections?.g?.slice(0, 10) ?? "-"}.`
           : "heartbeat 없음 — cron 첫 실행 대기 중.",
       });
+      return applyHeartbeatFailure(sub, hb);
     })(),
   ];
 

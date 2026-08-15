@@ -1,5 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import {
+  assetSlugFromEntity,
   getAssetOrStub,
   getVideosForEntity,
   stanceDistribution,
@@ -32,14 +33,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!entity) {
     return { title: `${symbol.toUpperCase()} — Alpha`, robots: { index: false } };
   }
-  const title = `${entity.label} (${symbol.toUpperCase()}) — 한국 채널 시각 정리`;
+  const canonicalSymbol = assetSlugFromEntity(entity);
+  const title = `${entity.label} (${canonicalSymbol.toUpperCase()}) — 한국 채널 시각 정리`;
   const desc = entity.videoCount > 0
     ? `${entity.label}에 대한 한국 유튜브·뉴스 채널의 stance 분포, 최근 영상 ${entity.videoCount}편 정리.`
     : `${entity.label}에 대한 한국 채널 분석. 데이터 누적 중.`;
   return {
     title,
     description: desc,
-    alternates: { canonical: `${SITE.baseUrl}/asset/${symbol.toLowerCase()}` },
+    alternates: { canonical: `${SITE.baseUrl}/asset/${canonicalSymbol}` },
     openGraph: { title, description: desc, type: "article" },
     robots: entity.videoCount === 0 ? { index: false } : { index: true },
   };
@@ -51,11 +53,15 @@ export default async function AssetPage({ params }: Props) {
   if (!entity) {
     notFound();
   }
+  const canonicalSymbol = assetSlugFromEntity(entity);
+  if (symbol.toLowerCase() !== canonicalSymbol) {
+    permanentRedirect(`/asset/${canonicalSymbol}`);
+  }
 
   const videos = getVideosForEntity(entity.id, 20);
   const dist = stanceDistribution(videos);
   const pulses = getActivePulses(72).filter(
-    (p) => p.asset.toLowerCase() === symbol.toLowerCase()
+    (p) => p.asset.toLowerCase() === canonicalSymbol
   );
   const synthesis = getSynthesis("entity", entity.id);
 
@@ -63,10 +69,10 @@ export default async function AssetPage({ params }: Props) {
   const quality = Math.min(1, entity.videoCount / 20);
 
   registerSeoPage({
-    path: `/asset/${symbol.toLowerCase()}`,
+    path: `/asset/${canonicalSymbol}`,
     page_type: "asset",
     canonical_id: entity.id,
-    title: `${entity.label} (${symbol.toUpperCase()}) — 한국 채널 시각 정리`,
+    title: `${entity.label} (${canonicalSymbol.toUpperCase()}) — 한국 채널 시각 정리`,
     meta_description: `${entity.label}: 채널별 stance + 최근 ${entity.videoCount} 영상 + 활성 pulse ${pulses.length}.`,
     quality_score: quality,
     lastmod: entity.updatedAt,
@@ -75,7 +81,7 @@ export default async function AssetPage({ params }: Props) {
   const breadcrumb = breadcrumbJsonLd([
     { name: "홈", href: "/" },
     { name: "Assets", href: "/" },
-    { name: entity.label, href: `/asset/${symbol.toLowerCase()}` },
+    { name: entity.label, href: `/asset/${canonicalSymbol}` },
   ]);
 
   // FinancialProduct schema for asset
@@ -83,9 +89,9 @@ export default async function AssetPage({ params }: Props) {
     "@context": "https://schema.org",
     "@type": "Thing",
     name: entity.label,
-    alternateName: [...entity.aliases, symbol.toUpperCase()],
-    description: `${entity.label} (${symbol.toUpperCase()}) — Alpha의 채널별 stance 분석.`,
-    url: `${SITE.baseUrl}/asset/${symbol.toLowerCase()}`,
+    alternateName: [...entity.aliases, canonicalSymbol.toUpperCase()],
+    description: `${entity.label} (${canonicalSymbol.toUpperCase()}) — Alpha의 채널별 stance 분석.`,
+    url: `${SITE.baseUrl}/asset/${canonicalSymbol}`,
   };
 
   return (
@@ -109,7 +115,7 @@ export default async function AssetPage({ params }: Props) {
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight mb-2">
           {entity.label}{" "}
           <span className="text-[var(--muted)] font-mono text-2xl">
-            {symbol.toUpperCase()}
+            {canonicalSymbol.toUpperCase()}
           </span>
         </h1>
         <p className="text-sm text-[var(--muted)]">
@@ -171,7 +177,7 @@ export default async function AssetPage({ params }: Props) {
 
       {/* Why-moved 일자별 분석 — SEO 직격 ("오늘 BTC 왜 올랐나") */}
       {(() => {
-        const moves = listWhyMovedForAsset(entity.id, 8);
+        const moves = listWhyMovedForAsset(canonicalSymbol, 8);
         if (moves.length === 0) return null;
         return (
           <section className="mb-8">
@@ -185,7 +191,7 @@ export default async function AssetPage({ params }: Props) {
                   className="rounded-2xl border border-[var(--line)] bg-white p-4"
                 >
                   <a
-                    href={`/asset/${symbol.toLowerCase()}/why-moved/${m.date}`}
+                    href={`/asset/${canonicalSymbol}/why-moved/${m.date}`}
                     className="block hover:text-[var(--moss)]"
                   >
                     <div className="flex items-baseline gap-2 mb-1">

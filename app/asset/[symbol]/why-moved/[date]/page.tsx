@@ -1,6 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { getWhyMoved } from "@/lib/why-moved";
-import { getAssetOrStub } from "@/lib/mic";
+import { assetSlugFromEntity, getAssetOrStub } from "@/lib/mic";
 import { registerSeoPage } from "@/lib/seo-register";
 import { SITE } from "@/lib/seo";
 import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
@@ -19,7 +19,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!DATE_RE.test(date)) {
     return { title: `${symbol} ${date}`, robots: { index: false } };
   }
-  const article = getWhyMoved(symbol, date);
+  const entity = getAssetOrStub(symbol);
+  const canonicalSymbol = entity
+    ? assetSlugFromEntity(entity)
+    : symbol.toLowerCase();
+  const article = getWhyMoved(canonicalSymbol, date);
   if (!article) {
     return {
       title: `${symbol.toUpperCase()} ${date} — 데이터 없음`,
@@ -30,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: article.title,
     description: article.oneLine.slice(0, 200),
     alternates: {
-      canonical: `${SITE.baseUrl}/asset/${symbol.toLowerCase()}/why-moved/${date}`,
+      canonical: `${SITE.baseUrl}/asset/${canonicalSymbol}/why-moved/${date}`,
     },
     openGraph: { title: article.title, description: article.oneLine, type: "article" },
   };
@@ -40,7 +44,15 @@ export default async function WhyMovedPage({ params }: Props) {
   const { symbol, date } = await params;
   if (!DATE_RE.test(date)) notFound();
 
-  const article = getWhyMoved(symbol, date);
+  const entity = getAssetOrStub(symbol);
+  const canonicalSymbol = entity
+    ? assetSlugFromEntity(entity)
+    : symbol.toLowerCase();
+  if (symbol.toLowerCase() !== canonicalSymbol) {
+    permanentRedirect(`/asset/${canonicalSymbol}/why-moved/${date}`);
+  }
+
+  const article = getWhyMoved(canonicalSymbol, date);
   if (!article) {
     // 페이지는 살아있으나 데이터 없음 → noindex
     return (
@@ -75,13 +87,12 @@ export default async function WhyMovedPage({ params }: Props) {
     );
   }
 
-  const entity = getAssetOrStub(symbol);
   const assetLabel = entity?.label || symbol.toUpperCase();
 
   registerSeoPage({
-    path: `/asset/${symbol.toLowerCase()}/why-moved/${date}`,
+    path: `/asset/${canonicalSymbol}/why-moved/${date}`,
     page_type: "event",
-    canonical_id: `${symbol.toLowerCase()}-${date}`,
+    canonical_id: `${canonicalSymbol}-${date}`,
     title: article.title,
     meta_description: article.oneLine.slice(0, 200),
     quality_score: 0.85,
@@ -90,8 +101,8 @@ export default async function WhyMovedPage({ params }: Props) {
 
   const breadcrumb = breadcrumbJsonLd([
     { name: "홈", href: "/" },
-    { name: assetLabel, href: `/asset/${symbol.toLowerCase()}` },
-    { name: `Why moved ${date}`, href: `/asset/${symbol.toLowerCase()}/why-moved/${date}` },
+    { name: assetLabel, href: `/asset/${canonicalSymbol}` },
+    { name: `Why moved ${date}`, href: `/asset/${canonicalSymbol}/why-moved/${date}` },
   ]);
 
   const articleLd = {
@@ -104,7 +115,7 @@ export default async function WhyMovedPage({ params }: Props) {
     publisher: { "@type": "Organization", name: "Mossland" },
     description: article.oneLine,
     inLanguage: "ko-KR",
-    url: `${SITE.baseUrl}/asset/${symbol.toLowerCase()}/why-moved/${date}`,
+    url: `${SITE.baseUrl}/asset/${canonicalSymbol}/why-moved/${date}`,
     about: {
       "@type": "Thing",
       name: assetLabel,
@@ -126,7 +137,7 @@ export default async function WhyMovedPage({ params }: Props) {
         <a href="/" className="hover:underline">α Alpha</a>
         <span className="mx-2">/</span>
         <a
-          href={`/asset/${symbol.toLowerCase()}`}
+          href={`/asset/${canonicalSymbol}`}
           className="hover:underline"
         >
           {assetLabel}
@@ -216,7 +227,7 @@ export default async function WhyMovedPage({ params }: Props) {
         <span>Alpha 합성 — pulse + sources 기반</span>
         <span className="mx-2">·</span>
         <a
-          href={`/asset/${symbol.toLowerCase()}`}
+          href={`/asset/${canonicalSymbol}`}
           className="text-[var(--moss)] hover:underline"
         >
           ← {assetLabel} 페이지로

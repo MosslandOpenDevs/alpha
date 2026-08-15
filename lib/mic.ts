@@ -128,12 +128,17 @@ export type Pulse = {
 // ─── canonical loaders (cached) ──────────────────────────────────────
 
 type Cache<T> = { data: T; loadedAt: number };
+export type PulseLoadDiagnostics = {
+  invalidFiles: string[];
+  duplicateIds: string[];
+};
 const TTL_MS = 5 * 60 * 1000;
 
 let _entitiesCache: Cache<Entity[]> | null = null;
 let _topicsCache: Cache<Topic[]> | null = null;
 let _eventsCache: Cache<EventItem[]> | null = null;
 let _pulsesCache: Cache<Pulse[]> | null = null;
+let _pulseDiagnosticsCache: Cache<PulseLoadDiagnostics> | null = null;
 
 function fresh<T>(c: Cache<T> | null): boolean {
   return !!c && Date.now() - c.loadedAt < TTL_MS;
@@ -302,24 +307,88 @@ export function getAllPulses(): Pulse[] {
   if (fresh(_pulsesCache)) return _pulsesCache!.data;
   const dir = path.join(MIC_DATA_PATH, "pulses");
   if (!fs.existsSync(dir)) {
-    _pulsesCache = { data: [], loadedAt: Date.now() };
+    const loadedAt = Date.now();
+    _pulsesCache = { data: [], loadedAt };
+    _pulseDiagnosticsCache = {
+      data: { invalidFiles: [], duplicateIds: [] },
+      loadedAt,
+    };
     return [];
   }
-  const files = fs.readdirSync(dir).filter((f) => f.endsWith(".json"));
+  const files = fs
+    .readdirSync(dir)
+    .filter((f) => !f.startsWith(".") && f.endsWith(".json"));
   const pulses: Pulse[] = [];
+  const invalidFiles: string[] = [];
+  const duplicateIds = new Set<string>();
+  const seenIds = new Set<string>();
   for (const f of files) {
     try {
       const raw = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
+      if (
+        !raw ||
+        typeof raw.id !== "string" ||
+        !raw.id.trim() ||
+        typeof raw.asset !== "string" ||
+        !raw.asset.trim() ||
+        typeof raw.detectedAt !== "string" ||
+        !Number.isFinite(Date.parse(raw.detectedAt)) ||
+        typeof raw.direction !== "string" ||
+        !raw.direction.trim() ||
+        typeof raw.magnitudePct !== "number" ||
+        !Number.isFinite(raw.magnitudePct) ||
+        typeof raw.summary !== "string" ||
+        !raw.summary.trim() ||
+        (raw.priceFrom != null &&
+          (typeof raw.priceFrom !== "number" ||
+            !Number.isFinite(raw.priceFrom))) ||
+        (raw.priceTo != null &&
+          (typeof raw.priceTo !== "number" || !Number.isFinite(raw.priceTo))) ||
+        (raw.sources != null &&
+          (!Array.isArray(raw.sources) ||
+            !raw.sources.every(
+              (source: unknown) =>
+                !!source &&
+                typeof source === "object" &&
+                typeof (source as { url?: unknown }).url === "string" &&
+                !!(source as { url: string }).url.trim()
+            )))
+      ) {
+        invalidFiles.push(f);
+        continue;
+      }
+      if (seenIds.has(raw.id)) {
+        duplicateIds.add(raw.id);
+        continue;
+      }
+      seenIds.add(raw.id);
       pulses.push(raw as Pulse);
     } catch {
-      // skip malformed
+      invalidFiles.push(f);
     }
   }
   pulses.sort(
     (a, b) => Date.parse(b.detectedAt) - Date.parse(a.detectedAt)
   );
-  _pulsesCache = { data: pulses, loadedAt: Date.now() };
+  const loadedAt = Date.now();
+  _pulsesCache = { data: pulses, loadedAt };
+  _pulseDiagnosticsCache = {
+    data: { invalidFiles, duplicateIds: [...duplicateIds].sort() },
+    loadedAt,
+  };
   return pulses;
+}
+
+export function getPulseLoadDiagnostics(): PulseLoadDiagnostics {
+  getAllPulses();
+  const diagnostics = _pulseDiagnosticsCache?.data ?? {
+    invalidFiles: [],
+    duplicateIds: [],
+  };
+  return {
+    invalidFiles: [...diagnostics.invalidFiles],
+    duplicateIds: [...diagnostics.duplicateIds],
+  };
 }
 
 export function getPulse(id: string): Pulse | null {
