@@ -12,9 +12,16 @@
 
 import { getDb } from "./db";
 import { chat } from "./grok";
-import { getAllPulses, getEntity, type Pulse } from "./mic";
+import {
+  formatPulseLoadDiagnostics,
+  getAllPulses,
+  getEntity,
+  getPulseLoadDiagnostics,
+  type Pulse,
+} from "./mic";
 
 const PROMPT_VERSION = "why-moved-v1";
+const KST_OFFSET_MS = 9 * 3600_000;
 
 export type WhyMovedArticle = {
   asset: string;
@@ -143,28 +150,137 @@ export function listRecentWhyMoved(limit = 30): WhyMovedArticle[] {
   }));
 }
 
-function dayBounds(date: string): { start: number; end: number } {
-  const start = Date.parse(date + "T00:00:00Z");
+export function listAllWhyMoved(): WhyMovedArticle[] {
+  ensureTable();
+  const rows = getDb()
+    .prepare(`SELECT * FROM alpha_why_moved ORDER BY date DESC`)
+    .all() as Array<{
+    asset: string;
+    date: string;
+    title: string;
+    one_line: string;
+    why: string | null;
+    points: string;
+    pulses: string;
+    sources: string;
+    generated_at: string;
+  }>;
+  return rows.map((row) => ({
+    asset: row.asset,
+    date: row.date,
+    title: row.title,
+    oneLine: row.one_line,
+    why: row.why || "",
+    points: JSON.parse(row.points),
+    pulses: JSON.parse(row.pulses) as Pulse[],
+    sources: JSON.parse(row.sources),
+    generatedAt: row.generated_at,
+  }));
+}
+
+/** Calendar date for an ISO timestamp as observed in Korea (UTC+9). */
+export function kstDateForTimestamp(timestamp: string): string | null {
+  const time = Date.parse(timestamp);
+  if (!Number.isFinite(time)) return null;
+  return new Date(time + KST_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+/** [start, end) epoch-ms bounds of a KST calendar day. Throws on an
+ *  invalid date so callers cannot silently query an empty window. */
+export function kstDayBounds(date: string): { start: number; end: number } {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new Error(`Invalid calendar date: ${date}`);
+  }
+  const midnightUtc = Date.parse(date + "T00:00:00Z");
+  if (
+    !Number.isFinite(midnightUtc) ||
+    new Date(midnightUtc).toISOString().slice(0, 10) !== date
+  ) {
+    throw new Error(`Invalid calendar date: ${date}`);
+  }
+  const start = midnightUtc - KST_OFFSET_MS;
   const end = start + 24 * 3600_000;
   return { start, end };
 }
 
+type ParsedWhyMovedResponse = {
+  title: string;
+  oneLine: string;
+  why: string;
+  points: string[];
+};
+
+function parseWhyMovedResponse(content: string): ParsedWhyMovedResponse {
+  try {
+    const json = content.trim().replace(/^```(?:json)?\s*|\s*```$/g, "");
+    const candidate: unknown = JSON.parse(json);
+    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
+      throw new Error("response must be an object");
+    }
+    const value = candidate as Record<string, unknown>;
+    if (
+      typeof value.title !== "string" ||
+      !value.title.trim() ||
+      typeof value.oneLine !== "string" ||
+      !value.oneLine.trim() ||
+      typeof value.why !== "string" ||
+      !value.why.trim() ||
+      !Array.isArray(value.points) ||
+      value.points.length !== 5 ||
+      !value.points.every(
+        (point) => typeof point === "string" && point.trim().length > 0
+      )
+    ) {
+      throw new Error("response does not match the why-moved schema");
+    }
+    return {
+      title: value.title,
+      oneLine: value.oneLine,
+      why: value.why,
+      points: value.points as string[],
+    };
+  } catch (error) {
+    throw new Error(
+      `Invalid Grok response (${(error as Error).message}): ${content.slice(0, 200)}`
+    );
+  }
+}
+
 export async function generateWhyMoved(
   asset: string,
-  date: string
+  date: string,
+  options?: { expectedPulseIds?: string[] }
 ): Promise<WhyMovedArticle | null> {
   ensureTable();
   asset = asset.toLowerCase();
 
   // pulse 찾기
-  const { start, end } = dayBounds(date);
-  const pulses = getAllPulses().filter((p) => {
+  const { start, end } = kstDayBounds(date);
+  const allPulses = getAllPulses();
+  const diagnostics = getPulseLoadDiagnostics();
+  if (diagnostics.invalidFiles.length || diagnostics.duplicateIds.length) {
+    throw new Error(
+      `Pulse input integrity check failed: ${formatPulseLoadDiagnostics(diagnostics)}`
+    );
+  }
+  const pulses = allPulses.filter((p) => {
     const t = Date.parse(p.detectedAt);
     return t >= start && t < end && p.asset.toLowerCase() === asset;
   });
   if (pulses.length === 0) {
     // 이 날 해당 자산에 pulse 없으면 article 생성 X
     return null;
+  }
+
+  if (options?.expectedPulseIds) {
+    const actual = pulses.map((pulse) => pulse.id).sort();
+    const expected = [...options.expectedPulseIds].sort();
+    if (
+      actual.length !== expected.length ||
+      actual.some((id, index) => id !== expected[index])
+    ) {
+      throw new Error(`Pulse set changed while generating ${asset} × ${date}`);
+    }
   }
 
   // entity label
@@ -235,41 +351,44 @@ ${sourceLines}
       },
       { role: "user", content: prompt },
     ],
-    { promptVersion: PROMPT_VERSION, maxTokens: 700, temperature: 0.3 }
+    {
+      promptVersion: PROMPT_VERSION,
+      maxTokens: 700,
+      temperature: 0.3,
+      validateContent: parseWhyMovedResponse,
+    }
   );
 
-  let parsed: {
-    title: string;
-    oneLine: string;
-    why: string;
-    points: string[];
-  };
-  try {
-    const json = result.content.trim().replace(/^```(?:json)?\s*|\s*```$/g, "");
-    parsed = JSON.parse(json);
-  } catch {
-    throw new Error(`Invalid JSON from Grok: ${result.content.slice(0, 200)}`);
-  }
+  const parsed = parseWhyMovedResponse(result.content);
 
   const article: WhyMovedArticle = {
     asset,
     date,
-    title: parsed.title || `오늘 ${assetLabel}는 왜 움직였나? — ${date}`,
-    oneLine: parsed.oneLine || "",
-    why: parsed.why || "",
-    points: parsed.points || [],
+    title: parsed.title,
+    oneLine: parsed.oneLine,
+    why: parsed.why,
+    points: parsed.points,
     pulses,
     sources: uniqueSources,
     generatedAt: new Date().toISOString(),
   };
 
-  getDb()
-    .prepare(
-      `INSERT OR REPLACE INTO alpha_why_moved
+  const db = getDb();
+  db.transaction(() => {
+    db.prepare(
+      `INSERT INTO alpha_why_moved
         (asset, date, title, one_line, why, points, pulses, sources, generated_at, cost_usd)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .run(
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(asset, date) DO UPDATE SET
+         title=excluded.title,
+         one_line=excluded.one_line,
+         why=excluded.why,
+         points=excluded.points,
+         pulses=excluded.pulses,
+         sources=excluded.sources,
+         generated_at=excluded.generated_at,
+         cost_usd=excluded.cost_usd`
+    ).run(
       asset,
       date,
       article.title,
@@ -281,6 +400,31 @@ ${sourceLines}
       article.generatedAt,
       result.costUsd
     );
+
+    const seoPath = `/asset/${asset}/why-moved/${date}`;
+    db.prepare(
+      `INSERT INTO alpha_seo_pages
+        (path, page_type, canonical_id, title, meta_description,
+         index_policy, lastmod, generated_at, quality_score)
+       VALUES (?, 'event', ?, ?, ?, 'index', ?, ?, 0.85)
+       ON CONFLICT(path) DO UPDATE SET
+         page_type=excluded.page_type,
+         canonical_id=excluded.canonical_id,
+         title=excluded.title,
+         meta_description=excluded.meta_description,
+         index_policy=excluded.index_policy,
+         lastmod=excluded.lastmod,
+         generated_at=excluded.generated_at,
+         quality_score=excluded.quality_score`
+    ).run(
+      seoPath,
+      `${asset}-${date}`,
+      article.title,
+      article.oneLine.slice(0, 200),
+      article.generatedAt,
+      article.generatedAt
+    );
+  })();
 
   return article;
 }

@@ -97,6 +97,12 @@ export function upsertSeoPage(p: SeoPage) {
   });
 }
 
+/** Remove a registered route (e.g. an alias URL that now 308s to its
+ *  canonical path) so it stops being emitted in the sitemap. */
+export function deleteSeoPage(path: string): void {
+  getDb().prepare(`DELETE FROM alpha_seo_pages WHERE path = ?`).run(path);
+}
+
 export function getSeoPage(path: string): SeoPage | null {
   const db = getDb();
   // better-sqlite3 .get() returns undefined (not null) on no match.

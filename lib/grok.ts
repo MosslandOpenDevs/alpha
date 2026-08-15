@@ -32,6 +32,8 @@ export type ChatOptions = {
   temperature?: number;
   /** 캐시 무효화에 사용 (프롬프트 변경 시 bump) */
   promptVersion?: string;
+  /** Reject malformed model output before it can enter the shared cache. */
+  validateContent?: (content: string) => void;
 };
 
 export type ChatResult = {
@@ -152,7 +154,14 @@ export async function chat(
 
   const cached = readCache(inputHash);
   if (cached) {
-    return { ...cached, cacheHit: true };
+    try {
+      opts.validateContent?.(cached.content);
+      return { ...cached, cacheHit: true };
+    } catch {
+      // A validator introduced after an older run may discover a poisoned
+      // cache entry. Keep it for provenance until a validated fresh response
+      // atomically replaces this exact prompt hash below.
+    }
   }
 
   const body = {
@@ -181,6 +190,7 @@ export async function chat(
     usage?: ChatResult["usage"];
   };
   const content = data.choices[0]?.message?.content || "";
+  opts.validateContent?.(content);
   const usage = data.usage;
   const costUsd = usage
     ? (usage.prompt_tokens * PRICING.inputUsdPerMillion +
