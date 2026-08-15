@@ -77,7 +77,7 @@ export default function DevelopersPage() {
                 ["/api/canonical/entities.json", "GET", "all canonical entities"],
                 ["/api/canonical/topics.json", "GET", "all canonical topics"],
                 ["/api/canonical/events.json", "GET", "all canonical events"],
-                ["/api/pulse", "GET", "active price/event pulses"],
+                ["/api/pulse/active.json", "GET", "active price/event pulses"],
                 ["/sitemap.xml", "GET", "full URL set"],
                 ["/rss.xml", "GET", "recent updates feed"],
                 ["/llms.txt", "GET", "LLM-friendly site map (llmstxt.org)"],
@@ -191,10 +191,10 @@ export default function DevelopersPage() {
       {/* Pulses */}
       <section className="mb-10">
         <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
-          /api/pulse — active price/event pulses
+          /api/pulse/active.json — active price/event pulses
         </h2>
         <pre className="rounded-2xl bg-zinc-900 text-zinc-100 p-4 text-xs overflow-x-auto">
-{`curl https://alpha.moss.land/api/pulse
+{`curl https://alpha.moss.land/api/pulse/active.json
 # Active pulses (last 72h): asset, direction, magnitude, anchor brief link.`}
         </pre>
       </section>
