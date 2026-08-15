@@ -32,6 +32,11 @@ loadEnvFile(path.join(process.cwd(), ".env.local"));
 loadEnvFile(path.join(process.cwd(), ".env"));
 process.env.NODE_ENV = process.env.NODE_ENV || "production";
 
+// Reference prices are spot prices fetched when this script runs. Restrict
+// recovery to very recent posts so an old post cannot be scored against a
+// price from weeks later. Normal post creation records calls immediately.
+const MAX_BACKFILL_AGE_MINUTES = 15;
+
 async function main() {
   const args = process.argv.slice(2);
   const skipBackfill = args.includes("--skip-backfill");
@@ -40,6 +45,7 @@ async function main() {
   const { createCallFromPost, resolveCall, getPendingCallsDue } = await import(
     "../lib/calls"
   );
+  const { coingeckoIdFor } = await import("../lib/coingecko");
   const { getDb } = await import("../lib/db");
 
   // Trigger table creation by calling getHandleStats once
@@ -67,6 +73,7 @@ async function main() {
          AND p.stance != 'observe'
          AND p.is_deleted = 0
          AND c.id IS NULL
+         AND julianday(p.created_at) >= julianday('now', '-${MAX_BACKFILL_AGE_MINUTES} minutes')
          ORDER BY p.created_at DESC LIMIT 100`
       )
       .all() as Array<{
@@ -82,7 +89,13 @@ async function main() {
     console.log(`Backfill: ${candidates.length} candidate posts`);
     let created = 0;
     let skipped = 0;
+    let unmapped = 0;
     for (const post of candidates) {
+      if (!post.ref_id || !coingeckoIdFor(post.ref_id)) {
+        skipped++;
+        unmapped++;
+        continue;
+      }
       try {
         const call = await createCallFromPost(post);
         if (call) {
@@ -99,7 +112,9 @@ async function main() {
       // Rate-limit safety (CoinGecko free tier = 30 req/min)
       await new Promise((r) => setTimeout(r, 2200));
     }
-    console.log(`Backfill done. Created ${created}, skipped ${skipped}.\n`);
+    console.log(
+      `Backfill done. Created ${created}, skipped ${skipped} (${unmapped} unmapped).\n`
+    );
   }
 
   // === Phase 2: resolve ===
@@ -108,6 +123,10 @@ async function main() {
     console.log(`Resolve: ${due.length} pending calls past target_date`);
     let resolved = 0;
     for (const call of due) {
+      if (!coingeckoIdFor(call.asset_id)) {
+        console.warn(`  - ${call.id}: no CoinGecko mapping for ${call.asset_id}`);
+        continue;
+      }
       try {
         const r = await resolveCall(call.id);
         if (r && r.resolution_status !== "pending") {
