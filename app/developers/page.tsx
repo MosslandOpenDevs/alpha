@@ -77,7 +77,7 @@ export default function DevelopersPage() {
                 ["/api/canonical/entities.json", "GET", "all canonical entities"],
                 ["/api/canonical/topics.json", "GET", "all canonical topics"],
                 ["/api/canonical/events.json", "GET", "all canonical events"],
-                ["/api/pulse", "GET", "active price/event pulses"],
+                ["/api/pulse/active.json", "GET", "active price/event pulses"],
                 ["/sitemap.xml", "GET", "full URL set"],
                 ["/rss.xml", "GET", "recent updates feed"],
                 ["/llms.txt", "GET", "LLM-friendly site map (llmstxt.org)"],
@@ -113,21 +113,25 @@ export default function DevelopersPage() {
         </h2>
         <p className="text-sm text-zinc-700 mb-3 leading-relaxed">
           한국어 / 영어 자연어 질의를 받아 Alpha 의 canonical store + 페르소나 데이터에서
-          retrieval → Grok 합성 답변. 답변 + citations (videos, briefs, asset pages).
+          retrieval → Grok 합성 답변. 답변 + citations (entity / topic / event / asset / creator 페이지).
           캐시되며 quality_score ≥ 0.7 이면 영구 URL <code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-[11px]">/ask/q/[hash]</code> 로 SEO 노출.
         </p>
         <pre className="rounded-2xl bg-zinc-900 text-zinc-100 p-4 text-xs overflow-x-auto">
 {`curl -X POST https://alpha.moss.land/api/ask \\
   -H "Content-Type: application/json" \\
-  -d '{"query":"오늘 비트코인이 왜 움직였나?"}'
+  -d '{"question":"오늘 비트코인이 왜 움직였나?"}'
 
 # {
+#   "questionHash": "abc123...",      # 영구 URL: /ask/q/abc123...
+#   "question": "오늘 비트코인이 왜 움직였나?",
 #   "answer": "...",
 #   "citations": [
-#     { "type": "video", "url": "...", "title": "..." },
-#     { "type": "brief", "url": "...", "title": "..." }
+#     { "label": "비트코인", "url": "/asset/btc", "type": "asset" },
+#     { "label": "FOMC", "url": "/event/fomc-2026-06", "type": "event" }
 #   ],
-#   "permanent_url": "/ask/q/abc123..."
+#   "costUsd": 0.0003,
+#   "cached": false,
+#   "generatedAt": "..."
 # }`}
         </pre>
       </section>
@@ -191,11 +195,19 @@ export default function DevelopersPage() {
       {/* Pulses */}
       <section className="mb-10">
         <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
-          /api/pulse — active price/event pulses
+          /api/pulse/active.json — active price/event pulses
         </h2>
         <pre className="rounded-2xl bg-zinc-900 text-zinc-100 p-4 text-xs overflow-x-auto">
-{`curl https://alpha.moss.land/api/pulse
-# Active pulses (last 72h): asset, direction, magnitude, anchor brief link.`}
+{`curl "https://alpha.moss.land/api/pulse/active.json?hours=72"
+# ?hours = 1..168 (default 72)
+# {
+#   "version": "v1", "generated_at": "...", "window_hours": 72, "count": 3,
+#   "pulses": [
+#     { "id": "2026-04-29-btc-drop-fomc-hormuz", "asset": "BTC",
+#       "direction": "down", "magnitudePct": -4.2, "detectedAt": "...",
+#       "summary": "...", "confidence": 0.8, "sources": [{ "url": "..." }] }, ...
+#   ]
+# }`}
         </pre>
       </section>
 

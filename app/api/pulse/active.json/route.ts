@@ -1,6 +1,11 @@
 import { getActivePulses } from "@/lib/mic";
+import { CORS_GET_HEADERS, corsPreflight } from "@/lib/cors";
 
 export const dynamic = "force-dynamic";
+
+export async function OPTIONS() {
+  return corsPreflight(CORS_GET_HEADERS);
+}
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -16,6 +21,7 @@ export async function GET(req: Request) {
     },
     {
       headers: {
+        ...CORS_GET_HEADERS,
         "Content-Type": "application/json; charset=utf-8",
         "Cache-Control": "public, max-age=60, s-maxage=60",
       },
