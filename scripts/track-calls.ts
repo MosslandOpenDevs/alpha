@@ -1,7 +1,9 @@
 /**
  * Trackable calls 일일 cron — 두 단계:
  *
- * Phase 1: backfill — 아직 call 레코드 없는 모든 post에 대해 시도
+ * Phase 1: backfill — call 레코드가 없는 *최근* post 복구 (MAX_BACKFILL_AGE_MINUTES).
+ *          reference price 는 실행 시점 spot 이라 그 이상 오래된 post 는 복구하지
+ *          않는다. 운영 cron 은 `--skip-backfill` 로 이 단계를 아예 건너뛴다.
  * Phase 2: resolve — target_date 지난 pending call 자동 해결
  *
  * 사용법:
@@ -32,9 +34,14 @@ loadEnvFile(path.join(process.cwd(), ".env.local"));
 loadEnvFile(path.join(process.cwd(), ".env"));
 process.env.NODE_ENV = process.env.NODE_ENV || "production";
 
-// Reference prices are spot prices fetched when this script runs. Restrict
-// recovery to very recent posts so an old post cannot be scored against a
-// price from weeks later. Normal post creation records calls immediately.
+// Reference prices are spot prices fetched when this script runs, so a post
+// can only be recovered here while it is minutes old; otherwise it would be
+// scored against a price that never existed at publication time.
+//
+// Only lib/persona-post.ts creates a call at write time. Anonymous community
+// posts and persona replies never produce calls — that is intentional, not a
+// gap this window is meant to cover. Historical calls need an explicit
+// time-series backfill, not this spot-price path.
 const MAX_BACKFILL_AGE_MINUTES = 15;
 
 async function main() {
