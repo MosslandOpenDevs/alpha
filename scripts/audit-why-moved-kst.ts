@@ -1,9 +1,12 @@
 /**
  * Audit why-moved cache keys and embedded pulse IDs against KST calendar days.
  *
+ * Read-only. Emits a manifest that scripts/apply-why-moved-kst-repair.ts
+ * binds to by path + sha256; see that file's header for the full runbook.
+ *
  * Usage:
- *   pnpm tsx scripts/audit-why-moved-kst.ts
- *   pnpm tsx scripts/audit-why-moved-kst.ts --out=/secure/path/manifest.json
+ *   DB_PATH=<db> pnpm tsx scripts/audit-why-moved-kst.ts
+ *   DB_PATH=<db> pnpm tsx scripts/audit-why-moved-kst.ts --out=/secure/path/manifest.json
  */
 
 import crypto from "node:crypto";
@@ -61,7 +64,8 @@ async function main() {
   if (!dbPath) throw new Error("DB_PATH is required");
 
   const Database = (await import("better-sqlite3")).default;
-  const { getAllPulses } = await import("../lib/mic");
+  const { formatPulseLoadDiagnostics, getAllPulses, getPulseLoadDiagnostics } =
+    await import("../lib/mic");
   const { kstDateForTimestamp } = await import("../lib/why-moved");
 
   const micDataPath =
@@ -118,8 +122,11 @@ async function main() {
 
   const pulses = getAllPulses();
   if (pulses.length !== pulseFiles.length) {
+    // The loader's schema check is stricter than the pre-scan above, so name
+    // the files it rejected instead of reporting a bare count difference.
     throw new Error(
-      `Pulse loader mismatch: files=${pulseFiles.length} loaded=${pulses.length}`
+      `Pulse loader mismatch: files=${pulseFiles.length} loaded=${pulses.length}; ` +
+        formatPulseLoadDiagnostics(getPulseLoadDiagnostics())
     );
   }
   const loadedPulseIds = sorted(pulses.map((pulse) => pulse.id));
