@@ -127,13 +127,15 @@ module.exports = {
     cronApp({
       // topic/event canonical IDs are paused pending SignalMap repairs.
       name: "alpha-persona-cron",
-      script: "scripts/persona-tick.ts --pages=10 --types=entity,asset",
+      script: "scripts/persona-tick.ts --pages=10 --types=entity,asset --scheduled",
       cronRestart: "0 0 * * *",
       note: "매일 09:00 KST — 페르소나 발화 10건 (daily cap resets at KST midnight)",
     }),
     cronApp({
+      // --scheduled for the same reason as the tick: pm2 runs an app once at
+      // registration and replies are published content.
       name: "alpha-persona-reply-cron",
-      script: "scripts/persona-replies.ts --max=8",
+      script: "scripts/persona-replies.ts --max=8 --scheduled",
       cronRestart: "0 3 * * *",
       note: "매일 12:00 KST — 페르소나 답글 8건",
     }),

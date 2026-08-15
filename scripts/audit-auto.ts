@@ -167,21 +167,8 @@ function parseFlag(args: string[], name: string): string | undefined {
   return undefined;
 }
 
-function kstClock(now = new Date()): {
-  date: string;
-  weekday: number;
-  hour: number;
-} {
-  // KST has no daylight-saving transitions, so a fixed UTC+9 shift is safe.
-  const shifted = new Date(now.getTime() + 9 * 3600_000);
-  return {
-    date: shifted.toISOString().slice(0, 10),
-    weekday: shifted.getUTCDay(),
-    hour: shifted.getUTCHours(),
-  };
-}
-
 async function main() {
+  const { isScheduledNow } = await import("../lib/kst");
   const args = process.argv.slice(2);
   const scheduled = args.includes("--scheduled");
   const limit = Number(parseFlag(args, "limit") || QUERIES.length);
@@ -190,10 +177,11 @@ async function main() {
     throw new Error(`--limit must be an integer between 1 and ${QUERIES.length}`);
   }
 
-  const clock = kstClock();
-  if (scheduled && (clock.weekday !== 1 || clock.hour !== 11)) {
+  // Monday 11:00 KST — see lib/kst isScheduledNow() for why this exists.
+  const { ok: onSchedule, clock } = isScheduledNow(11, 1);
+  if (scheduled && !onSchedule) {
     console.log(
-      `Scheduled audit skipped: ${clock.date} is not Monday 11:00-11:59 KST.`
+      `Scheduled audit skipped: ${clock.date} ${String(clock.hour).padStart(2, "0")}:xx KST is not Monday 11:00-11:59 KST.`
     );
     return;
   }

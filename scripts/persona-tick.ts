@@ -5,6 +5,7 @@
  *   pnpm tsx scripts/persona-tick.ts                  # default: 10 페이지
  *   pnpm tsx scripts/persona-tick.ts --pages=5
  *   pnpm tsx scripts/persona-tick.ts --types=entity,asset
+ *   pnpm tsx scripts/persona-tick.ts --scheduled          # 09시 KST 에만 실행
  *
  * pm2 cron: 매일 23:00 UTC = 다음날 08:00 KST.
  *
@@ -41,8 +42,26 @@ function parseFlag(args: string[], name: string): string | undefined {
   return undefined;
 }
 
+/** Intended KST hour of the pm2 cron (09:00 KST = 00:00 UTC). */
+const SCHEDULED_KST_HOUR = 9;
+
 async function main() {
   const args = process.argv.slice(2);
+
+  // PM2 starts every app once the moment it is registered, so a redeploy
+  // would publish a full tick of persona posts off-schedule. --scheduled
+  // makes that registration run a no-op outside the intended hour.
+  if (args.includes("--scheduled")) {
+    const { isScheduledNow } = await import("../lib/kst");
+    const { ok, clock } = isScheduledNow(SCHEDULED_KST_HOUR);
+    if (!ok) {
+      console.log(
+        `Scheduled tick skipped: ${clock.date} ${String(clock.hour).padStart(2, "0")}:xx KST is not ${String(SCHEDULED_KST_HOUR).padStart(2, "0")}:00-${String(SCHEDULED_KST_HOUR).padStart(2, "0")}:59 KST.`
+      );
+      return;
+    }
+  }
+
   const pages = Number(parseFlag(args, "pages") ?? "10");
   if (!Number.isInteger(pages) || pages < 1 || pages > 100) {
     throw new Error("--pages must be an integer between 1 and 100");

@@ -47,9 +47,29 @@ const STANCE_OPPOSITE: Record<string, string[]> = {
   observe: ["agree", "disagree"],
 };
 
+/** Intended KST hour of the pm2 cron (12:00 KST = 03:00 UTC). */
+const SCHEDULED_KST_HOUR = 12;
+
 async function main() {
   const args = process.argv.slice(2);
+
+  // See scripts/persona-tick.ts — pm2 runs an app once at registration, and
+  // replies are published content, so a redeploy must not trigger a round.
+  if (args.includes("--scheduled")) {
+    const { isScheduledNow } = await import("../lib/kst");
+    const { ok, clock } = isScheduledNow(SCHEDULED_KST_HOUR);
+    if (!ok) {
+      console.log(
+        `Scheduled replies skipped: ${clock.date} ${String(clock.hour).padStart(2, "0")}:xx KST is not ${SCHEDULED_KST_HOUR}:00-${SCHEDULED_KST_HOUR}:59 KST.`
+      );
+      return;
+    }
+  }
+
   const max = Number(parseFlag(args, "max") ?? "8");
+  if (!Number.isInteger(max) || max < 1 || max > 50) {
+    throw new Error("--max must be an integer between 1 and 50");
+  }
 
   const { generatePersonaReply } = await import("../lib/persona-reply");
   const { getActiveAgents } = await import("../lib/agents");
