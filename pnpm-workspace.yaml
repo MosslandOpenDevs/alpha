@@ -1,4 +1,13 @@
+# pnpm 11 reads only auth/registry settings from .npmrc; everything else lives
+# here. `node-linker=hoisted` from the old .npmrc was already being ignored in
+# production (the live install is the default isolated layout and works), so it
+# is dropped rather than reinstated — dev and prod now share one layout.
+enablePrePostScripts: true
+
+# Build scripts are opt-in per exact version (pnpm 11 removed
+# ignoredBuiltDependencies and defaults strictDepBuilds to true). Pinning the
+# version forces a fresh review on upgrade.
 allowBuilds:
-  "better-sqlite3@12.9.0": true
-  "esbuild@0.27.7": true
-  "sharp@0.34.5": true
+  "better-sqlite3@12.9.0": true # native SQLite binding — required at runtime
+  "esbuild@0.27.7": true # via tsx, used by every cron script
+  "sharp@0.34.5": true # next/image optional dep; prebuilt @img binaries
