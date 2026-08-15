@@ -4,6 +4,7 @@
  * 사용법:
  *   pnpm tsx scripts/persona-tick.ts                  # default: 10 페이지
  *   pnpm tsx scripts/persona-tick.ts --pages=5
+ *   pnpm tsx scripts/persona-tick.ts --types=entity,asset
  *
  * pm2 cron: 매일 23:00 UTC = 다음날 08:00 KST.
  *
@@ -43,6 +44,22 @@ function parseFlag(args: string[], name: string): string | undefined {
 async function main() {
   const args = process.argv.slice(2);
   const pages = Number(parseFlag(args, "pages") ?? "10");
+  if (!Number.isInteger(pages) || pages < 1 || pages > 100) {
+    throw new Error("--pages must be an integer between 1 and 100");
+  }
+
+  const validTypes = new Set(["entity", "asset", "topic", "event"] as const);
+  const requestedTypes = (parseFlag(args, "types") ?? "entity,asset,topic,event")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const invalidTypes = requestedTypes.filter(
+    (value) => !validTypes.has(value as "entity" | "asset" | "topic" | "event")
+  );
+  if (requestedTypes.length === 0 || invalidTypes.length > 0) {
+    throw new Error(`--types contains invalid values: ${invalidTypes.join(", ")}`);
+  }
+  const selectedTypes = new Set(requestedTypes);
 
   const { getActiveAgents } = await import("../lib/agents");
   const { generatePersonaPost } = await import("../lib/persona-post");
@@ -56,24 +73,32 @@ async function main() {
   const pool: Candidate[] = [];
   for (const e of getAllEntities()) {
     if (e.videoCount < 3) continue;
+    const refType = e.type === "asset" ? "asset" : "entity";
+    if (!selectedTypes.has(refType)) continue;
     pool.push({
-      refType: e.type === "asset" ? "asset" : "entity",
+      refType,
       refId: e.id,
     });
   }
-  for (const t of getAllTopics()) {
-    if (t.videoCount < 3) continue;
-    pool.push({ refType: "topic", refId: t.id });
+  if (selectedTypes.has("topic")) {
+    for (const t of getAllTopics()) {
+      if (t.videoCount < 3) continue;
+      pool.push({ refType: "topic", refId: t.id });
+    }
   }
-  for (const ev of getAllEvents()) {
-    if (ev.videoCount < 3) continue;
-    pool.push({ refType: "event", refId: ev.id });
+  if (selectedTypes.has("event")) {
+    for (const ev of getAllEvents()) {
+      if (ev.videoCount < 3) continue;
+      pool.push({ refType: "event", refId: ev.id });
+    }
   }
 
   // Shuffle
   pool.sort(() => Math.random() - 0.5);
 
-  console.log(`Tick ${today}: pool=${pool.length}, agents=${agents.length}, target=${pages} posts`);
+  console.log(
+    `Tick ${today}: pool=${pool.length}, types=${[...selectedTypes].join(",")}, agents=${agents.length}, target=${pages} posts`
+  );
 
   let posted = 0;
   let totalCost = 0;

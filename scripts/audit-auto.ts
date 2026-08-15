@@ -6,6 +6,7 @@
  *   pnpm tsx scripts/audit-auto.ts                    # 30 질의
  *   pnpm tsx scripts/audit-auto.ts --limit=3          # 첫 3 질의만 (smoke test)
  *   pnpm tsx scripts/audit-auto.ts --query=Q26        # 단일 질의
+ *   pnpm tsx scripts/audit-auto.ts --scheduled        # 월요일 11시 KST에만, 중복 제외
  *
  * 결과 저장: docs/audit-results/[YYYY-MM-DD]-auto.json
  *
@@ -166,12 +167,63 @@ function parseFlag(args: string[], name: string): string | undefined {
   return undefined;
 }
 
+function kstClock(now = new Date()): {
+  date: string;
+  weekday: number;
+  hour: number;
+} {
+  // KST has no daylight-saving transitions, so a fixed UTC+9 shift is safe.
+  const shifted = new Date(now.getTime() + 9 * 3600_000);
+  return {
+    date: shifted.toISOString().slice(0, 10),
+    weekday: shifted.getUTCDay(),
+    hour: shifted.getUTCHours(),
+  };
+}
+
 async function main() {
   const args = process.argv.slice(2);
+  const scheduled = args.includes("--scheduled");
   const limit = Number(parseFlag(args, "limit") || QUERIES.length);
   const queryFilter = parseFlag(args, "query");
+  if (!Number.isInteger(limit) || limit < 1 || limit > QUERIES.length) {
+    throw new Error(`--limit must be an integer between 1 and ${QUERIES.length}`);
+  }
 
-  const queries = QUERIES.filter((q) => !queryFilter || q.id === queryFilter).slice(0, limit);
+  const clock = kstClock();
+  if (scheduled && (clock.weekday !== 1 || clock.hour !== 11)) {
+    console.log(
+      `Scheduled audit skipped: ${clock.date} is not Monday 11:00-11:59 KST.`
+    );
+    return;
+  }
+
+  const outDir = path.join(process.cwd(), "docs", "audit-results");
+  const outFile = path.join(outDir, `${clock.date}-auto.json`);
+  let existing: Result[] = [];
+  if (fs.existsSync(outFile)) {
+    existing = JSON.parse(fs.readFileSync(outFile, "utf8"));
+  }
+
+  const completedQueryIds = scheduled
+    ? new Set(
+        existing
+          .filter((result) => result.llm === "openai")
+          .map((result) => result.query_id)
+      )
+    : new Set<string>();
+
+  const queries = QUERIES.filter(
+    (q) =>
+      (!queryFilter || q.id === queryFilter) && !completedQueryIds.has(q.id)
+  ).slice(0, limit);
+
+  if (scheduled && queries.length === 0) {
+    console.log(
+      `Scheduled audit already complete for ${clock.date}; nothing to do.`
+    );
+    return;
+  }
 
   console.log(`Audit: ${queries.length} queries × OpenAI gpt-4o (web_search).`);
 
@@ -206,13 +258,7 @@ async function main() {
     await new Promise((r) => setTimeout(r, 800));
   }
 
-  const outDir = path.join(process.cwd(), "docs", "audit-results");
   fs.mkdirSync(outDir, { recursive: true });
-  const stamp = new Date().toISOString().slice(0, 10);
-  const outFile = path.join(outDir, `${stamp}-auto.json`);
-
-  let existing: Result[] = [];
-  if (fs.existsSync(outFile)) existing = JSON.parse(fs.readFileSync(outFile, "utf8"));
   fs.writeFileSync(outFile, JSON.stringify([...existing, ...results], null, 2));
 
   // Summary
@@ -229,7 +275,7 @@ async function main() {
     }
   }
 
-  console.log(`\n# Audit summary — ${stamp}`);
+  console.log(`\n# Audit summary — ${clock.date}`);
   for (const [v, s] of Object.entries(byVendor)) {
     console.log(`  ${v}: ${s.cited}/${s.total} cited`);
   }

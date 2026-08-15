@@ -116,14 +116,18 @@ module.exports = {
       note: "매일 08:40 KST — English brief 번역 (source-hash 캐시)",
     }),
     cronApp({
+      // --limit is the script's own default; stated explicitly so a future
+      // default change cannot silently unleash the whole backlog of Grok
+      // calls in one unattended run.
       name: "alpha-why-moved-cron",
-      script: "scripts/generate-why-moved.ts",
+      script: "scripts/generate-why-moved.ts --limit=20",
       cronRestart: "45 23 * * *",
       note: "매일 08:45 KST — pulse → why-moved article",
     }),
     cronApp({
+      // topic/event canonical IDs are paused pending SignalMap repairs.
       name: "alpha-persona-cron",
-      script: "scripts/persona-tick.ts --pages=10",
+      script: "scripts/persona-tick.ts --pages=10 --types=entity,asset",
       cronRestart: "0 0 * * *",
       note: "매일 09:00 KST — 페르소나 발화 10건 (daily cap resets at KST midnight)",
     }),
@@ -134,14 +138,20 @@ module.exports = {
       note: "매일 12:00 KST — 페르소나 답글 8건",
     }),
     cronApp({
+      // Calls are created transactionally with each persona post. Spot-price
+      // backfill cannot reconstruct an intraday reference price, so the
+      // production cron only resolves calls that already exist.
       name: "alpha-calls-cron",
-      script: "scripts/track-calls.ts",
+      script: "scripts/track-calls.ts --skip-backfill",
       cronRestart: "0 4 * * *",
       note: "매일 13:00 KST — call backfill + pending resolve",
     }),
     cronApp({
+      // PM2 runs a job once when it is first registered; --scheduled makes
+      // that first run free unless it really is Monday 11:xx KST, so a
+      // redeploy cannot burn 30 gpt-4o web_search queries.
       name: "alpha-audit-cron",
-      script: "scripts/audit-auto.ts",
+      script: "scripts/audit-auto.ts --scheduled",
       cronRestart: "0 2 * * 1",
       note: "매주 월요일 11:00 KST — LLM citation audit (30 query × gpt-4o web_search)",
     }),
