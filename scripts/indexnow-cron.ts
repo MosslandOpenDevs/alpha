@@ -34,11 +34,17 @@ loadEnvFile(path.join(process.cwd(), ".env"));
 
 process.env.NODE_ENV = process.env.NODE_ENV || "production";
 
-const STATE_FILE = path.join(
-  process.cwd(),
-  "data",
-  "indexnow-cron-state.json"
-);
+// Keep state beside the persistent SQLite DB by default. A release-local
+// `cwd/data` file disappears on every worktree deployment and causes the next
+// run to submit the entire index again.
+const STATE_FILE = process.env.INDEXNOW_STATE_FILE
+  ? path.resolve(process.env.INDEXNOW_STATE_FILE)
+  : path.join(
+      process.env.DB_PATH
+        ? path.dirname(path.resolve(process.env.DB_PATH))
+        : path.join(process.cwd(), "data"),
+      "indexnow-cron-state.json"
+    );
 
 type State = { lastPingedAt?: string };
 
@@ -53,10 +59,22 @@ function loadState(): State {
 
 function saveState(state: State) {
   fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true });
-  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+  const tempFile = `${STATE_FILE}.${process.pid}.tmp`;
+  try {
+    fs.writeFileSync(tempFile, JSON.stringify(state, null, 2), { mode: 0o644 });
+    fs.renameSync(tempFile, STATE_FILE);
+  } catch (error) {
+    fs.rmSync(tempFile, { force: true });
+    throw error;
+  }
 }
 
 async function main() {
+  // Advance the watermark only to the instant before candidates are read.
+  // Pages written while the HTTP request is in flight then remain eligible
+  // for the next run instead of falling behind a later completion timestamp.
+  const runStartedAt = new Date().toISOString();
+
   // env 로드 후 동적 import (DB_PATH 등을 read하는 모듈이 env를 본 뒤 로드되도록)
   const { listIndexedPages } = await import("../lib/db");
   const { submitUrls, INDEXNOW_ENABLED } = await import("../lib/indexnow");
@@ -72,7 +90,10 @@ async function main() {
   }
 
   const state = loadState();
-  const lastPingTs = state.lastPingedAt ? Date.parse(state.lastPingedAt) : 0;
+  // An unparseable watermark (hand-edited file) would make every comparison
+  // below false and silently stop pinging forever — treat it as a first run.
+  const parsedLastPing = state.lastPingedAt ? Date.parse(state.lastPingedAt) : 0;
+  const lastPingTs = Number.isFinite(parsedLastPing) ? parsedLastPing : 0;
 
   const pages = listIndexedPages();
   const candidates = all
@@ -98,15 +119,24 @@ async function main() {
     return;
   }
 
-  const result = await submitUrls(urls);
-  console.log(
-    `Ping ${result.ok ? "OK" : "FAIL"} status=${result.status} count=${result.count}`
-  );
-
-  if (result.ok) {
-    saveState({ lastPingedAt: new Date().toISOString() });
-    console.log("State saved.");
+  let submitted = 0;
+  const batchSize = 10_000;
+  for (let offset = 0; offset < urls.length; offset += batchSize) {
+    const batch = urls.slice(offset, offset + batchSize);
+    const result = await submitUrls(batch);
+    console.log(
+      `Ping ${result.ok ? "OK" : "FAIL"} status=${result.status} count=${result.count}`
+    );
+    if (!result.ok) {
+      throw new Error(
+        `IndexNow submission failed after ${submitted}/${urls.length} URLs`
+      );
+    }
+    submitted += result.count;
   }
+
+  saveState({ lastPingedAt: runStartedAt });
+  console.log(`State saved after ${submitted} URLs.`);
 }
 
 main().catch((err) => {

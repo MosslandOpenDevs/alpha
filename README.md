@@ -81,6 +81,7 @@ pnpm dev    # http://localhost:6900
 | `OPENAI_API_KEY` | embeddings + audit | required for hybrid search |
 | `TRUSTED_PROXY_HOPS` | reverse proxies in front of the app; picks the real client IP for rate limiting (not the spoofable leftmost `X-Forwarded-For`) | `0` |
 | `INDEXNOW_ADMIN_TOKEN` | bearer token to authorize `GET/POST /api/admin/indexnow`; the endpoint is disabled when unset | optional |
+| `INDEXNOW_STATE_FILE` | absolute path to the weekly cron's "last pinged" watermark. A relative value resolves against the pm2 cwd (the release dir) and is lost on redeploy | `<dirname(DB_PATH)>/indexnow-cron-state.json` |
 
 Full template in [`.env.example`](./.env.example).
 
