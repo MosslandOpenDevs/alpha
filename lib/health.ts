@@ -13,8 +13,8 @@ import { rateLimitSnapshot } from "./rate-limit";
 import { getHeartbeat } from "./cron-heartbeat";
 import { assetCoverage } from "./coingecko";
 import { todayAiSpendUsd } from "./grok";
-import { getAllEntities } from "./mic";
-import { PERSONA_POOL_MIN_VIDEO_COUNT } from "./persona-post";
+import { getAllEntities, getStubAssetEntities } from "./mic";
+import { hasEnoughPageContext } from "./persona-post";
 
 const KST_OFFSET_MS = 9 * 3600_000;
 
@@ -212,6 +212,13 @@ export function getSystemHealth(): {
   const whyMoved = row<{ d: string; g: string }>(
     `SELECT MAX(date) AS d, MAX(generated_at) AS g FROM alpha_why_moved`
   );
+  const briefEn = row<{ d: string; g: string }>(
+    // NOTE: this table's timestamp column is `translated_at`, not the
+    // `generated_at` its siblings use. row() only swallows "no such table",
+    // so getting this wrong throws out of getSystemHealth() and 500s every
+    // health surface — see scripts/check-health.ts.
+    `SELECT MAX(date) AS d, MAX(translated_at) AS g FROM alpha_brief_translations WHERE lang = 'en'`
+  );
   const macro = row<{ d: string; f: string }>(
     `SELECT MAX(date) AS d, MAX(fetched_at) AS f FROM alpha_macro_observations`
   );
@@ -257,6 +264,22 @@ export function getSystemHealth(): {
       warnAfterSec: 28 * ONE_HOUR,
       failAfterSec: 50 * ONE_HOUR,
     }),
+    (() => {
+      // The English surface had no health entry at all, so a translation cron
+      // that silently stopped would never have shown up anywhere.
+      const hb = getHeartbeat("alpha-translate-briefs-cron");
+      const sub = toSubsystem({
+        key: "brief_en",
+        label: "English brief 번역",
+        cadence: "매일 08:40 KST cron",
+        lastAt: briefEn?.g ?? null,
+        latestDate: briefEn?.d,
+        warnAfterSec: 28 * ONE_HOUR,
+        failAfterSec: 50 * ONE_HOUR,
+        note: hb ? `cron 마지막 실행 ${hb.lastStatus}.` : "heartbeat 없음 — cron 실행 여부 확인 필요.",
+      });
+      return applyHeartbeatFailure(sub, hb);
+    })(),
     toSubsystem({
       key: "synthesis",
       label: "Entity/Topic/Event AI synthesis",
@@ -327,10 +350,8 @@ export function getSystemHealth(): {
       // A diagnostic must never be able to take the health endpoint down.
       let coverageNote: string;
       try {
-        const poolAssets = getAllEntities()
-          .filter(
-            (e) => e.type === "asset" && e.videoCount >= PERSONA_POOL_MIN_VIDEO_COUNT
-          )
+        const poolAssets = [...getAllEntities(), ...getStubAssetEntities()]
+          .filter((e) => e.type === "asset" && hasEnoughPageContext(e))
           .map((e) => e.id);
         const coverage = assetCoverage(poolAssets);
         coverageNote =

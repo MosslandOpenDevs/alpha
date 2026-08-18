@@ -191,6 +191,25 @@ export function kstDateForTimestamp(timestamp: string): string | null {
  *  — the brief page needs it too — and re-exported here for existing importers. */
 export { kstDayBounds };
 
+/**
+ * Render a pulse price with its unit for prompt text.
+ *
+ * SignalMap states the unit per pulse; anything it does not state is left
+ * unlabelled rather than guessed, since a wrong currency is worse than none.
+ */
+function fmtPulsePrice(n: number, unit?: string): string {
+  const v = n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  // priceUnit is the one pulse field lib/mic.ts does not type-check, so a
+  // malformed file could hand us a number or an object here.
+  if (typeof unit !== "string") return v;
+  switch (unit.trim().toUpperCase()) {
+    case "KRW": return `${v}원`;
+    case "USD": return `$${v}`;
+    case "PT": return `${v}pt`;
+    default: return v;
+  }
+}
+
 type ParsedWhyMovedResponse = {
   title: string;
   oneLine: string;
@@ -290,7 +309,11 @@ export async function generateWhyMoved(
         minute: "2-digit",
         timeZone: "Asia/Seoul",
       });
-      return `- ${timeStr} KST: ${dirSign}${Math.abs(p.magnitudePct).toFixed(2)}% (${p.priceFrom?.toLocaleString()} → ${p.priceTo?.toLocaleString()}) — ${p.summary.slice(0, 200)}`;
+      // State the unit. A bare "90,557,000 → 90,735,000" for a KRW-quoted
+      // pulse reads as dollars to the model, and roughly a third of active
+      // pulses are KRW-quoted (BTC-KRW, USDKRW).
+      const money = (n?: number) => (n == null ? "?" : fmtPulsePrice(n, p.priceUnit));
+      return `- ${timeStr} KST: ${dirSign}${Math.abs(p.magnitudePct).toFixed(2)}% (${money(p.priceFrom)} → ${money(p.priceTo)}) — ${p.summary.slice(0, 200)}`;
     })
     .join("\n");
 

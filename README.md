@@ -99,6 +99,18 @@ The Mossland-hosted Alpha at `alpha.moss.land` runs against the production Signa
 
 PM2-based, port `6900` by default. `ecosystem.config.cjs` resolves paths via `__dirname`, so the same config works on any host running Node ≥ 20 with PM2 — local Mac mini, Lightsail VPS, Docker, etc.
 
+Before restarting PM2, run the health smoke check:
+
+```bash
+pnpm tsx scripts/check-health.ts
+```
+
+`getSystemHealth()` reads several tables through raw SQL strings, which neither
+`tsc` nor `next build` validates — a query naming a column that does not exist
+passes both and then 500s `/health` and `/api/health?detail=1`. The check builds
+the real schema in a throwaway DB and runs the aggregation against it. Add
+`--live` to run it against `DB_PATH` instead (read-only).
+
 ```bash
 pnpm install
 pnpm build

@@ -530,6 +530,24 @@ export function getAssetEntities(): Entity[] {
   return getEntitiesByType("asset");
 }
 
+/**
+ * Asset entities that exist only as stubs — a live page (price, pulses,
+ * permanent URL) that the upstream canonical store has no row for yet.
+ *
+ * `getAllEntities()` reads canonical only, so anything callers build from it
+ * cannot see these at all. That is why the persona candidate pool never
+ * contained ethereum despite a dozen live pulses on its page: not a threshold
+ * problem, an enumeration one. Callers still decide whether a given stub has
+ * enough on the page to be worth using.
+ */
+export function getStubAssetEntities(): Entity[] {
+  const canonical = new Set(getAllEntities().map((e) => e.id));
+  return Object.keys(ASSET_STUBS)
+    .filter((id) => !canonical.has(id))
+    .map((id) => getAssetOrStub(id))
+    .filter((e): e is Entity => e !== null);
+}
+
 // ─── co-mention helpers ──────────────────────────────────────────────
 
 /** Top N entities co-mentioned with the focal entity (excludes self). */

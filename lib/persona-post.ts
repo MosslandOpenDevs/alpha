@@ -15,9 +15,14 @@ import { chat } from "./grok";
 import { createPost, type Post, type Stance, ensureCommunityTables } from "./community";
 import { getAgent, type Agent } from "./agents";
 import {
+  assetSlugFromEntity,
+  getActivePulses,
+  getAssetOrStub,
   getEntity,
   getTopic,
   getEvent,
+  type Entity,
+  type Pulse,
 } from "./mic";
 import { getSynthesis } from "./synthesis";
 
@@ -77,6 +82,58 @@ const REPOST_COOLDOWN_DAYS = 30;
  * a pool the tick does not actually use.
  */
 export const PERSONA_POOL_MIN_VIDEO_COUNT = 3;
+
+/** How far back a price pulse still counts as page context. */
+const PULSE_CONTEXT_HOURS = 24;
+
+/** Recent price pulses for an asset entity, newest first. */
+function recentPulsesFor(entity: Entity): Pulse[] {
+  if (entity.type !== "asset") return [];
+  const slug = assetSlugFromEntity(entity);
+  return getActivePulses(PULSE_CONTEXT_HOURS)
+    .filter((p) => p.asset.toLowerCase() === slug)
+    .sort((a, b) => Date.parse(b.detectedAt) - Date.parse(a.detectedAt));
+}
+
+/**
+ * Is there enough on this page for a persona to say something specific?
+ *
+ * Video coverage is the usual signal, but asset pages have a second one:
+ * live price pulses. Judging assets on video count alone kept ethereum — a
+ * dozen active pulses and a full price page — out of the pool entirely, while
+ * capping the trackable-call supply at the two assets that happen to have
+ * Korean video coverage.
+ *
+ * Deliberately not a blanket exemption for mapped assets: an asset with
+ * neither video coverage nor recent pulses has nothing concrete on the page,
+ * and a persona writing about it would be inventing.
+ */
+export function hasEnoughPageContext(entity: Entity): boolean {
+  if (entity.videoCount >= PERSONA_POOL_MIN_VIDEO_COUNT) return true;
+  return recentPulsesFor(entity).length > 0;
+}
+
+/** One line of live market context, for asset pages with no synthesis yet. */
+function assetMarketContext(entity: Entity): string | null {
+  const pulses = recentPulsesFor(entity);
+  if (pulses.length === 0) return null;
+  const latest = pulses[0];
+  const dir = latest.direction === "up" ? "+" : "-";
+  const move = `${dir}${Math.abs(latest.magnitudePct).toFixed(2)}%`;
+  // Upstream-generated text, but still not ours: flatten and neutralise angle
+  // brackets exactly as the anonymous-comment block does, so a malformed or
+  // compromised pulse summary cannot restructure the prompt.
+  const summary = latest.summary
+    .replace(/</g, "＜")
+    .replace(/>/g, "＞")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
+  return (
+    `최근 24시간 가격 시그널 ${pulses.length}건. ` +
+    `가장 최근: ${move} (${latest.windowMinutes}분) — ${summary}`
+  );
+}
 
 /** 페르소나가 이 페이지에 최근 발화했나 (쿨다운 내). 답글은 세지 않는다. */
 function hasPostedOnPage(handle: string, refType: RefType, refId: string): boolean {
@@ -212,11 +269,19 @@ export async function generatePersonaPost(args: {
   if (synthRef === "asset") synthRef = "entity";
 
   if (args.refType === "entity" || args.refType === "asset") {
-    const e = getEntity(args.refId);
+    // Asset refs resolve through the stub-aware lookup, the same one the asset
+    // pages use. getEntity() reads canonical only, so a stub-only asset (which
+    // is exactly what the pool expansion admits) resolved to null and every
+    // attempt died at "ref_not_found" — the pool grew but nothing came of it.
+    const e =
+      args.refType === "asset" ? getAssetOrStub(args.refId) : getEntity(args.refId);
     if (e) {
       refLabel = e.label;
       const synth = getSynthesis("entity", args.refId);
-      pageContext = synth?.oneLine || `${e.label} 영상 ${e.videoCount}편`;
+      // "이더리움 영상 0편" is not context a model can write from. Prefer the
+      // synthesis, then live market data, and only then the video count.
+      pageContext =
+        synth?.oneLine || assetMarketContext(e) || `${e.label} 영상 ${e.videoCount}편`;
     }
   } else if (args.refType === "topic") {
     const t = getTopic(args.refId);

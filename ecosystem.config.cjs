@@ -117,7 +117,7 @@ module.exports = {
     }),
     cronApp({
       name: "alpha-translate-briefs-cron",
-      script: "scripts/translate-briefs.ts --days=14",
+      script: "scripts/translate-briefs.ts --days=14 --scheduled",
       cronRestart: "40 23 * * *",
       note: "매일 08:40 KST — English brief 번역 (source-hash 캐시)",
     }),
