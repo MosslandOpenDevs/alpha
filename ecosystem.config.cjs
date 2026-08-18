@@ -6,9 +6,9 @@
  *
  * ── Timezone ────────────────────────────────────────────────────────────
  * `cron_restart` is evaluated by the PM2 *daemon*, in the daemon's local
- * timezone — an app-level `TZ` does not move it. The production host — the
- * Tailscale node `atrn-vm-linux`, not a Mac mini — is on **Etc/UTC**,
- * verified with `timedatectl`, not assumed. So every `cron_restart` below
+ * timezone — an app-level `TZ` does not move it. The production host (a
+ * Linux VM reachable only over the tailnet, not a Mac mini) is on
+ * **Etc/UTC**, verified with `timedatectl`, not assumed. So every `cron_restart` below
  * is written in **UTC** and each comment states the KST time it lands on.
  * KST is UTC+9, so a morning-KST job runs the previous evening in UTC
  * (06:00 KST = 21:00 UTC the day before).
@@ -53,6 +53,13 @@ function cronApp({ name, script, cronRestart, note }) {
   };
 }
 
+/**
+ * The deploy poller (`alpha-deploy`) is NOT in this file. It lives in
+ * ecosystem.deploy.config.cjs and is registered once from ~/alpha, the
+ * object-store checkout — never from a release directory — so a release's
+ * `pm2 start ecosystem.config.cjs` cannot re-register the process the deploy
+ * is running in. See scripts/deploy.sh.
+ */
 module.exports = {
   apps: [
     {
