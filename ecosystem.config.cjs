@@ -162,6 +162,16 @@ module.exports = {
       note: "매일 13:00 KST — call backfill + pending resolve",
     }),
     cronApp({
+      // No --scheduled guard on purpose: this one is supposed to run at every
+      // registration. It only reads /api/health and speaks on a state change,
+      // so a deploy-time run is exactly what you want — it confirms the new
+      // release is healthy, or tells you it is not.
+      name: "alpha-health-alert",
+      script: "scripts/health-alert.ts",
+      cronRestart: "*/5 * * * *",
+      note: "5분마다 — /api/health 감시, 이상/복구 시 알림 + 매일 10:00 KST 요약",
+    }),
+    cronApp({
       // PM2 runs a job once when it is first registered; --scheduled makes
       // that first run free unless it really is Monday 11:xx KST, so a
       // redeploy cannot burn 30 gpt-4o web_search queries.
