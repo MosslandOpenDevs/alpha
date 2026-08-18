@@ -83,17 +83,24 @@ set -euo pipefail
 unset cron_restart autorestart watch instances exec_mode max_memory_restart \
       name script args interpreter 2>/dev/null || true
 
-# The 13 PM2 apps a release owns. Everything else on this box belongs to other
-# projects and must never be touched by this script.
+# The PM2 apps a release owns are whatever its ecosystem.config.cjs declares —
+# read from the file, never listed here. A hand-kept copy drifted the first
+# time the ecosystem gained an app: PR #13 added alpha-health-alert, the swap
+# list did not know it, so `pm2 delete` skipped it and `pm2 start` saw an
+# existing name and left it on the old release. Everything else on this box
+# belongs to other projects and must never be touched by this script.
 #
-# `alpha-deploy` (this poller) is deliberately NOT in the list. It is
-# registered once, from ~/alpha's own scripts/deploy.sh — the object-store
-# checkout, which `git fetch` keeps current — so it never needs re-registering
-# and never deletes the process it is running in.
-ALPHA_APPS="alpha-web alpha-indexnow-cron alpha-macro-cron alpha-synthesis-cron \
-alpha-seed-qa-cron alpha-connections-cron alpha-brief-cron alpha-translate-briefs-cron \
-alpha-why-moved-cron alpha-persona-cron alpha-persona-reply-cron alpha-calls-cron \
-alpha-audit-cron"
+# `alpha-deploy` (this poller) is deliberately not in any release's ecosystem.
+# It is registered once from ~/alpha's ecosystem.deploy.config.cjs — the
+# object-store checkout, which the ff-only step keeps current — so it never
+# needs re-registering and never deletes the process it is running in.
+release_apps() {
+  local dir="$1"
+  ( cd "${dir}" && node -e '
+const apps = require("./ecosystem.config.cjs").apps || [];
+process.stdout.write(apps.map(a => a.name).filter(Boolean).join(" "));
+' 2>/dev/null )
+}
 
 log() {
   local line
@@ -228,9 +235,20 @@ strict_ok() {
 # OLD cwd/script path and only restart. Only the release's own apps are
 # touched — never the poller, never another project's.
 pm2_swap_to() {
-  local dir="$1" app
-  for app in ${ALPHA_APPS}; do
-    "${PM2_BIN}" delete "${app}" >/dev/null 2>&1 || true
+  local dir="$1" app apps
+  # Delete the union of what the OLD release declared and what the NEW one
+  # declares: an app dropped from the ecosystem must not linger on the old
+  # release, and an app added must not be skipped.
+  apps="$(release_apps "${dir}") $(release_apps "${LIVE_DIR:-}")"
+  if [ -z "$(echo "${apps}" | tr -d '[:space:]')" ]; then
+    log "ERROR could not read app names from ${dir}/ecosystem.config.cjs"; return 1
+  fi
+  for app in $(echo "${apps}" | tr ' ' '\n' | sort -u); do
+    case "${app}" in
+      alpha-deploy) continue ;;                          # never touch the poller
+      alpha-*) "${PM2_BIN}" delete "${app}" >/dev/null 2>&1 || true ;;
+      *) log "WARN ecosystem declares non-alpha app '${app}' -- refusing to touch it" ;;
+    esac
   done
   # pm2 merges the caller's process.env into each app's stored env. Do not
   # let the poller's GITHUB_TOKEN / DEPLOY_* leak into the 13 apps.
