@@ -64,6 +64,12 @@ module.exports = {
         NODE_ENV: "production",
         PORT: "6900",
         NEXT_PUBLIC_BASE_URL: "https://alpha.moss.land",
+        // Belt and braces only. Rendered timestamps go through fmtKst(), which
+        // does explicit UTC+9 math and does not read TZ — the host is UTC, and
+        // before that was fixed the footers read nine hours early. Keep the
+        // code-level formatting; this just keeps any stray `new Date()` on
+        // Korean market days.
+        TZ: "Asia/Seoul",
       },
       max_memory_restart: "768M",
       instances: 1,
@@ -86,19 +92,19 @@ module.exports = {
     }),
     cronApp({
       name: "alpha-synthesis-cron",
-      script: "scripts/generate-synthesis.ts top --limit=30",
+      script: "scripts/generate-synthesis.ts top --limit=30 --scheduled",
       cronRestart: "0 22 * * *",
       note: "매일 07:00 KST — top 30 entity synthesis",
     }),
     cronApp({
       name: "alpha-seed-qa-cron",
-      script: "scripts/seed-qa-dynamic.ts --limit=20",
+      script: "scripts/seed-qa-dynamic.ts --limit=20 --scheduled",
       cronRestart: "15 22 * * *",
       note: "매일 07:15 KST — ~20 new /ask/q/[hash] pages, idempotent, ~$0.005/run",
     }),
     cronApp({
       name: "alpha-connections-cron",
-      script: "scripts/generate-connections.ts top --limit=80",
+      script: "scripts/generate-connections.ts top --limit=80 --scheduled",
       // Staggered 15 min after seed QA so two Grok+SQLite jobs do not overlap.
       cronRestart: "30 22 * * *",
       note: "매일 07:30 KST — top 80 co-mention pair 인과 가설",
@@ -120,7 +126,7 @@ module.exports = {
       // default change cannot silently unleash the whole backlog of Grok
       // calls in one unattended run.
       name: "alpha-why-moved-cron",
-      script: "scripts/generate-why-moved.ts --limit=20",
+      script: "scripts/generate-why-moved.ts --limit=20 --scheduled",
       cronRestart: "45 23 * * *",
       note: "매일 08:45 KST — pulse → why-moved article",
     }),
@@ -144,7 +150,7 @@ module.exports = {
       // backfill cannot reconstruct an intraday reference price, so the
       // production cron only resolves calls that already exist.
       name: "alpha-calls-cron",
-      script: "scripts/track-calls.ts --skip-backfill",
+      script: "scripts/track-calls.ts --skip-backfill --scheduled",
       cronRestart: "0 4 * * *",
       note: "매일 13:00 KST — call backfill + pending resolve",
     }),

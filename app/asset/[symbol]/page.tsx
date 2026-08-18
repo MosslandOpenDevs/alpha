@@ -8,7 +8,7 @@ import {
 } from "@/lib/mic";
 import { registerSeoPage } from "@/lib/seo-register";
 import { deleteSeoPage } from "@/lib/db";
-import { SITE } from "@/lib/seo";
+import { SITE, pageOpenGraph } from "@/lib/seo";
 import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import { StanceBar } from "@/components/StanceBar";
 import { VideoCard } from "@/components/VideoCard";
@@ -22,6 +22,7 @@ import { CommunitySection } from "@/components/CommunitySection";
 import { listPostsWithRepliesForRef } from "@/lib/community";
 import { listWhyMovedForAsset } from "@/lib/why-moved";
 import type { Metadata } from "next";
+import { fmtKst } from "@/lib/health";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 300;
@@ -43,7 +44,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title,
     description: desc,
     alternates: { canonical: `${SITE.baseUrl}/asset/${canonicalSymbol}` },
-    openGraph: { title, description: desc, type: "article" },
+    openGraph: pageOpenGraph({ title, description: desc, path: `/asset/${symbol}` }),
     robots: entity.videoCount === 0 ? { index: false } : { index: true },
   };
 }
@@ -266,7 +267,7 @@ export default async function AssetPage({ params }: Props) {
 
       {/* [5] 마지막 업데이트 */}
       <footer className="mt-12 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
-        <span>마지막 업데이트: {new Date(entity.updatedAt).toLocaleString("ko-KR")}</span>
+        <span>마지막 업데이트: {fmtKst(entity.updatedAt)}</span>
         <span className="mx-2">·</span>
         <span>출처: signalmap canonical (Mossland)</span>
         <span className="mx-2">·</span>

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getExplainer } from "@/lib/explainers";
 import { getEntity, getTopic } from "@/lib/mic";
 import { registerSeoPage } from "@/lib/seo-register";
-import { SITE } from "@/lib/seo";
+import { SITE, pageOpenGraph } from "@/lib/seo";
 import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import type { Metadata } from "next";
 
@@ -19,11 +19,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: ex.title,
     description: ex.oneLine.slice(0, 200),
     alternates: { canonical: `${SITE.baseUrl}/explain/${slug}` },
-    openGraph: {
+    openGraph: pageOpenGraph({
       title: ex.title,
       description: ex.oneLine.slice(0, 200),
-      type: "article",
-    },
+      path: `/explain/${slug}`,
+    }),
   };
 }
 

@@ -255,7 +255,7 @@ async function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes("--dry-run");
 
-  const { askAlpha, getCachedAnswer } = await import("../lib/ask");
+  const { askAlpha, getCachedAnswer, markQuestionSource } = await import("../lib/ask");
 
   console.log(`Total questions: ${QUESTIONS.length}`);
   let needGeneration = 0;
@@ -281,6 +281,10 @@ async function main() {
     const q = QUESTIONS[i];
     const existing = getCachedAnswer(q);
     if (existing) {
+      // Already answered — but still assert provenance. Rows written before
+      // alpha_questions had a `source` column defaulted to 'user', which
+      // de-indexes them; this run is what puts curated questions back.
+      markQuestionSource(q, "seed");
       cached++;
       continue;
     }
@@ -288,7 +292,7 @@ async function main() {
       `  [${i + 1}/${QUESTIONS.length}] ${q.slice(0, 50)}${q.length > 50 ? "..." : ""} ... `
     );
     try {
-      const r = await askAlpha(q);
+      const r = await askAlpha(q, { source: "seed" });
       success++;
       const len = r.answer.length;
       const cites = r.citations.length;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Post, PostWithReplies } from "@/lib/community";
+import type { PublicPost, PostWithReplies } from "@/lib/community";
 
 type Props = {
   refType: "entity" | "topic" | "event" | "asset";
@@ -56,7 +56,7 @@ export function CommunitySection({ refType, refId, initialPosts }: Props) {
         setSubmitting(false);
         return;
       }
-      const j = (await res.json()) as { post: Post };
+      const j = (await res.json()) as { post: PublicPost };
       setPosts((prev) => [{ ...j.post, replies: [] }, ...prev]);
       setBody("");
       setStance("");

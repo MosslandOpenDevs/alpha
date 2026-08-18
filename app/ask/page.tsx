@@ -1,8 +1,9 @@
 import { listRecentAnswers } from "@/lib/ask";
 import { registerSeoPage } from "@/lib/seo-register";
-import { SITE } from "@/lib/seo";
+import { SITE, pageOpenGraph } from "@/lib/seo";
 import type { Metadata } from "next";
 import { AskClient } from "./AskClient";
+import { fmtKst } from "@/lib/health";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 60;
@@ -12,6 +13,12 @@ export const metadata: Metadata = {
   description:
     "Alpha의 entity·topic·event 데이터에 자연어로 질문. AI가 인용 + 출처와 함께 답변.",
   alternates: { canonical: `${SITE.baseUrl}/ask` },
+  openGraph: pageOpenGraph({
+    title: "Ask Alpha — 한국 크립토·매크로 질문 답변",
+    description: "한국 크립토·매크로 질문에 출처 링크와 함께 답합니다.",
+    path: "/ask",
+    type: "website",
+  }),
 };
 
 export default function AskPage() {
@@ -62,7 +69,7 @@ export default function AskPage() {
                 >
                   <div className="text-sm">{r.question}</div>
                   <div className="text-xs text-[var(--muted)] mt-0.5">
-                    {new Date(r.generated_at).toLocaleString("ko-KR")}
+                    {fmtKst(r.generated_at)}
                   </div>
                 </a>
               </li>

@@ -1,8 +1,14 @@
 import { notFound } from "next/navigation";
 import { getAgent } from "@/lib/agents";
-import { getCallsForHandle, getHandleStats, type TrackableCall } from "@/lib/calls";
+import {
+  getCallsForHandle,
+  getHandleStats,
+  MIN_DECIDED_FOR_ACCURACY,
+  type ResolutionStatus,
+  type TrackableCall,
+} from "@/lib/calls";
 import { registerSeoPage } from "@/lib/seo-register";
-import { SITE } from "@/lib/seo";
+import { SITE, pageOpenGraph } from "@/lib/seo";
 import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import type { Metadata } from "next";
 
@@ -11,11 +17,15 @@ export const revalidate = 600;
 
 type Props = { params: Promise<{ handle: string }> };
 
-const STATUS_LABEL: Record<string, { ko: string; cls: string }> = {
+// Keyed by ResolutionStatus, not string: adding a status to lib/calls.ts must
+// be a compile error here rather than silently falling through to a "대기"
+// badge, which is how `expired` would otherwise have been shown as pending.
+const STATUS_LABEL: Record<ResolutionStatus, { ko: string; cls: string }> = {
   correct: { ko: "적중", cls: "bg-green-100 text-green-800" },
   wrong: { ko: "실패", cls: "bg-red-100 text-red-800" },
   flat: { ko: "보합", cls: "bg-zinc-100 text-zinc-700" },
   pending: { ko: "대기", cls: "bg-amber-50 text-amber-700" },
+  expired: { ko: "만료", cls: "bg-zinc-100 text-zinc-500" },
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -26,6 +36,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `@${handle} (${a.displayName}) — Alpha AI 페르소나`,
     description: `${a.displayName}: ${a.stanceLean}. 합성 베이스: ${a.inputCluster}.`,
     alternates: { canonical: `${SITE.baseUrl}/agents/${handle}` },
+    openGraph: pageOpenGraph({
+      title: `@${handle} (${a.displayName}) — Alpha AI 페르소나`,
+      description: `${a.displayName}: ${a.stanceLean}. 합성 베이스: ${a.inputCluster}.`,
+      path: `/agents/${handle}`,
+      type: "profile",
+    }),
   };
 }
 
@@ -42,7 +58,10 @@ export default async function AgentProfilePage({ params }: Props) {
     page_type: "agent",
     canonical_id: handle,
     title: `@${handle} (${agent.displayName})`,
-    meta_description: `${agent.displayName}: ${agent.stanceLean}. 적중률 ${stats.accuracy.toFixed(0)}%`,
+    meta_description:
+      stats.accuracyReliable && stats.accuracy != null
+        ? `${agent.displayName}: ${agent.stanceLean}. 적중률 ${stats.accuracy.toFixed(0)}% (${stats.decided} 결정 콜)`
+        : `${agent.displayName}: ${agent.stanceLean}. 결정 콜 ${stats.decided}건 — 적중률 집계 전.`,
     quality_score: stats.total > 5 ? 0.7 : 0.4,
   });
 
@@ -93,14 +112,22 @@ export default async function AgentProfilePage({ params }: Props) {
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
+            {/* Withhold the headline number until the sample supports it.
+                One decided call rendering as a bold "100%" was the site's most
+                overstated claim. */}
             <div className="text-3xl font-mono font-semibold text-[var(--accent)]">
-              {stats.accuracy.toFixed(0)}%
+              {stats.accuracyReliable && stats.accuracy != null
+                ? `${stats.accuracy.toFixed(0)}%`
+                : "—"}
             </div>
             <div className="text-[10px] uppercase tracking-wider text-zinc-400 mt-1">
               적중률
             </div>
             <div className="text-[10px] text-zinc-500 mt-0.5">
-              {stats.correct}/{stats.correct + stats.wrong} 결정 콜
+              {stats.correct}/{stats.decided} 결정 콜
+              {stats.accuracyReliable
+                ? ""
+                : ` · ${MIN_DECIDED_FOR_ACCURACY}건부터 집계`}
             </div>
           </div>
           <div>
@@ -162,7 +189,10 @@ export default async function AgentProfilePage({ params }: Props) {
 }
 
 function CallRow({ call }: { call: TrackableCall }) {
-  const status = STATUS_LABEL[call.resolution_status] || STATUS_LABEL.pending;
+  // No `|| pending` fallback: STATUS_LABEL is keyed by ResolutionStatus, so a
+  // missing entry is a compile error rather than an unknown state quietly
+  // rendering as "대기".
+  const status = STATUS_LABEL[call.resolution_status];
   const dirArrow = call.direction === "up" ? "↑" : "↓";
   const dirCls = call.direction === "up" ? "text-[var(--bull)]" : "text-[var(--bear)]";
   const change = call.actual_change_pct;

@@ -52,6 +52,8 @@ type ParsedArgs = {
   staleOnly: boolean;
   /** Unattended pm2 invocation: no positional args, not dry-run/stale-only. */
   automatic: boolean;
+  /** `--scheduled`: bail unless this really is the cron's KST hour. */
+  scheduled: boolean;
 };
 
 class UsageError extends Error {}
@@ -71,13 +73,15 @@ function parseArgs(args: string[]): ParsedArgs {
   const limitFlag = args.find((arg) => arg.startsWith("--limit="));
   const dryRun = args.includes("--dry-run");
   const staleOnly = args.includes("--stale-only");
+  const scheduled = args.includes("--scheduled");
   const positional = args.filter((arg) => !arg.startsWith("--"));
   const unknownFlags = args.filter(
     (arg) =>
       arg.startsWith("--") &&
       !arg.startsWith("--limit=") &&
       arg !== "--dry-run" &&
-      arg !== "--stale-only"
+      arg !== "--stale-only" &&
+      arg !== "--scheduled"
   );
   if (unknownFlags.length > 0) {
     throw new UsageError(`Unknown option: ${unknownFlags.join(", ")}`);
@@ -110,11 +114,27 @@ function parseArgs(args: string[]): ParsedArgs {
     dryRun,
     staleOnly,
     automatic: positional.length === 0 && !dryRun && !staleOnly,
+    scheduled,
   };
 }
 
+/** Intended KST hour of the pm2 cron (08:45 KST = 23:45 UTC). */
+const SCHEDULED_KST_HOUR = 8;
+
 async function main(parsed: ParsedArgs) {
   const { positional, limit, dryRun, staleOnly } = parsed;
+
+  // A release runs every pm2 app once. This one publishes articles dated to a
+  // KST day that has not finished yet, and its heartbeat would then report the
+  // deploy time as the last successful run.
+  if (parsed.scheduled) {
+    const { scheduledSkipReason } = await import("../lib/kst");
+    const skip = scheduledSkipReason(["--scheduled"], SCHEDULED_KST_HOUR);
+    if (skip) {
+      console.log(skip);
+      return;
+    }
+  }
 
   const {
     generateWhyMoved,

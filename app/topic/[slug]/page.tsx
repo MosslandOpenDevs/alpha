@@ -5,7 +5,7 @@ import {
   stanceDistribution,
 } from "@/lib/mic";
 import { registerSeoPage } from "@/lib/seo-register";
-import { SITE } from "@/lib/seo";
+import { SITE, pageOpenGraph } from "@/lib/seo";
 import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import { StanceBar } from "@/components/StanceBar";
 import { VideoCard } from "@/components/VideoCard";
@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title,
     description: desc,
     alternates: { canonical: `${SITE.baseUrl}/topic/${slug}` },
-    openGraph: { title, description: desc, type: "article" },
+    openGraph: pageOpenGraph({ title, description: desc, path: `/topic/${slug}` }),
   };
 }
 

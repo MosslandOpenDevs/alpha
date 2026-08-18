@@ -1,6 +1,6 @@
 import { getActivePulses, getAllPulses } from "@/lib/mic";
 import { registerSeoPage } from "@/lib/seo-register";
-import { SITE } from "@/lib/seo";
+import { SITE, pageOpenGraph } from "@/lib/seo";
 import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import { PulseCard } from "@/components/PulseCard";
 import type { Metadata } from "next";
@@ -12,6 +12,12 @@ export const metadata: Metadata = {
   title: "Pulse — 가격 쇼크 즉시 정리",
   description: "BTC·ETH·기타 자산의 분 단위 가격 시그널과 보도 매칭.",
   alternates: { canonical: `${SITE.baseUrl}/pulse` },
+  openGraph: pageOpenGraph({
+    title: "Pulse — 가격 쇼크 즉시 정리",
+    description: "BTC·ETH·기타 자산의 분 단위 가격 시그널과 보도 매칭.",
+    path: "/pulse",
+    type: "website",
+  }),
 };
 
 export default function PulseIndex() {

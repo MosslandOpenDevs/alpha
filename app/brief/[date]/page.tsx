@@ -7,11 +7,12 @@ import {
   getActivePulses,
 } from "@/lib/mic";
 import { registerSeoPage } from "@/lib/seo-register";
-import { SITE } from "@/lib/seo";
+import { SITE, pageOpenGraph } from "@/lib/seo";
 import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import { PulseCard } from "@/components/PulseCard";
 import { SynthesisCard } from "@/components/SynthesisCard";
 import { getBriefSummary } from "@/lib/brief";
+import { kstClock, kstDayBounds } from "@/lib/kst";
 import { fmtKst } from "@/lib/health";
 import type { Metadata } from "next";
 
@@ -28,11 +29,9 @@ function isValidDate(d: string): boolean {
   return !Number.isNaN(t);
 }
 
-function dayBounds(date: string): { start: number; end: number } {
-  const start = Date.parse(date + "T00:00:00Z");
-  const end = start + 24 * 3600_000;
-  return { start, end };
-}
+// Brief dates are KST calendar days — lib/brief.ts generates each summary over
+// `kstDayBounds`. Reading the same label with UTC bounds shifted this page's
+// pulse/entity window nine hours off the summary it sits under.
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { date } = await params;
@@ -52,7 +51,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         en: `${SITE.baseUrl}/en/brief/${date}`,
       },
     },
-    openGraph: { title, description: desc, type: "article" },
+    openGraph: pageOpenGraph({ title, description: desc, path: `/brief/${date}` }),
   };
 }
 
@@ -60,12 +59,14 @@ export default async function BriefPage({ params }: Props) {
   const { date } = await params;
   if (!isValidDate(date)) notFound();
 
-  const { start, end } = dayBounds(date);
-  const today = new Date().toISOString().slice(0, 10);
+  const { start, end } = kstDayBounds(date);
+  // Compare KST label against KST today. Judging "future" by UTC midnight made
+  // /today — which redirects to the KST date — 404 every day from KST 00:00
+  // until 09:00, i.e. the whole morning the 08:30 brief is meant to be read.
+  const today = kstClock().date;
   const isToday = date === today;
-  const isFuture = Date.parse(date + "T00:00:00Z") > Date.now();
 
-  if (isFuture) notFound();
+  if (date > today) notFound();
 
   const pulses = getAllPulses().filter((p) => {
     const t = Date.parse(p.detectedAt);

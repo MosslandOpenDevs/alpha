@@ -13,6 +13,7 @@ import { MacroStrip } from "@/components/MacroStrip";
 import { DailyMoversStrip } from "@/components/DailyMoversStrip";
 import { FreshnessTime } from "@/components/FreshnessTime";
 import { getDailyMovers } from "@/lib/daily-mover";
+import { fmtKst } from "@/lib/health";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 60;
@@ -227,7 +228,7 @@ export default async function Home() {
         <a href="/rss.xml" className="hover:text-[var(--fg)]">rss</a>
         <span>·</span>
         <a href="/sitemap.xml" className="hover:text-[var(--fg)]">sitemap</a>
-        <span className="ml-auto">{new Date().toLocaleString("ko-KR")}</span>
+        <span className="ml-auto">{fmtKst(new Date().toISOString())}</span>
       </footer>
     </main>
   );

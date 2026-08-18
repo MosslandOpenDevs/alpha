@@ -36,8 +36,19 @@ export type AskResult = {
   generatedAt: string;
 };
 
+/**
+ * Where a question came from.
+ *
+ * `seed` questions are curated by scripts/seed-qa*.ts and are safe to index.
+ * `user` questions arrive through the unauthenticated POST /api/ask, so their
+ * text is attacker-controlled — indexing them let anyone mint permanent
+ * alpha.moss.land pages titled with whatever they typed.
+ */
+export type QuestionSource = "seed" | "user";
+
 function ensureTable() {
-  getDb().exec(`
+  const db = getDb();
+  db.exec(`
     CREATE TABLE IF NOT EXISTS alpha_questions (
       hash TEXT PRIMARY KEY,
       question TEXT NOT NULL,
@@ -49,6 +60,45 @@ function ensureTable() {
     CREATE INDEX IF NOT EXISTS idx_alpha_questions_generated
       ON alpha_questions(generated_at DESC);
   `);
+  // Added after the table shipped. Backfill to 'user' — the safe direction,
+  // because POST /api/ask and the MCP ask tool have been unauthenticated
+  // writers into this table since long before this column existed, so
+  // pre-existing rows cannot be assumed curated.
+  //
+  // That means legacy curated rows start out de-indexed and must be promoted
+  // back explicitly: `markQuestionSource()` below, called by both seed scripts
+  // for questions they own whether or not the answer is already cached. Run
+  // `pnpm tsx scripts/seed-qa.ts` once after deploying this — every curated
+  // question is already cached, so it costs nothing and only re-labels.
+  const columns = db
+    .prepare(`PRAGMA table_info(alpha_questions)`)
+    .all() as { name: string }[];
+  if (!columns.some((c) => c.name === "source")) {
+    try {
+      db.exec(
+        `ALTER TABLE alpha_questions ADD COLUMN source TEXT NOT NULL DEFAULT 'user'`
+      );
+    } catch (err) {
+      // Web process and a cron can reach this concurrently; losing the race is
+      // fine, the column exists either way.
+      if (!/duplicate column name/i.test(String(err))) throw err;
+    }
+  }
+}
+
+/**
+ * Re-label an existing question's provenance.
+ *
+ * Needed because `askAlpha()` returns early on a cache hit, before the INSERT
+ * that records `source` — so a curated question that was already answered
+ * could never be marked 'seed' by re-running the seeder. No-op when the row
+ * does not exist yet; the INSERT will set the source in that case.
+ */
+export function markQuestionSource(question: string, source: QuestionSource): void {
+  ensureTable();
+  getDb()
+    .prepare(`UPDATE alpha_questions SET source = ? WHERE hash = ?`)
+    .run(source, questionHash(question));
 }
 
 function questionHash(q: string): string {
@@ -84,11 +134,19 @@ export function getCachedAnswer(question: string): AskResult | null {
   };
 }
 
+/**
+ * Recent questions for the public /ask list.
+ *
+ * Curated only. The question text is rendered verbatim on a public page, and
+ * anyone can submit one through the unauthenticated endpoint — so an
+ * unfiltered list is a free billboard.
+ */
 export function listRecentAnswers(limit = 30) {
   ensureTable();
   return getDb()
     .prepare(
       `SELECT hash, question, generated_at FROM alpha_questions
+       WHERE source = 'seed'
        ORDER BY generated_at DESC LIMIT ?`
     )
     .all(limit) as { hash: string; question: string; generated_at: string }[];
@@ -128,12 +186,21 @@ function buildContextFromHits(hits: ReturnType<typeof search>): {
   return { contextText: lines.join("\n"), citations };
 }
 
-export async function askAlpha(question: string): Promise<AskResult> {
+export async function askAlpha(
+  question: string,
+  opts: { source?: QuestionSource } = {}
+): Promise<AskResult> {
   ensureTable();
   const hash = questionHash(question);
+  const source: QuestionSource = opts.source ?? "user";
 
   const cached = getCachedAnswer(question);
-  if (cached) return cached;
+  if (cached) {
+    // The row predates this call; its stored source may be stale (or the
+    // migration default). Trust the caller, which knows its own provenance.
+    if (source === "seed") markQuestionSource(question, "seed");
+    return cached;
+  }
 
   // 토큰 분할 검색 — 긴 질문에서 의미있는 단어를 추출하여 각각 검색
   // 한국어 조사 제거 (BTC를 → BTC, 한국에서 → 한국)
@@ -229,8 +296,8 @@ ${question}
   getDb()
     .prepare(
       `INSERT OR REPLACE INTO alpha_questions
-        (hash, question, answer, citations, cost_usd, generated_at)
-       VALUES (?, ?, ?, ?, ?, ?)`
+        (hash, question, answer, citations, cost_usd, generated_at, source)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       hash,
@@ -238,7 +305,8 @@ ${question}
       answer,
       JSON.stringify(citations),
       result.costUsd,
-      generatedAt
+      generatedAt,
+      source
     );
 
   return {

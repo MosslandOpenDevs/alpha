@@ -8,6 +8,7 @@
 
 import crypto from "node:crypto";
 import { getDb } from "./db";
+import { kstClock, kstDayBounds } from "./kst";
 
 const GROK_API_BASE = "https://api.x.ai/v1";
 const DEFAULT_MODEL = process.env.GROK_MODEL || "grok-4-1-fast-non-reasoning";
@@ -74,6 +75,10 @@ function ensureAiRunsTable() {
     );
     CREATE UNIQUE INDEX IF NOT EXISTS idx_alpha_ai_runs_hash
       ON alpha_ai_runs(input_hash);
+    -- todayAiSpendUsd() filters on created_at; without this it is a full scan
+    -- of an unbounded response cache.
+    CREATE INDEX IF NOT EXISTS idx_alpha_ai_runs_created
+      ON alpha_ai_runs(created_at);
   `);
 }
 
@@ -208,4 +213,32 @@ export async function chat(
   });
 
   return { content, usage, costUsd, cacheHit: false };
+}
+
+/**
+ * Today's (KST) non-cached Grok spend — **every** caller, not just crons.
+ *
+ * Cron scripts never call `addCost()`: that counter enforces the per-IP and
+ * global ceiling on *user-facing* endpoints, and charging unattended pipeline
+ * work against it would let a busy morning of crons lock /api/ask out for real
+ * visitors. But leaving pipeline spend uncounted meant /health read
+ * "$0.0000 today · 0 calls" after every paid cron.
+ *
+ * `alpha_ai_runs` has no caller column, so this total includes /api/ask and
+ * MCP traffic as well — those are also metered separately by `addCost()`, so
+ * the two figures on /health overlap and must not be added together. Labelled
+ * accordingly there. Cache hits add nothing (unique index on input_hash), and
+ * scripts/audit-auto.ts bills OpenAI directly without passing through
+ * `chat()`, so its spend is not represented at all.
+ */
+export function todayAiSpendUsd(): { costUsd: number; runCount: number } {
+  ensureAiRunsTable();
+  const { start } = kstDayBounds(kstClock().date);
+  const row = getDb()
+    .prepare(
+      `SELECT COALESCE(SUM(cost_usd), 0) AS cost, COUNT(*) AS n
+       FROM alpha_ai_runs WHERE created_at >= ?`
+    )
+    .get(new Date(start).toISOString()) as { cost: number; n: number };
+  return { costUsd: row.cost, runCount: row.n };
 }

@@ -5,7 +5,7 @@ import {
 } from "@/lib/creators";
 import { getEntity, getTopic, stanceDistribution } from "@/lib/mic";
 import { registerSeoPage } from "@/lib/seo-register";
-import { SITE } from "@/lib/seo";
+import { SITE, pageOpenGraph } from "@/lib/seo";
 import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import { StanceBar } from "@/components/StanceBar";
 import { VideoCard } from "@/components/VideoCard";
@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title,
     description: desc,
     alternates: { canonical: `${SITE.baseUrl}/creator/${id}` },
-    openGraph: { title, description: desc, type: "profile" },
+    openGraph: pageOpenGraph({ title, description: desc, path: `/creator/${id}`, type: "profile" }),
   };
 }
 

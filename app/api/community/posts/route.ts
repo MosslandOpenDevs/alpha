@@ -106,5 +106,9 @@ export async function POST(req: Request) {
     authorToken: token,
   });
 
-  return Response.json({ ok: true, post }, { status: 201 });
+  // Echo the post back without the session token. The caller already holds it
+  // as an httpOnly cookie; putting it in a readable response body only creates
+  // another place it can be copied out of.
+  const { author_token: _omitted, ...publicPost } = post;
+  return Response.json({ ok: true, post: publicPost }, { status: 201 });
 }

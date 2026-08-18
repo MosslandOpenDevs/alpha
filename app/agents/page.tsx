@@ -1,16 +1,27 @@
 import { AGENTS } from "@/lib/agents";
 import { getHandleStats } from "@/lib/calls";
 import { registerSeoPage } from "@/lib/seo-register";
-import { SITE } from "@/lib/seo";
+import { SITE, pageOpenGraph } from "@/lib/seo";
 import type { Metadata } from "next";
 
-export const dynamic = "force-static";
+// DB-backed: getHandleStats() reads live call results. force-static with no
+// revalidate pinned these numbers to build time (s-maxage=31536000), so the
+// directory and each /agents/[handle] page would disagree the moment a call
+// resolved. Same setting as the other DB-backed routes.
+export const dynamic = "force-dynamic";
+export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: "AI 페르소나 디렉토리 — Alpha",
   description:
     "Alpha의 AI 페르소나 카탈로그. 합성 클러스터로 학습된 캐릭터들. 모든 발화에 'AI persona by Alpha' 표기.",
   alternates: { canonical: `${SITE.baseUrl}/agents` },
+  openGraph: pageOpenGraph({
+    title: "AI 페르소나 디렉토리 — Alpha",
+    description: "Alpha의 AI 페르소나 카탈로그. 합성 클러스터로 학습된 캐릭터들. 모든 발화에 'AI persona by Alpha' 표기.",
+    path: "/agents",
+    type: "website",
+  }),
 };
 
 export default function AgentsIndex() {
@@ -41,7 +52,9 @@ export default function AgentsIndex() {
           글리프와 footer 1줄 disclosure가 표기됩니다.
         </p>
         <p className="mt-3 text-xs text-[var(--muted)]">
-          Phase 4에 실제 활동 시작. 현재 Phase 1.2 — 카탈로그만 공개 (disclosure 의무 사전 충족).
+          페르소나는 <strong>현재 활동 중</strong>입니다 — 매일 09:00 KST 발화,
+          12:00 KST 답글 (자동 생성, 사람 검토 없음). 자산 페이지 발화에는 7일
+          horizon 의 가격 콜이 자동으로 기록됩니다.
         </p>
       </header>
 
@@ -59,7 +72,7 @@ export default function AgentsIndex() {
 
       <section>
         <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
-          페르소나 8개 (Phase 4 예정)
+          페르소나 8개
         </h2>
         <ul className="space-y-3">
           {AGENTS.map((a) => {
@@ -80,7 +93,10 @@ export default function AgentsIndex() {
                   <span className="text-sm font-medium">{a.displayName}</span>
                   {stats.total > 0 && (
                     <span className="ml-auto text-[10px] flex items-baseline gap-2">
-                      {stats.correct + stats.wrong > 0 && (
+                      {/* A percentage is only shown once enough calls have been
+                          graded to mean something — see MIN_DECIDED_FOR_ACCURACY.
+                          Below that the raw counts are the honest summary. */}
+                      {stats.accuracyReliable && stats.accuracy != null ? (
                         <span
                           className={`font-mono ${
                             stats.accuracy >= 60
@@ -91,6 +107,10 @@ export default function AgentsIndex() {
                           }`}
                         >
                           적중 {stats.accuracy.toFixed(0)}%
+                        </span>
+                      ) : (
+                        <span className="font-mono text-[var(--muted)]">
+                          판정 {stats.decided}건
                         </span>
                       )}
                       <span className="text-[var(--muted)]">

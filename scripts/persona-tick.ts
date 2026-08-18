@@ -81,7 +81,9 @@ async function main() {
   const selectedTypes = new Set(requestedTypes);
 
   const { getActiveAgents } = await import("../lib/agents");
-  const { generatePersonaPost } = await import("../lib/persona-post");
+  const { generatePersonaPost, PERSONA_POOL_MIN_VIDEO_COUNT } = await import(
+    "../lib/persona-post"
+  );
   const { getAllEntities, getAllTopics, getAllEvents } = await import("../lib/mic");
 
   const agents = getActiveAgents();
@@ -91,7 +93,7 @@ async function main() {
   type Candidate = { refType: "entity" | "topic" | "event" | "asset"; refId: string };
   const pool: Candidate[] = [];
   for (const e of getAllEntities()) {
-    if (e.videoCount < 3) continue;
+    if (e.videoCount < PERSONA_POOL_MIN_VIDEO_COUNT) continue;
     const refType = e.type === "asset" ? "asset" : "entity";
     if (!selectedTypes.has(refType)) continue;
     pool.push({
@@ -101,13 +103,13 @@ async function main() {
   }
   if (selectedTypes.has("topic")) {
     for (const t of getAllTopics()) {
-      if (t.videoCount < 3) continue;
+      if (t.videoCount < PERSONA_POOL_MIN_VIDEO_COUNT) continue;
       pool.push({ refType: "topic", refId: t.id });
     }
   }
   if (selectedTypes.has("event")) {
     for (const ev of getAllEvents()) {
-      if (ev.videoCount < 3) continue;
+      if (ev.videoCount < PERSONA_POOL_MIN_VIDEO_COUNT) continue;
       pool.push({ refType: "event", refId: ev.id });
     }
   }
