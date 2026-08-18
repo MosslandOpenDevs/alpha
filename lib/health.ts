@@ -11,6 +11,10 @@ import path from "node:path";
 import { getDb } from "./db";
 import { rateLimitSnapshot } from "./rate-limit";
 import { getHeartbeat } from "./cron-heartbeat";
+import { assetCoverage } from "./coingecko";
+import { todayAiSpendUsd } from "./grok";
+import { getAllEntities } from "./mic";
+import { PERSONA_POOL_MIN_VIDEO_COUNT } from "./persona-post";
 
 const KST_OFFSET_MS = 9 * 3600_000;
 
@@ -88,14 +92,64 @@ function applyHeartbeatFailure(
   };
 }
 
+/**
+ * Second opinion for heartbeat-backed subsystems.
+ *
+ * A heartbeat answers "did the cron run?" — it cannot answer "is this
+ * subsystem still producing anything?". trackable_calls reported `ok` through
+ * 95 days of zero output because its status came from the heartbeat alone,
+ * while the newest call sat at 2026-05-15. So content age is applied as a
+ * ceiling on top of the heartbeat verdict.
+ *
+ * Thresholds are deliberately generous: these crons are event-driven and a
+ * genuinely quiet week produces nothing. They are there to catch a subsystem
+ * that has stopped, not one that is merely idle.
+ *
+ * Caps out at `warn`, never `fail`. `fail` is reserved for "the cron itself is
+ * broken" (applyHeartbeatFailure), which is actionable right now; "the cron
+ * runs but the pipeline has nothing to produce" is a real signal but not an
+ * outage — and /api/health?strict=1 turns fail into a 503 for uptime monitors.
+ */
+function applyContentStaleness(
+  subsystem: SubsystemHealth,
+  contentAt: string | null,
+  thresholds: { warnAfterSec: number; failAfterSec: number }
+): SubsystemHealth {
+  if (subsystem.status === "fail") return subsystem;
+  const age = ageSeconds(contentAt);
+  const raw = classify(age, thresholds.warnAfterSec, thresholds.failAfterSec);
+  if (raw === "ok") return subsystem;
+  const verdict: Status = raw === "fail" ? "warn" : raw;
+  if (subsystem.status === verdict) return subsystem;
+  const since = contentAt
+    ? `마지막 산출물 ${contentAt.slice(0, 10)} (${fmtAge(age)} 경과)`
+    : "산출물 기록 없음";
+  return {
+    ...subsystem,
+    status: verdict,
+    note: `${subsystem.note ? subsystem.note + " " : ""}cron 은 돌고 있으나 ${since} — 생성이 멈췄는지 확인 필요.`,
+  };
+}
+
+/** Event-driven crons may be legitimately quiet for days; a fortnight of
+ *  nothing is a warning, six weeks is a stopped subsystem. */
+const CONTENT_WARN_SEC = 14 * 24 * 3600;
+const CONTENT_FAIL_SEC = 45 * 24 * 3600;
+
 export type CostBudget = {
   day: string;
+  /** Metered spend on user-facing paid endpoints — what the cap governs. */
   costUsd: number;
   callCount: number;
   capUsd: number;
   /** Fraction 0..1+ */
   utilization: number;
   status: Status;
+  /** Today's unattended pipeline (cron) LLM spend. Not capped, but shown —
+   *  it used to be invisible, so this widget read $0.00 on days the crons
+   *  spent real money. Grok only; the OpenAI audit bills separately. */
+  pipelineCostUsd: number;
+  pipelineRunCount: number;
 };
 
 export function getCostBudget(): CostBudget {
@@ -104,6 +158,7 @@ export function getCostBudget(): CostBudget {
   let status: Status = "ok";
   if (utilization >= 1.0) status = "fail";
   else if (utilization >= 0.7) status = "warn";
+  const pipeline = todayAiSpendUsd();
   return {
     day: snap.today.day,
     costUsd: snap.today.costUsd,
@@ -111,6 +166,8 @@ export function getCostBudget(): CostBudget {
     capUsd: snap.cap_usd,
     utilization,
     status,
+    pipelineCostUsd: pipeline.costUsd,
+    pipelineRunCount: pipeline.runCount,
   };
 }
 
@@ -241,7 +298,10 @@ export function getSystemHealth(): {
           ? `cron 마지막 실행 ${hb.lastStatus}. latest article ${whyMoved?.d ?? "-"}.`
           : "heartbeat 없음 — cron 실행 여부 확인 필요.",
       });
-      return applyHeartbeatFailure(sub, hb);
+      return applyContentStaleness(applyHeartbeatFailure(sub, hb), whyMoved?.g ?? null, {
+        warnAfterSec: CONTENT_WARN_SEC,
+        failAfterSec: CONTENT_FAIL_SEC,
+      });
     })(),
     toSubsystem({
       key: "macro",
@@ -256,6 +316,30 @@ export function getSystemHealth(): {
       // Event-driven: only crypto-mapped persona posts produce calls.
       // Health based on heartbeat; latest call age shown as info.
       const hb = getHeartbeat("alpha-calls-cron");
+      // How many assets can actually carry a call today. This is the number
+      // that silently went to zero-growth: the CoinGecko map covered four of
+      // the canonical asset entities, two of them stablecoins. Surfacing it
+      // means the next mapping drift shows up here instead of as three months
+      // of quiet.
+      // getAllEntities() parses the SignalMap canonical JSON from disk. That
+      // file is rewritten by an upstream pipeline, so a read can land on a
+      // half-written or truncated file — and this runs on the liveness path.
+      // A diagnostic must never be able to take the health endpoint down.
+      let coverageNote: string;
+      try {
+        const poolAssets = getAllEntities()
+          .filter(
+            (e) => e.type === "asset" && e.videoCount >= PERSONA_POOL_MIN_VIDEO_COUNT
+          )
+          .map((e) => e.id);
+        const coverage = assetCoverage(poolAssets);
+        coverageNote =
+          `call 가능 자산 ${coverage.callable.length}/${coverage.total}` +
+          (coverage.pegged.length ? ` (페그 제외 ${coverage.pegged.length})` : "") +
+          (coverage.unmapped.length ? ` · 미매핑 ${coverage.unmapped.length}` : "");
+      } catch {
+        coverageNote = "call 가능 자산 산출 불가 (canonical 읽기 실패)";
+      }
       const sub = toSubsystem({
         key: "trackable_calls",
         label: "Trackable price calls",
@@ -265,17 +349,20 @@ export function getSystemHealth(): {
         warnAfterSec: 28 * ONE_HOUR,
         failAfterSec: 50 * ONE_HOUR,
         note: hb
-          ? `cron 마지막 실행 ${hb.lastStatus}. latest call created ${trackable?.c?.slice(0, 10) ?? "-"}.`
-          : "heartbeat 없음 — cron 실행 여부 확인 필요.",
+          ? `cron 마지막 실행 ${hb.lastStatus}. latest call created ${trackable?.c?.slice(0, 10) ?? "-"}. ${coverageNote}.`
+          : `heartbeat 없음 — cron 실행 여부 확인 필요. ${coverageNote}.`,
       });
-      return applyHeartbeatFailure(sub, hb);
+      return applyContentStaleness(applyHeartbeatFailure(sub, hb), trackable?.c ?? null, {
+        warnAfterSec: CONTENT_WARN_SEC,
+        failAfterSec: CONTENT_FAIL_SEC,
+      });
     })(),
     (() => {
       const hb = getHeartbeat("alpha-connections-cron");
       const sub = toSubsystem({
         key: "connections",
         label: "Entity connection 가설",
-        cadence: "매일 07:15 KST cron",
+        cadence: "매일 07:30 KST cron",
         lastAt: hb?.lastRunAt ?? connections?.g ?? null,
         warnAfterSec: 28 * ONE_HOUR,
         failAfterSec: 50 * ONE_HOUR,
@@ -283,15 +370,17 @@ export function getSystemHealth(): {
           ? `cron 마지막 실행 ${hb.lastStatus}. latest connection ${connections?.g?.slice(0, 10) ?? "-"}.`
           : "heartbeat 없음 — cron 첫 실행 대기 중.",
       });
-      return applyHeartbeatFailure(sub, hb);
+      return applyContentStaleness(applyHeartbeatFailure(sub, hb), connections?.g ?? null, {
+        warnAfterSec: CONTENT_WARN_SEC,
+        failAfterSec: CONTENT_FAIL_SEC,
+      });
     })(),
   ];
 
-  const order = ["fail", "warn", "ok", "info"] as const;
-  const worst: Status = (["fail", "warn", "ok", "info"] as Status[]).find(
-    (s) => subsystems.some((x) => x.status === s)
-  ) ?? "ok";
-  void order;
+  // Severity order, worst first — the first status any subsystem reports wins.
+  const SEVERITY: Status[] = ["fail", "warn", "ok", "info"];
+  const worst: Status =
+    SEVERITY.find((s) => subsystems.some((x) => x.status === s)) ?? "ok";
 
   const costBudget = getCostBudget();
 

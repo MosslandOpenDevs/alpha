@@ -2,9 +2,10 @@ import { notFound } from "next/navigation";
 import { getDb } from "@/lib/db";
 import type { Citation } from "@/lib/ask";
 import { registerSeoPage } from "@/lib/seo-register";
-import { SITE } from "@/lib/seo";
+import { SITE, pageOpenGraph } from "@/lib/seo";
 import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import type { Metadata } from "next";
+import { fmtKst } from "@/lib/health";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 86400;
@@ -24,16 +25,20 @@ function getAnswer(hash: string): {
   answer: string;
   citations: Citation[];
   generatedAt: string;
+  source: string;
 } | null {
   const row = getDb()
     .prepare(`SELECT * FROM alpha_questions WHERE hash = ?`)
-    .get(hash) as AnswerRow | undefined;
+    .get(hash) as (AnswerRow & { source?: string }) | undefined;
   if (!row) return null;
   return {
     question: row.question,
     answer: row.answer,
     citations: JSON.parse(row.citations) as Citation[],
     generatedAt: row.generated_at,
+    // Unknown provenance is treated as user-submitted — the safe default,
+    // matching the migration in lib/ask.ts.
+    source: row.source ?? "user",
   };
 }
 
@@ -44,11 +49,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: `질문 ${hash}`, robots: { index: false } };
   }
   const title = a.question.length > 60 ? a.question.slice(0, 57) + "..." : a.question;
+  const indexable =
+    a.source === "seed" && a.answer.length >= 100 && a.citations.length >= 2;
   return {
     title: `${title} — Ask Alpha`,
     description: a.answer.slice(0, 200),
     alternates: { canonical: `${SITE.baseUrl}/ask/q/${hash}` },
-    openGraph: { title, description: a.answer.slice(0, 200), type: "article" },
+    // Must match the registerSeoPage policy below, or the sitemap and the
+    // page would disagree about whether this URL should be indexed.
+    robots: indexable ? undefined : { index: false, follow: true },
+    openGraph: pageOpenGraph({
+      title,
+      description: a.answer.slice(0, 200),
+      path: `/ask/q/${hash}`,
+    }),
   };
 }
 
@@ -57,8 +71,12 @@ export default async function QPage({ params }: Props) {
   const a = getAnswer(hash);
   if (!a) notFound();
 
-  // 답변 길이 ≥ 100 AND citations ≥ 2 면 index, 아니면 noindex
-  const indexable = a.answer.length >= 100 && a.citations.length >= 2;
+  // Quality bar, plus provenance. POST /api/ask is unauthenticated, so a
+  // user-submitted question is attacker-controlled text; letting it into the
+  // sitemap meant anyone could mint permanent, indexed pages on this domain
+  // titled with whatever they typed. Curated seed questions still index.
+  const indexable =
+    a.source === "seed" && a.answer.length >= 100 && a.citations.length >= 2;
 
   registerSeoPage({
     path: `/ask/q/${hash}`,
@@ -160,7 +178,7 @@ export default async function QPage({ params }: Props) {
       )}
 
       <footer className="mt-12 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
-        <span>마지막 답변: {new Date(a.generatedAt).toLocaleString("ko-KR")}</span>
+        <span>마지막 답변: {fmtKst(a.generatedAt)}</span>
         <span className="mx-2">·</span>
         <a href="/ask" className="hover:text-[var(--fg)]">
           새 질문하기 →

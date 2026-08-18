@@ -32,6 +32,9 @@ loadEnvFile(path.join(process.cwd(), ".env"));
 process.env.NODE_ENV = process.env.NODE_ENV || "production";
 
 const ARGS = process.argv.slice(2);
+
+/** Intended KST hour of the pm2 cron (07:15 KST = 22:15 UTC). */
+const SCHEDULED_KST_HOUR = 7;
 const DRY = ARGS.includes("--dry-run");
 const LIMIT = (() => {
   const flag = ARGS.find((a) => a.startsWith("--limit="));
@@ -58,7 +61,16 @@ interface Candidate {
 }
 
 async function main() {
-  const { askAlpha, getCachedAnswer } = await import("../lib/ask");
+  // Each release runs every pm2 app once, and this one mints public
+  // /ask/q/[hash] pages and spends Grok credits.
+  const { scheduledSkipReason } = await import("../lib/kst");
+  const skip = scheduledSkipReason(ARGS, SCHEDULED_KST_HOUR);
+  if (skip) {
+    console.log(skip);
+    return;
+  }
+
+  const { askAlpha, getCachedAnswer, markQuestionSource } = await import("../lib/ask");
   const { getAllTopics, getAllEntities, getAllEvents } = await import("../lib/mic");
 
   const topics = getAllTopics()
@@ -92,7 +104,15 @@ async function main() {
   }
 
   console.log(`Candidates generated: ${candidates.length}`);
-  const fresh = candidates.filter((c) => !getCachedAnswer(c.q));
+  // Every candidate here is template-generated, i.e. curated by definition.
+  // Re-assert that on the cached ones too: the `source` column migration
+  // defaults pre-existing rows to 'user', and only an explicit re-label puts
+  // them back in the sitemap.
+  const fresh = candidates.filter((c) => {
+    if (!getCachedAnswer(c.q)) return true;
+    markQuestionSource(c.q, "seed");
+    return false;
+  });
   console.log(`After cache filter: ${fresh.length} fresh`);
   console.log(`Run cap: ${LIMIT}`);
 
@@ -111,7 +131,7 @@ async function main() {
     const c = todo[i];
     process.stdout.write(`  [${i + 1}/${todo.length}] ${c.q.slice(0, 55)} ... `);
     try {
-      const r = await askAlpha(c.q);
+      const r = await askAlpha(c.q, { source: "seed" });
       success++;
       process.stdout.write(`OK [${r.answer.length}자, ${r.citations.length} citations]\n`);
     } catch (err) {

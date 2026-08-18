@@ -1,6 +1,6 @@
 import { getActiveChannels } from "@/lib/creators";
 import { registerSeoPage } from "@/lib/seo-register";
-import { SITE } from "@/lib/seo";
+import { SITE, pageOpenGraph } from "@/lib/seo";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +10,12 @@ export const metadata: Metadata = {
   title: "큐레이션된 채널 디렉토리 — Alpha",
   description: "Alpha가 추적하는 한국·글로벌 유튜브·뉴스 채널 디렉토리.",
   alternates: { canonical: `${SITE.baseUrl}/creators` },
+  openGraph: pageOpenGraph({
+    title: "큐레이션된 채널 디렉토리 — Alpha",
+    description: "Alpha가 추적하는 한국·글로벌 유튜브·뉴스 채널 디렉토리.",
+    path: "/creators",
+    type: "website",
+  }),
 };
 
 const CATEGORY_LABEL: Record<string, string> = {

@@ -1,5 +1,5 @@
 import { registerSeoPage } from "@/lib/seo-register";
-import { SITE } from "@/lib/seo";
+import { SITE, pageOpenGraph } from "@/lib/seo";
 import type { Metadata } from "next";
 
 export const dynamic = "force-static";
@@ -10,12 +10,12 @@ export const metadata: Metadata = {
   description:
     "Public, free, no-auth API for Korean crypto narratives, AI-synthesized briefs, and a 12-tool MCP server. Use Alpha data in your apps, agents, and LLM workflows.",
   alternates: { canonical: `${SITE.baseUrl}/developers` },
-  openGraph: {
+  openGraph: pageOpenGraph({
     title: "Alpha — Developer / API Reference",
     description:
       "Free public API + MCP server for Korean crypto narratives, daily AI briefs, channel stance, and AI personas.",
-    type: "article",
-  },
+    path: "/developers",
+  }),
 };
 
 export default function DevelopersPage() {
@@ -100,9 +100,28 @@ export default function DevelopersPage() {
         <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
           /api/health
         </h2>
+        <p className="text-sm text-zinc-700 mb-3 leading-relaxed">
+          <code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-[11px]">status</code> 는 전체 판정,{" "}
+          <code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-[11px]">worst_status</code> 는 가장 나쁜 subsystem 등급
+          (<code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-[11px]">ok</code> ·{" "}
+          <code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-[11px]">warn</code> ·{" "}
+          <code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-[11px]">fail</code>) 입니다.
+          기본 호출은 DB 한 번만 확인하는 가벼운 liveness 라 <code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-[11px]">worst_status</code> 가{" "}
+          <code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-[11px]">not_evaluated</code> 입니다.{" "}
+          <code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-[11px]">?detail=1</code> 로 subsystem 별 신선도를,{" "}
+          <code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-[11px]">?strict=1</code> 로 fail 시 HTTP 503 을 받습니다
+          (모니터링 도구 연결용 — 기본값은 항상 200).
+        </p>
         <pre className="rounded-2xl bg-zinc-900 text-zinc-100 p-4 text-xs overflow-x-auto">
 {`curl https://alpha.moss.land/api/health
-# {"status":"ok","service":"alpha","db":"ok","seo_pages":290,"ts":"..."}`}
+# {"status":"ok","service":"alpha","db":"ok","seo_pages":1574,
+#  "ts":"...","worst_status":"not_evaluated"}   # 기본은 가벼운 liveness
+
+# 모니터링 연결: fail 이면 503
+curl -f https://alpha.moss.land/api/health?strict=1
+
+# subsystem 별 신선도
+curl "https://alpha.moss.land/api/health?detail=1"`}
         </pre>
       </section>
 

@@ -92,10 +92,24 @@ export default function HealthPage() {
               }}
             />
           </div>
+          <div className="mt-3 flex items-baseline gap-2 border-t border-[var(--line)] pt-3 font-mono text-sm">
+            <span className="text-[var(--muted)]">Grok 총지출 (전체 호출자)</span>
+            <span className="font-semibold">
+              ${health.costBudget.pipelineCostUsd.toFixed(4)}
+            </span>
+            <span className="ml-auto text-xs text-[var(--muted)]">
+              {health.costBudget.pipelineRunCount} runs today
+            </span>
+          </div>
           <p className="mt-3 text-xs text-[var(--muted)] leading-relaxed">
-            글로벌 일일 cap. 초과 시 모든 paid LLM endpoint (/api/ask · /api/mcp
-            ask_alpha) 가 503 반환. KST 자정에 reset. 개별 IP 는 별도로
-            per-minute / per-day token bucket 적용 (lib/rate-limit.ts).
+            위 막대는 <strong>사용자 대면</strong> paid endpoint (/api/ask · /api/mcp
+            ask_alpha) 의 글로벌 일일 cap 입니다. 초과 시 503, KST 자정에 reset,
+            개별 IP 는 별도 per-minute / per-day token bucket (lib/rate-limit.ts).
+            cron 파이프라인 지출은 cap 에 포함되지 않습니다 — 무인 작업이 실제
+            방문자의 /api/ask 를 막으면 안 되기 때문입니다. 아래 줄은 오늘
+            비캐시 Grok 호출의 <strong>전체</strong> 합계라 위 막대와 일부
+            겹칩니다 (alpha_ai_runs 에 호출자 구분이 없음) — 두 값을 더하지
+            마세요. 주간 OpenAI citation audit 은 별도 과금이라 미포함입니다.
           </p>
         </div>
       </section>
@@ -160,9 +174,13 @@ export default function HealthPage() {
           긴 임계값.
         </p>
         <p className="mt-2">
-          <strong>Cron 시각은 모두 KST 기준.</strong> PM2 가 시스템 local time
-          으로 cron 실행 (alpha 운영 머신은 KST). 이전엔 UTC 가정으로 잘못
-          작성돼서 9시간 일찍 firing 했었음 — 2026-05-07 fix.
+          <strong>위 cadence 는 KST 표기, 실제 스케줄은 UTC.</strong> PM2 는
+          데몬의 local timezone 으로 cron 을 평가하고 운영 호스트는{" "}
+          <code className="font-mono">Etc/UTC</code> 라, ecosystem.config.cjs 의
+          표현식은 UTC 로 쓰여 있고 주석이 대응 KST 시각을 명시합니다.
+          2026-05-07 에 호스트를 KST 로 오인해 전 스케줄을 9시간 옮긴 적이
+          있어, 지금은 <code className="font-mono">timedatectl</code> 로 확인한
+          값을 기준으로 합니다.
         </p>
       </section>
 

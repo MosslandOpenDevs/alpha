@@ -3,10 +3,11 @@ import { getWhyMoved } from "@/lib/why-moved";
 import { assetSlugFromEntity, getAssetOrStub } from "@/lib/mic";
 import { registerSeoPage } from "@/lib/seo-register";
 import { deleteSeoPage } from "@/lib/db";
-import { SITE } from "@/lib/seo";
+import { SITE, pageOpenGraph } from "@/lib/seo";
 import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import { PulseCard } from "@/components/PulseCard";
 import type { Metadata } from "next";
+import { fmtKst } from "@/lib/health";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 3600;
@@ -37,7 +38,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     alternates: {
       canonical: `${SITE.baseUrl}/asset/${canonicalSymbol}/why-moved/${date}`,
     },
-    openGraph: { title: article.title, description: article.oneLine, type: "article" },
+    openGraph: pageOpenGraph({
+      title: article.title,
+      description: article.oneLine,
+      path: `/asset/${symbol}/why-moved/${date}`,
+    }),
   };
 }
 
@@ -224,7 +229,7 @@ export default async function WhyMovedPage({ params }: Props) {
       )}
 
       <footer className="mt-12 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
-        <span>마지막 갱신: {new Date(article.generatedAt).toLocaleString("ko-KR")}</span>
+        <span>마지막 갱신: {fmtKst(article.generatedAt)}</span>
         <span className="mx-2">·</span>
         <span>Alpha 합성 — pulse + sources 기반</span>
         <span className="mx-2">·</span>

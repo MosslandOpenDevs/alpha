@@ -14,20 +14,38 @@ const GLOBAL_INDICES = new Set([
   "NASDAQ", "SP500", "SPX", "DJI", "NIKKEI", "HSI", "DAX", "FTSE", "VIX",
 ]);
 
-function priceUnit(asset?: string): PriceUnit {
+/** Upstream units are free-form strings; accept only the three we render. */
+function declaredUnit(raw?: string): PriceUnit | null {
+  switch (raw?.trim().toUpperCase()) {
+    case "USD": return "USD";
+    case "KRW": return "KRW";
+    case "PT": return "pt";
+    default: return null;
+  }
+}
+
+function priceUnit(asset?: string, declared?: string): PriceUnit {
+  // SignalMap already states the unit per pulse — that is the source of truth.
+  // Re-deriving it from the ticker used to send every KRW-quoted pulse
+  // (BTC-KRW, USDKRW — 25 of 54 active pulses) down the USD fallback and
+  // render ₩90,735,000 as "$90,735,000".
+  const fromData = declaredUnit(declared);
+  if (fromData) return fromData;
+
   if (!asset) return "USD";
   const u = asset.toUpperCase();
   if (KR_INDICES.has(u)) return "pt";
   if (GLOBAL_INDICES.has(u)) return "pt";
-  // 한국 종목 코드 (6자리 숫자) — KRW
+  // 원화 호가: 한국 종목 코드(6자리) · `-KRW` 페어 · 원·달러 환율
   if (/^\d{6}$/.test(u)) return "KRW";
+  if (/-KRW$/.test(u) || u === "USDKRW") return "KRW";
   // 기본: 글로벌 / 크립토 = USD
   return "USD";
 }
 
-function fmtPrice(asset: string | undefined, n?: number): string {
+function fmtPrice(asset: string | undefined, n?: number, declared?: string): string {
   if (n == null) return "";
-  const unit = priceUnit(asset);
+  const unit = priceUnit(asset, declared);
   if (unit === "USD") {
     return n.toLocaleString("en-US", {
       style: "currency",
@@ -83,7 +101,7 @@ export function PulseCard({ pulse, compact }: { pulse: Pulse; compact?: boolean 
 
       {pulse.priceFrom != null && pulse.priceTo != null && (
         <div className="mb-3 text-sm text-zinc-700 font-mono">
-          {fmtPrice(pulse.asset, pulse.priceFrom)} → {fmtPrice(pulse.asset, pulse.priceTo)}
+          {fmtPrice(pulse.asset, pulse.priceFrom, pulse.priceUnit)} → {fmtPrice(pulse.asset, pulse.priceTo, pulse.priceUnit)}
         </div>
       )}
 

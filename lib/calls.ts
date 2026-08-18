@@ -15,10 +15,22 @@
  */
 
 import { getDb } from "./db";
-import { coingeckoIdFor, getCurrentPrice, getHistoricalPrice } from "./coingecko";
+import {
+  coingeckoIdFor,
+  getCurrentPrice,
+  getHistoricalPrice,
+  isCallableAsset,
+} from "./coingecko";
 
 export type Direction = "up" | "down";
-export type ResolutionStatus = "pending" | "correct" | "wrong" | "flat";
+export type ResolutionStatus =
+  | "pending"
+  | "correct"
+  | "wrong"
+  | "flat"
+  /** Target date passed but the price could never be fetched — see
+   *  RESOLVE_GIVE_UP_DAYS. Terminal, so it leaves the retry pool. */
+  | "expired";
 
 export type TrackableCall = {
   id: string;
@@ -43,6 +55,17 @@ export type TrackableCall = {
 const DEFAULT_HORIZON_DAYS = 7;
 // flat 임계 (절대 변화 < FLAT_THRESHOLD_PCT 면 flat 판정)
 const FLAT_THRESHOLD_PCT = 1;
+/**
+ * How long past target_date we keep trying to price a call.
+ *
+ * CoinGecko's free plan only serves ~365 days of history, so a call that goes
+ * unresolved past that can never settle — and without a terminal state the
+ * nightly cron retried it forever, failing every time. That turned one stuck
+ * row into a permanently red /health and a permanent 503 on
+ * /api/health?strict=1. 300 days leaves ample room for outages while staying
+ * inside the window where a retry can still succeed.
+ */
+const RESOLVE_GIVE_UP_DAYS = 300;
 
 function ensureTable() {
   getDb().exec(`
@@ -83,6 +106,7 @@ export async function createCallFromPost(post: {
   id: string;
   ref_type: string;
   ref_id: string | null;
+  parent_id?: string | null;
   author_kind: string;
   author_handle: string;
   stance: string | null;
@@ -92,6 +116,9 @@ export async function createCallFromPost(post: {
 
   // 자산 entity여야 함
   if (post.ref_type !== "asset" || !post.ref_id) return null;
+  // 답글은 call 대상이 아니다 — 트랙레코드는 페이지에 대한 최초 판단만 센다.
+  // (백필 쿼리에도 같은 조건이 있지만, 여기서도 막아야 호출 경로가 늘어도 안전.)
+  if (post.parent_id) return null;
   // stance가 있어야 함 (observe 제외)
   if (!post.stance || post.stance === "observe" || post.stance === "neutral")
     return null;
@@ -101,6 +128,8 @@ export async function createCallFromPost(post: {
     .get(post.id);
   if (existing) return null;
 
+  // 가격이 있어도 페그 자산이면 방향성 call 자체가 성립하지 않는다.
+  if (!isCallableAsset(post.ref_id)) return null;
   const cgId = coingeckoIdFor(post.ref_id);
   if (!cgId) return null; // CoinGecko에 없는 자산
 
@@ -215,6 +244,15 @@ export async function resolveCall(callId: string): Promise<TrackableCall | null>
   };
 }
 
+/**
+ * Minimum decided calls before an accuracy percentage means anything.
+ *
+ * The site published "적중 100%" off a single decided call. A percentage over
+ * a sample that small is not a track record, it is a coin flip presented as
+ * evidence — on a page whose entire purpose is disclosure.
+ */
+export const MIN_DECIDED_FOR_ACCURACY = 5;
+
 export type HandleStats = {
   handle: string;
   total: number;
@@ -222,7 +260,16 @@ export type HandleStats = {
   wrong: number;
   flat: number;
   pending: number;
-  accuracy: number; // correct / (correct + wrong) %
+  /** Past settling and never priced — published, but unscoreable. */
+  expired: number;
+  /** correct + wrong — the denominator, and the sample size. */
+  decided: number;
+  /** correct / decided %, or null when nothing has been decided yet.
+   *  Nullable on purpose: it used to return 0 for "no data", which renders as
+   *  a confident "0%" next to personas that have simply never been graded. */
+  accuracy: number | null;
+  /** Whether `accuracy` clears MIN_DECIDED_FOR_ACCURACY and is fit to publish. */
+  accuracyReliable: boolean;
 };
 
 export function getHandleStats(handle: string): HandleStats {
@@ -234,15 +281,17 @@ export function getHandleStats(handle: string): HandleStats {
     )
     .all(handle) as { resolution_status: ResolutionStatus; cnt: number }[];
 
-  const stats = { correct: 0, wrong: 0, flat: 0, pending: 0 };
+  const stats = { correct: 0, wrong: 0, flat: 0, pending: 0, expired: 0 };
   for (const r of rows) {
     if (r.resolution_status in stats) {
       (stats as Record<string, number>)[r.resolution_status] = r.cnt;
     }
   }
-  const total = stats.correct + stats.wrong + stats.flat + stats.pending;
+  // `expired` counts toward total — the call was published and is part of the
+  // record — but never toward accuracy, which only grades decided calls.
+  const total =
+    stats.correct + stats.wrong + stats.flat + stats.pending + stats.expired;
   const decided = stats.correct + stats.wrong;
-  const accuracy = decided === 0 ? 0 : (stats.correct / decided) * 100;
   return {
     handle,
     total,
@@ -250,7 +299,10 @@ export function getHandleStats(handle: string): HandleStats {
     wrong: stats.wrong,
     flat: stats.flat,
     pending: stats.pending,
-    accuracy,
+    expired: stats.expired,
+    decided,
+    accuracy: decided === 0 ? null : (stats.correct / decided) * 100,
+    accuracyReliable: decided >= MIN_DECIDED_FOR_ACCURACY,
   };
 }
 
@@ -267,13 +319,37 @@ export function getCallsForHandle(handle: string, limit = 20): TrackableCall[] {
 
 export function getPendingCallsDue(): TrackableCall[] {
   ensureTable();
-  const now = new Date().toISOString();
+  const now = Date.now();
+  const cutoff = new Date(now - RESOLVE_GIVE_UP_DAYS * 86400_000).toISOString();
   return getDb()
     .prepare(
       `SELECT * FROM alpha_trackable_calls
+       WHERE resolution_status = 'pending'
+       AND target_date < ?
+       AND target_date >= ?`
+    )
+    .all(new Date(now).toISOString(), cutoff) as TrackableCall[];
+}
+
+/**
+ * Retire calls that are past the point of ever settling.
+ *
+ * Run before the resolve pass so they stop being counted as work the cron
+ * failed to do. Returns how many were retired.
+ */
+export function expireUnresolvableCalls(): number {
+  ensureTable();
+  const cutoff = new Date(
+    Date.now() - RESOLVE_GIVE_UP_DAYS * 86400_000
+  ).toISOString();
+  const res = getDb()
+    .prepare(
+      `UPDATE alpha_trackable_calls
+       SET resolution_status = 'expired', resolved_at = ?
        WHERE resolution_status = 'pending' AND target_date < ?`
     )
-    .all(now) as TrackableCall[];
+    .run(new Date().toISOString(), cutoff);
+  return res.changes;
 }
 
 export function getCallForPost(postId: string): TrackableCall | null {

@@ -3,12 +3,22 @@ import type { NextConfig } from "next";
 /**
  * Security response headers (defense-in-depth).
  *
- * We intentionally do NOT set script-src/style-src/default-src: Next.js
- * injects inline hydration scripts and the app loads an external stylesheet
- * (Pretendard CDN), so a strict source policy would need a nonce pipeline
- * and would break rendering without it. The CSP here is limited to
- * directives that are safe to enforce today (clickjacking, base-uri,
- * plugins, form targets). Tighten to a nonce-based script-src later.
+ * `script-src`/`style-src`/`default-src` are still unset, so this CSP does
+ * not mitigate XSS — it covers clickjacking, base-uri, plugins and form
+ * targets only. Be clear about why, because the previous note here was not:
+ * it blamed an external Pretendard CDN stylesheet that the same commit had
+ * already replaced with a self-hosted `next/font/local` face.
+ *
+ * The real blocker is that Next injects inline hydration scripts, so a strict
+ * `script-src` needs a per-request nonce, and a nonce pipeline forces every
+ * route to render dynamically — this site is largely static/ISR by design.
+ *
+ * There is no reachable XSS sink today: React escapes by default and every
+ * `dangerouslySetInnerHTML` is ld+json passed through `jsonLdScript()`, which
+ * escapes `<`. But the site renders anonymous submissions and LLM output, so
+ * the next markdown renderer or raw-HTML field would land with no backstop.
+ * Next step is `Content-Security-Policy-Report-Only` with a full policy to
+ * see what a strict one would break, before enforcing it.
  */
 const CSP = [
   "frame-ancestors 'none'",

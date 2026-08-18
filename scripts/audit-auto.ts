@@ -167,6 +167,24 @@ function parseFlag(args: string[], name: string): string | undefined {
   return undefined;
 }
 
+/**
+ * Where weekly audit results land.
+ *
+ * Defaults beside the persistent SQLite DB, not `cwd/docs` — pm2 runs this
+ * with `cwd` set to the release worktree, so the old relative path wrote each
+ * week's paid gpt-4o run into a directory the next deployment throws away.
+ * Nothing after 2026-05-18 survived. Same trap INDEXNOW_STATE_FILE already
+ * solved; same fix.
+ */
+const AUDIT_RESULTS_DIR = process.env.AUDIT_RESULTS_DIR
+  ? path.resolve(process.env.AUDIT_RESULTS_DIR)
+  : path.join(
+      process.env.DB_PATH
+        ? path.dirname(path.resolve(process.env.DB_PATH))
+        : path.join(process.cwd(), "data"),
+      "audit-results"
+    );
+
 async function main() {
   const { isScheduledNow } = await import("../lib/kst");
   const args = process.argv.slice(2);
@@ -178,6 +196,7 @@ async function main() {
   }
 
   // Monday 11:00 KST — see lib/kst isScheduledNow() for why this exists.
+  // (declared above main; kept next to its use for readability)
   const { ok: onSchedule, clock } = isScheduledNow(11, 1);
   if (scheduled && !onSchedule) {
     console.log(
@@ -186,7 +205,7 @@ async function main() {
     return;
   }
 
-  const outDir = path.join(process.cwd(), "docs", "audit-results");
+  const outDir = AUDIT_RESULTS_DIR;
   const outFile = path.join(outDir, `${clock.date}-auto.json`);
   let existing: Result[] = [];
   if (fs.existsSync(outFile)) {

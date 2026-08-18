@@ -11,6 +11,7 @@
  */
 
 import { getDb } from "./db";
+import { kstDayBounds } from "./kst";
 import { chat } from "./grok";
 import {
   formatPulseLoadDiagnostics,
@@ -185,23 +186,10 @@ export function kstDateForTimestamp(timestamp: string): string | null {
   return new Date(time + KST_OFFSET_MS).toISOString().slice(0, 10);
 }
 
-/** [start, end) epoch-ms bounds of a KST calendar day. Throws on an
- *  invalid date so callers cannot silently query an empty window. */
-export function kstDayBounds(date: string): { start: number; end: number } {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    throw new Error(`Invalid calendar date: ${date}`);
-  }
-  const midnightUtc = Date.parse(date + "T00:00:00Z");
-  if (
-    !Number.isFinite(midnightUtc) ||
-    new Date(midnightUtc).toISOString().slice(0, 10) !== date
-  ) {
-    throw new Error(`Invalid calendar date: ${date}`);
-  }
-  const start = midnightUtc - KST_OFFSET_MS;
-  const end = start + 24 * 3600_000;
-  return { start, end };
-}
+/** [start, end) epoch-ms bounds of a KST calendar day. Throws on an invalid
+ *  date so callers cannot silently query an empty window. Defined in lib/kst.ts
+ *  — the brief page needs it too — and re-exported here for existing importers. */
+export { kstDayBounds };
 
 type ParsedWhyMovedResponse = {
   title: string;

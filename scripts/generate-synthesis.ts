@@ -90,11 +90,22 @@ async function runTop(opts: { type?: string; limit: number }) {
   );
 }
 
+/** Intended KST hour of the pm2 cron (07:00 KST = 22:00 UTC). */
+const SCHEDULED_KST_HOUR = 7;
+
 async function main() {
   const cmd = process.argv[2];
   const args = process.argv.slice(3);
 
   if (cmd === "top") {
+    // Guards the cron path only — an operator asking for one entity by hand
+    // should never be time-gated.
+    const { scheduledSkipReason } = await import("../lib/kst");
+    const skip = scheduledSkipReason(args, SCHEDULED_KST_HOUR);
+    if (skip) {
+      console.log(skip);
+      return;
+    }
     const limit = Number(parseFlag(args, "limit") ?? "20");
     const type = parseFlag(args, "type");
     await runTop({ type, limit });

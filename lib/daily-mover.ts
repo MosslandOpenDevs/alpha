@@ -121,9 +121,30 @@ async function fetchBinance24h(symbol: string): Promise<{ current: number; previ
   }
 }
 
+/**
+ * Largest acceptable gap between the last two daily bars.
+ *
+ * Measured bar-to-bar, not against the wall clock: a delisted or halted symbol
+ * whose whole series is stale still has adjacent bars, while a genuine gap
+ * this wide means we did not get consecutive sessions. 14 days clears Korea's
+ * longest market closures (설·추석 plus adjacent weekends).
+ */
+const MAX_SESSION_GAP_MS = 14 * 24 * 3600_000;
+
 async function fetchYahooQuote(symbol: string): Promise<{ current: number; previous: number } | null> {
-  // Use chart API: meta has regularMarketPrice + chartPreviousClose.
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d`;
+  // Read the previous session close off the daily bar series, NOT
+  // `meta.chartPreviousClose` — that field is the close *before the requested
+  // range* (~5 sessions back at range=5d), so using it reported 5-day moves
+  // under a "24h" label: KOSPI showed +13.67% against a real +2.62%, and QQQ
+  // and KOSDAQ had their signs flipped. `meta.previousClose` is not returned
+  // for these symbols, so the old `??` fallback never engaged.
+  //
+  // The last daily bar always belongs to the same session as
+  // regularMarketPrice (Yahoo opens today's bar when the session starts), so
+  // the bar before it is the previous close — true whether the market is open,
+  // closed, or it is a weekend. range=1mo just guarantees two bars exist
+  // across long holidays.
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1mo`;
   try {
     const res = await fetch(url, {
       headers: { "user-agent": "alpha-daily-mover/0.1" },
@@ -133,20 +154,33 @@ async function fetchYahooQuote(symbol: string): Promise<{ current: number; previ
     const j = (await res.json()) as {
       chart?: {
         result?: Array<{
-          meta?: {
-            regularMarketPrice?: number;
-            chartPreviousClose?: number;
-            previousClose?: number;
-          };
+          meta?: { regularMarketPrice?: number };
+          timestamp?: number[];
+          indicators?: { quote?: Array<{ close?: Array<number | null> }> };
         }>;
       };
     };
-    const meta = j.chart?.result?.[0]?.meta;
-    if (!meta) return null;
-    const current = Number(meta.regularMarketPrice);
-    const previous = Number(meta.chartPreviousClose ?? meta.previousClose);
-    if (!Number.isFinite(current) || !Number.isFinite(previous) || previous === 0) return null;
-    return { current, previous };
+    const result = j.chart?.result?.[0];
+    if (!result) return null;
+
+    const current = Number(result.meta?.regularMarketPrice);
+    if (!Number.isFinite(current)) return null;
+
+    const stamps = result.timestamp ?? [];
+    const closes = result.indicators?.quote?.[0]?.close ?? [];
+    const bars = closes
+      .map((close, i) => ({ close: Number(close), at: Number(stamps[i]) * 1000 }))
+      .filter((b) => Number.isFinite(b.close) && b.close !== 0 && Number.isFinite(b.at));
+    if (bars.length < 2) return null;
+
+    const lastBar = bars[bars.length - 1];
+    const prevBar = bars[bars.length - 2];
+    // A gap this wide between the two most recent bars means they are not
+    // consecutive sessions — drop the asset rather than publish a multi-day
+    // move under a "24h" label, which is the bug this function exists to fix.
+    if (lastBar.at - prevBar.at > MAX_SESSION_GAP_MS) return null;
+
+    return { current, previous: prevBar.close };
   } catch {
     return null;
   }

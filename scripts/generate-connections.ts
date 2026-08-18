@@ -34,7 +34,13 @@ function parseFlag(args: string[], name: string): string | undefined {
   return undefined;
 }
 
-async function runTop(limit: number) {
+/** What a top-N run accomplished — the heartbeat is derived from this. */
+export type ConnectionsTally = { attempted: number; generated: number; cached: number; failed: number };
+
+/** Intended KST hour of the pm2 cron (07:30 KST = 22:30 UTC). */
+const SCHEDULED_KST_HOUR = 7;
+
+async function runTop(limit: number): Promise<ConnectionsTally> {
   const { getAllEntities } = await import("../lib/mic");
   const { generateConnection } = await import("../lib/connections");
 
@@ -75,9 +81,11 @@ async function runTop(limit: number) {
       failed++;
     }
   }
+  const attempted = pairs.slice(0, limit).length;
   console.log(
     `\nDone. Cost: $${totalCost.toFixed(4)} · cache: ${cached} · failed: ${failed}`
   );
+  return { attempted, generated: attempted - cached - failed, cached, failed };
 }
 
 async function runPair(a: string, b: string) {
@@ -97,12 +105,20 @@ async function runPair(a: string, b: string) {
   }
 }
 
-async function main() {
+async function main(): Promise<ConnectionsTally | null> {
   const cmd = process.argv[2];
   const args = process.argv.slice(3);
   if (cmd === "top") {
+    // Cron path only. Without this a release fires 80 Grok pair calls at
+    // whatever hour the deploy happens and stamps the heartbeat with it.
+    const { scheduledSkipReason } = await import("../lib/kst");
+    const skip = scheduledSkipReason(args, SCHEDULED_KST_HOUR);
+    if (skip) {
+      console.log(skip);
+      return null;
+    }
     const limit = Number(parseFlag(args, "limit") ?? "50");
-    await runTop(limit);
+    return await runTop(limit);
   } else if (cmd === "pair") {
     const [a, b] = args;
     if (!a || !b) {
@@ -110,6 +126,7 @@ async function main() {
       process.exit(1);
     }
     await runPair(a, b);
+    return null;
   } else {
     console.error(
       "Usage:\n" +
@@ -121,11 +138,40 @@ async function main() {
 }
 
 main()
-  .then(async () => {
+  .then(async (tally) => {
+    // Only the cron path (`top`) owns the heartbeat; an operator running a
+    // single pair by hand must not overwrite the scheduled run's status.
+    if (!tally) return;
     const { recordHeartbeat } = await import("../lib/cron-heartbeat");
-    recordHeartbeat("alpha-connections-cron", "ok");
+    const summary =
+      `attempted=${tally.attempted} generated=${tally.generated} ` +
+      `cached=${tally.cached} failed=${tally.failed}`;
+    // A flat "ok" here used to mean "the process exited zero" — it stayed
+    // green even if every pair failed. Grade by what the run produced, but
+    // reserve `error` for "nothing got through": lib/health.ts turns it into a
+    // red subsystem and /api/health?strict=1 answers 503, so one flaky pair
+    // out of eighty must not take the site's health signal down with it.
+    const produced = tally.generated + tally.cached;
+    const status =
+      tally.attempted === 0
+        ? "noop"
+        : produced === 0
+          ? "error"
+          : "ok";
+    console.log(`Heartbeat: ${status} — ${summary}`);
+    recordHeartbeat("alpha-connections-cron", status, summary);
   })
-  .catch((err) => {
+  .catch(async (err) => {
+    try {
+      const { recordHeartbeat } = await import("../lib/cron-heartbeat");
+      recordHeartbeat(
+        "alpha-connections-cron",
+        "error",
+        `run exited non-zero: ${(err as Error)?.message ?? String(err)}`.slice(0, 500)
+      );
+    } catch (heartbeatError) {
+      console.error("Failed to record error heartbeat:", heartbeatError);
+    }
     console.error(err);
     process.exit(1);
   });

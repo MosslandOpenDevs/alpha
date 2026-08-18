@@ -222,29 +222,45 @@ export function listPostsForRef(
   refType: Post["ref_type"],
   refId: string,
   limit = 30
-): Post[] {
+): PublicPost[] {
   ensureCommunityTables();
   return getDb()
     .prepare(
-      `SELECT * FROM alpha_posts
+      `SELECT ${PUBLIC_POST_COLUMNS} FROM alpha_posts
        WHERE ref_type = ? AND ref_id = ? AND parent_id IS NULL AND is_deleted = 0
        ORDER BY upvotes DESC, created_at DESC LIMIT ?`
     )
-    .all(refType, refId, limit) as Post[];
+    .all(refType, refId, limit) as PublicPost[];
 }
 
-export function listReplies(parentId: string): Post[] {
+export function listReplies(parentId: string): PublicPost[] {
   ensureCommunityTables();
   return getDb()
     .prepare(
-      `SELECT * FROM alpha_posts
+      `SELECT ${PUBLIC_POST_COLUMNS} FROM alpha_posts
        WHERE parent_id = ? AND is_deleted = 0
        ORDER BY created_at ASC`
     )
-    .all(parentId) as Post[];
+    .all(parentId) as PublicPost[];
 }
 
-export type PostWithReplies = Post & { replies: Post[] };
+/**
+ * A post as it may be handed to a page or an API response.
+ *
+ * `author_token` is the anonymous session cookie hash. It never left this
+ * module by design, but `SELECT *` carried it into server components, which
+ * serialise their props into the public page payload — so the httpOnly cookie
+ * was readable in page source, and its holder could be impersonated (the
+ * nickname is derived from the token). Reads select columns explicitly now,
+ * and the type makes a regression a compile error rather than a quiet leak.
+ */
+export type PublicPost = Omit<Post, "author_token">;
+
+/** Columns safe to expose. Deliberately not `*`. */
+const PUBLIC_POST_COLUMNS = `id, ref_type, ref_id, parent_id, author_kind,
+       author_handle, body, stance, upvotes, reports, created_at, is_deleted`;
+
+export type PostWithReplies = PublicPost & { replies: PublicPost[] };
 
 export function listPostsWithRepliesForRef(
   refType: Post["ref_type"],
@@ -259,13 +275,13 @@ export function listPostsWithRepliesForRef(
   const placeholders = ids.map(() => "?").join(",");
   const replies = getDb()
     .prepare(
-      `SELECT * FROM alpha_posts
+      `SELECT ${PUBLIC_POST_COLUMNS} FROM alpha_posts
        WHERE parent_id IN (${placeholders}) AND is_deleted = 0
        ORDER BY created_at ASC`
     )
-    .all(...ids) as Post[];
+    .all(...ids) as PublicPost[];
 
-  const byParent = new Map<string, Post[]>();
+  const byParent = new Map<string, PublicPost[]>();
   for (const r of replies) {
     if (!r.parent_id) continue;
     const arr = byParent.get(r.parent_id);
@@ -276,13 +292,13 @@ export function listPostsWithRepliesForRef(
   return parents.map((p) => ({ ...p, replies: byParent.get(p.id) ?? [] }));
 }
 
-export function listRecentPosts(limit = 30): Post[] {
+export function listRecentPosts(limit = 30): PublicPost[] {
   ensureCommunityTables();
   return getDb()
     .prepare(
-      `SELECT * FROM alpha_posts
+      `SELECT ${PUBLIC_POST_COLUMNS} FROM alpha_posts
        WHERE is_deleted = 0
        ORDER BY created_at DESC LIMIT ?`
     )
-    .all(limit) as Post[];
+    .all(limit) as PublicPost[];
 }

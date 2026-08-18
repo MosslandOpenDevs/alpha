@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getBriefEn, generateBriefEn } from "@/lib/brief-translate";
 import { getBriefSummary } from "@/lib/brief";
 import { registerSeoPage } from "@/lib/seo-register";
-import { SITE } from "@/lib/seo";
+import { SITE, pageOpenGraph } from "@/lib/seo";
 import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import { fmtKst } from "@/lib/health";
 import type { Metadata } from "next";
@@ -38,7 +38,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         en: `${SITE.baseUrl}/en/brief/${date}`,
       },
     },
-    openGraph: { title: `${date} — Alpha by Mossland`, description: desc, type: "article" },
+    openGraph: pageOpenGraph({
+      title: `${date} — Alpha by Mossland`,
+      description: desc,
+      path: `/en/brief/${date}`,
+      locale: "en_US",
+    }),
   };
 }
 

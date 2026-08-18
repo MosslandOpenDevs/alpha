@@ -50,6 +50,8 @@ export async function POST(req: Request) {
   }
 
   try {
+    // Defaults to source:"user" — unauthenticated submissions are answered
+    // and cached, but never promoted into the sitemap. See lib/ask.ts.
     const result = await askAlpha(q);
     if (!result.cached) {
       addCost(result.costUsd);

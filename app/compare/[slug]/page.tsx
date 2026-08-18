@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getComparison } from "@/lib/comparisons";
 import { getEntity, getTopic } from "@/lib/mic";
 import { registerSeoPage } from "@/lib/seo-register";
-import { SITE } from "@/lib/seo";
+import { SITE, pageOpenGraph } from "@/lib/seo";
 import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import type { Metadata } from "next";
 
@@ -19,7 +19,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: c.title,
     description: c.oneLineSummary.slice(0, 200),
     alternates: { canonical: `${SITE.baseUrl}/compare/${slug}` },
-    openGraph: { title: c.title, description: c.oneLineSummary, type: "article" },
+    openGraph: pageOpenGraph({
+      title: c.title,
+      description: c.oneLineSummary,
+      path: `/compare/${slug}`,
+    }),
   };
 }
 
