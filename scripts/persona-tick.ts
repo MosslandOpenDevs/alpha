@@ -81,10 +81,10 @@ async function main() {
   const selectedTypes = new Set(requestedTypes);
 
   const { getActiveAgents } = await import("../lib/agents");
-  const { generatePersonaPost, PERSONA_POOL_MIN_VIDEO_COUNT } = await import(
-    "../lib/persona-post"
-  );
-  const { getAllEntities, getAllTopics, getAllEvents } = await import("../lib/mic");
+  const { generatePersonaPost, PERSONA_POOL_MIN_VIDEO_COUNT, hasEnoughPageContext } =
+    await import("../lib/persona-post");
+  const { getAllEntities, getAllTopics, getAllEvents, getStubAssetEntities } =
+    await import("../lib/mic");
 
   const agents = getActiveAgents();
   const today = new Date().toISOString().slice(0, 10);
@@ -92,8 +92,10 @@ async function main() {
   // Build candidate pool — entity/topic/event with videoCount ≥ 3
   type Candidate = { refType: "entity" | "topic" | "event" | "asset"; refId: string };
   const pool: Candidate[] = [];
-  for (const e of getAllEntities()) {
-    if (e.videoCount < PERSONA_POOL_MIN_VIDEO_COUNT) continue;
+  // Stub assets included: they have live pages, just no canonical row yet.
+  // hasEnoughPageContext() is what keeps the empty ones out.
+  for (const e of [...getAllEntities(), ...getStubAssetEntities()]) {
+    if (!hasEnoughPageContext(e)) continue;
     const refType = e.type === "asset" ? "asset" : "entity";
     if (!selectedTypes.has(refType)) continue;
     pool.push({
