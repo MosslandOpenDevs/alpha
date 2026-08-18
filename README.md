@@ -99,7 +99,32 @@ The Mossland-hosted Alpha at `alpha.moss.land` runs against the production Signa
 
 PM2-based, port `6900` by default. `ecosystem.config.cjs` resolves paths via `__dirname`, so the same config works on any host running Node ≥ 20 with PM2 — local Mac mini, Lightsail VPS, Docker, etc.
 
-Before restarting PM2, run the health smoke check:
+### Auto-deploy (pull-based)
+
+`scripts/deploy.sh` brings production to `origin/main` and is meant to run on
+the server on a fixed cadence via `scripts/deploy-loop.sh`. It builds each
+release in its own directory, runs the smoke check below, backs up the DB, and
+only then swaps PM2 over; a failed build never touches the live release, and a
+release that fails after the swap is rolled back and **not retried** until a
+new commit lands. Register the poller once, from the object-store checkout, not
+from a release:
+
+```bash
+cd ~/alpha && pm2 start ecosystem.deploy.config.cjs && pm2 save
+```
+
+Operator controls: `scripts/deploy.sh --check` reports without changing
+anything; `touch ~/alpha/.git/alpha-deploy-hold` pauses deploys (do this
+*before* rolling back by hand, or the poller will put `main` back within a
+tick); `--force` overrides the hold, the CI gate and the failure backoff. All
+knobs are documented at the top of the script.
+
+Because the poller deploys whatever reaches `main`, `main` should be
+protected — PR required, at least one approval, no self-approval — before it
+is switched on. Anyone with push access is otherwise one push away from
+production.
+
+Before restarting PM2 by hand, run the health smoke check:
 
 ```bash
 pnpm tsx scripts/check-health.ts

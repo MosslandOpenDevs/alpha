@@ -1,0 +1,81 @@
+# The three checks that gate a deploy, run on every PR and every push to main.
+#
+# Deliberately the SAME checks scripts/deploy.sh runs on the server before it
+# swaps a release — typecheck, production build, and the health smoke test —
+# so a red PR here is a deploy that would have been refused there, and a green
+# one is a build the server will accept. Nothing here needs a secret: the smoke
+# test builds its own throwaway SQLite schema, and none of the three call an
+# external API. That matters because this repository is public and fork PRs
+# run without secrets.
+#
+# `deploy.sh` reads this workflow's conclusion for the target SHA (see
+# ci_conclusion there) and will not deploy a commit whose checks failed or are
+# still running. Register the job name below — "checks" — as a required status
+# check in the `main` ruleset so it also blocks the merge button.
+
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  # One run per ref; a new push cancels the stale one.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Match production (atrn-vm-linux runs Node 22 / pnpm 11).
+      NODE_ENV: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install (frozen lockfile, same as the server)
+        run: pnpm install --frozen-lockfile
+
+      # Next writes an incremental build cache to .next/cache; persisting it
+      # keeps CI builds close to the server's ~10s instead of a cold build.
+      - uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+
+      - name: Typecheck
+        run: pnpm exec tsc --noEmit
+
+      - name: Build
+        run: pnpm build
+        env:
+          # The build reads canonical data at prerender time; an absent dir
+          # degrades to empty (lib/mic.ts) rather than failing, which is what we
+          # want here — CI has no SignalMap corpus.
+          DB_PATH: ${{ runner.temp }}/ci.sqlite
+          MIC_DATA_PATH: ${{ runner.temp }}/mic-data
+
+      # The one check tsc and next build cannot make: getSystemHealth()'s raw
+      # SQL against the real schema. This is what caught the column typo that
+      # both of the above had passed.
+      - name: Health smoke test
+        run: pnpm exec tsx scripts/check-health.ts
+        env:
+          MIC_DATA_PATH: ${{ runner.temp }}/mic-data
