@@ -291,6 +291,58 @@ async function main() {
   );
   console.log(`  Mossland cited: ${mosslandCited}`);
   console.log(`\nSaved to ${outFile}`);
+
+  // Also record the summary where the app can read it. The JSON above keeps the
+  // per-query detail for investigating *why*; this is what /health shows.
+  //
+  // Aggregated over `all`, not `results`: the row is keyed by date and written
+  // with INSERT OR REPLACE, so it has to mean "this day", the same set the JSON
+  // holds. Summing only this batch let a `--limit=3` smoke run replace the
+  // morning's 30-query row with a 3-query one.
+  const all = [...existing, ...results];
+  const answers = all.length;
+  const distinctQueries = new Set(all.map((r) => r.query_id)).size;
+  const citedAnswers = all.filter((r) => r.alpha_cited).length;
+  const distinctCited = new Set(
+    all.filter((r) => r.alpha_cited).map((r) => r.query_id)
+  ).size;
+  const mosslandAll = all.filter(
+    (r) => r.alpha_cited && r.category === "mossland"
+  ).length;
+  const errors = all.filter((r) => r.error).length;
+
+  const { recordHeartbeat } = await import("../lib/cron-heartbeat");
+  const summary =
+    `answers=${answers} queries=${distinctQueries} cited=${citedAnswers} ` +
+    `distinct=${distinctCited} errors=${errors}`;
+
+  if (answers > 0 && errors === answers) {
+    // Every call failed — a missing or expired OPENAI_API_KEY looks exactly
+    // like a genuine 0% once it is a row on a dashboard. Do not write one.
+    console.error(`\nAll ${answers} answers errored — not recording a summary.`);
+    recordHeartbeat("alpha-audit-cron", "error", summary);
+    process.exitCode = 1;
+    return;
+  }
+
+  if (answers === 0) {
+    console.log("\nNo answers this run — leaving any existing summary alone.");
+    recordHeartbeat("alpha-audit-cron", "noop", summary);
+    return;
+  }
+
+  const { recordAuditRun } = await import("../lib/audit-log");
+  recordAuditRun({
+    date: clock.date,
+    answers,
+    queries: distinctQueries,
+    cited: citedAnswers,
+    distinctCited,
+    mosslandCited: mosslandAll,
+    errors,
+  });
+  console.log(`Recorded summary for ${clock.date} (alpha_audit_runs): ${summary}`);
+  recordHeartbeat("alpha-audit-cron", errors > 0 ? "error" : "ok", summary);
 }
 
 main().catch((err) => {

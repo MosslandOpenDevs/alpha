@@ -61,6 +61,23 @@ export async function GET(req: Request) {
   return Response.json(
     {
       ...base,
+      // Result, not liveness — shown beside the subsystems, never folded into
+      // worst_status (see lib/health.ts). A monitor that wants the citation
+      // trend can read it here instead of parsing the results directory.
+      audit: {
+        latest_date: sys.audit.latest?.date ?? null,
+        latest_rate: sys.audit.latestRate,
+        age_days: sys.audit.ageDays,
+        last_run: sys.audit.lastRun,
+        runs: sys.audit.runs.map((r) => ({
+          date: r.date,
+          answers: r.answers,
+          queries: r.queries,
+          cited: r.cited,
+          distinct_cited: r.distinctCited,
+          errors: r.errors,
+        })),
+      },
       subsystems: sys.subsystems.map((s) => ({
         key: s.key,
         status: s.status,
