@@ -366,6 +366,11 @@ main() {
   DEPLOY_KEEP_RELEASES=${DEPLOY_KEEP_RELEASES:-4}
   DEPLOY_KEEP_BACKUPS=${DEPLOY_KEEP_BACKUPS:-10}
   DEPLOY_QUIET_HOURS_KST=${DEPLOY_QUIET_HOURS_KST:-"6 7 8 9 12 13"}
+  # The webhook is a credential and this repo is public, so it lives only in
+  # the server's .env.local (gitignored) — same file the TS scripts read.
+  if [ -z "${DEPLOY_ALERT_WEBHOOK:-}" ] && [ -f "${LIVE_ENV_HINT:-${ALPHA_REPO}/.env.local}" ]; then
+    DEPLOY_ALERT_WEBHOOK=$(sed -n 's/^ALERT_WEBHOOK_URL=//p' "${LIVE_ENV_HINT:-${ALPHA_REPO}/.env.local}" | head -1)
+  fi
   DEPLOY_ALERT_WEBHOOK=${DEPLOY_ALERT_WEBHOOK:-}
   DEPLOY_VERBOSE=${DEPLOY_VERBOSE:-0}
   DEPLOY_LOG=${DEPLOY_LOG:-${HOME}/logs/alpha-deploy.log}
