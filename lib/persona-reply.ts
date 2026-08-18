@@ -18,6 +18,7 @@ import {
   ensureCommunityTables,
 } from "./community";
 import { getAgent, type Agent } from "./agents";
+import { promptSafe } from "./persona-post";
 
 const PROMPT_VERSION = "persona-reply-v1";
 
@@ -70,15 +71,7 @@ function buildReplyPrompt(args: {
   // The parent body is untrusted input — it can be an anonymous submission.
   // Fence it, cap it, and flatten the line breaks an injection would use to
   // fake a new instruction block, then tell the model it is data.
-  const quoted = parentBody
-    // Neutralise angle brackets first (full-width forms): without this a body containing
-    // "</user_comment>" closes the fence and everything after it reads as
-    // prompt, which is exactly the escape the fence exists to prevent.
-    .replace(/</g, "＜")
-    .replace(/>/g, "＞")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, MAX_QUOTED_PARENT_CHARS);
+  const quoted = promptSafe(parentBody, MAX_QUOTED_PARENT_CHARS);
 
   return `${agent.systemPrompt}
 
