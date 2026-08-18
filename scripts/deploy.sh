@@ -63,6 +63,8 @@
 #                          (default "6 7 8 9 12 13" — the cron slots; a swap
 #                          re-registers every cron and pm2 runs each once)
 #   DEPLOY_HOLD_FILE       operator hold — exists ⇒ do nothing
+#   DEPLOY_CI_WAIT_MIN     how long to wait for a CI run to appear before
+#                          deploying without one (default 15)
 #   DEPLOY_ALERT_WEBHOOK   Slack/Discord webhook for failures
 #   DEPLOY_VERBOSE         1 = log no-op ticks too
 #   DEPLOY_RETRY_BASE_MIN / DEPLOY_RETRY_MAX_MIN           (5 / 60)
@@ -141,9 +143,16 @@ acquire_lock() {
 }
 
 # GitHub check-runs verdict for a SHA: success | failure | pending | none |
-# unknown. "none" (no CI) and "unknown" (API unreachable) both pass — a repo
-# without CI must still deploy. Fetch and parse are two steps on purpose: a
-# pipeline under pipefail printed two verdicts on failure and blocked forever.
+# unknown. Fetch and parse are two steps on purpose: a pipeline under pipefail
+# printed two verdicts on failure and blocked forever.
+#
+# "unknown" (API unreachable) passes — the box must not be unable to deploy
+# because GitHub is down. "none" does NOT pass here, unlike the sibling
+# scripts on this box: this repo has CI, so an empty check-run list means the
+# run has not been created yet, not that there is nothing to wait for. That is
+# exactly what happened on 2026-08-18: the poller ticked at 08:59:00, the CI
+# run for that merge was created at 08:59:01, and the deploy went out one
+# second ahead of its own gate. Set DEPLOY_REQUIRE_CI=0 for a repo without CI.
 ci_conclusion() {
   local sha="$1" url auth body
   url="https://api.github.com/repos/${DEPLOY_GITHUB_REPO}/commits/${sha}/check-runs"
@@ -324,6 +333,22 @@ record_failure() {
   printf '%s %s %s %s\n' "${target}" "${n}" "$(date +%s)" "${phase}" >"${DEPLOY_ATTEMPT_FILE}" 2>/dev/null || true
 }
 
+# Has "no CI run yet" persisted for TARGET longer than DEPLOY_CI_WAIT_MIN?
+# First sighting is stamped in a small file keyed by SHA; a new SHA resets it.
+ci_wait_expired() {
+  local target="$1" f="${DEPLOY_CI_WAIT_FILE}" seen_sha seen_at now
+  now=$(date +%s)
+  if [ -f "${f}" ]; then
+    read -r seen_sha seen_at <"${f}" 2>/dev/null || true
+    if [ "${seen_sha:-}" = "${target}" ] && [ -n "${seen_at:-}" ] && [ "${seen_at}" -eq "${seen_at}" ] 2>/dev/null; then
+      [ $((now - seen_at)) -ge $((DEPLOY_CI_WAIT_MIN * 60)) ] && return 0
+      return 1
+    fi
+  fi
+  printf '%s %s\n' "${target}" "${now}" >"${f}" 2>/dev/null || true
+  return 1
+}
+
 # KST hour (0-23) — the cron slots are defined in KST in ecosystem.config.cjs.
 kst_hour() { TZ=Asia/Seoul date +%-H; }
 
@@ -387,6 +412,8 @@ main() {
   DEPLOY_STATE_FILE=${DEPLOY_STATE_FILE:-${GIT_DIR_ABS}/alpha-deployed-sha}
   DEPLOY_ATTEMPT_FILE=${DEPLOY_ATTEMPT_FILE:-${GIT_DIR_ABS}/alpha-deploy-attempt}
   DEPLOY_HOLD_FILE=${DEPLOY_HOLD_FILE:-${GIT_DIR_ABS}/alpha-deploy-hold}
+  DEPLOY_CI_WAIT_FILE=${DEPLOY_CI_WAIT_FILE:-${GIT_DIR_ABS}/alpha-deploy-ci-wait}
+  DEPLOY_CI_WAIT_MIN=${DEPLOY_CI_WAIT_MIN:-15}
 
   FORCE=0; CHECK_ONLY=0
   while [ $# -gt 0 ]; do
@@ -463,8 +490,21 @@ main() {
     if [ "${DEPLOY_REQUIRE_CI}" = "1" ]; then
       CI=$(ci_conclusion "${TARGET}" | tail -n 1 | tr -d '[:space:]')
       case "${CI}" in
-        success|none|unknown) ;;
-        pending|failure) log "CI is ${CI} for ${TARGET:0:8} -- not deploying"; exit 0 ;;
+        success|unknown) ;;
+        # "none" = the run does not exist yet (see ci_conclusion). Wait a tick —
+        # but not forever: if Actions is disabled or the workflow file is broken
+        # no run will ever appear, and a poller stuck on that is a silent
+        # outage of its own. After DEPLOY_CI_WAIT_MIN with still no run, warn
+        # loudly and go ahead, the way a repo without CI would.
+        none)
+          if ci_wait_expired "${TARGET}"; then
+            log "WARN no CI run appeared for ${TARGET:0:8} in ${DEPLOY_CI_WAIT_MIN}m -- Actions disabled or workflow broken? deploying without a CI verdict"
+            alert "alpha: deploying ${TARGET:0:8} WITHOUT a CI verdict -- no check run appeared in ${DEPLOY_CI_WAIT_MIN}m"
+          else
+            log "CI run not created yet for ${TARGET:0:8} -- not deploying yet"; exit 0
+          fi ;;
+        pending) log "CI is pending for ${TARGET:0:8} -- not deploying yet"; exit 0 ;;
+        failure) log "CI is ${CI} for ${TARGET:0:8} -- not deploying"; exit 0 ;;
         *) log "WARN unrecognised CI verdict '${CI}' -- treating as unknown" ;;
       esac
     fi
