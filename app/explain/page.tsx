@@ -1,14 +1,18 @@
 import { listExplainers } from "@/lib/explainers";
 import { registerSeoPage } from "@/lib/seo-register";
-import { SITE } from "@/lib/seo";
+import { SITE, pageOpenGraph } from "@/lib/seo";
 import type { Metadata } from "next";
 
 export const dynamic = "force-static";
 
+const TITLE = "개념 설명 — Alpha";
+const DESC = "크립토·매크로·AI 핵심 개념을 5-블록으로 정리.";
+
 export const metadata: Metadata = {
-  title: "개념 설명 — Alpha",
-  description: "크립토·매크로·AI 핵심 개념을 5-블록으로 정리.",
+  title: TITLE,
+  description: DESC,
   alternates: { canonical: `${SITE.baseUrl}/explain` },
+  openGraph: pageOpenGraph({ title: TITLE, description: DESC, path: "/explain", type: "website" }),
 };
 
 const CATEGORY_LABEL: Record<string, string> = {

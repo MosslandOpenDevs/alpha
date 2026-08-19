@@ -1,14 +1,18 @@
 import { listComparisons } from "@/lib/comparisons";
 import { registerSeoPage } from "@/lib/seo-register";
-import { SITE } from "@/lib/seo";
+import { SITE, pageOpenGraph } from "@/lib/seo";
 import type { Metadata } from "next";
 
 export const dynamic = "force-static";
 
+const TITLE = "비교 — Alpha";
+const DESC = "AI 검색 비교 질의 직격. 자산·채널·narrative 양 측 시각 정리.";
+
 export const metadata: Metadata = {
-  title: "비교 — Alpha",
-  description: "AI 검색 비교 질의 직격. 자산·채널·narrative 양 측 시각 정리.",
+  title: TITLE,
+  description: DESC,
   alternates: { canonical: `${SITE.baseUrl}/compare` },
+  openGraph: pageOpenGraph({ title: TITLE, description: DESC, path: "/compare", type: "website" }),
 };
 
 const CATEGORY_LABEL: Record<string, string> = {

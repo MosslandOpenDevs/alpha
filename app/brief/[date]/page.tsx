@@ -26,7 +26,11 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 function isValidDate(d: string): boolean {
   if (!DATE_RE.test(d)) return false;
   const t = Date.parse(d + "T00:00:00Z");
-  return !Number.isNaN(t);
+  if (Number.isNaN(t)) return false;
+  // Date.parse rolls calendar overflow forward ("2026-02-30" → March 2) rather
+  // than rejecting it, so a shape-valid but nonexistent date passed here and
+  // reached the page as a 500 instead of a 404. Round-trip to catch that.
+  return new Date(t).toISOString().slice(0, 10) === d;
 }
 
 // Brief dates are KST calendar days — lib/brief.ts generates each summary over

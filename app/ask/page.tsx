@@ -45,8 +45,8 @@ export default function AskPage() {
           Ask Alpha
         </h1>
         <p className="text-base leading-relaxed text-zinc-700">
-          Alpha의 데이터(141 entity · 22 topic · 31 event · 506 video)에 자연어로
-          질문하세요. AI가 인용·출처와 함께 답변합니다.
+          Alpha 의 데이터 — canonical entity·topic·event 와 분석된 한국어 영상 — 에
+          자연어로 질문하세요. AI 가 인용·출처와 함께 답변합니다.
         </p>
         <p className="mt-2 text-xs text-[var(--muted)]">
           ⚠ 가격 권유·정치 비방·단정 X. 컨텍스트에 없는 내용은 답변 불가.

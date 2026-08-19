@@ -1,19 +1,29 @@
 import { listEnDates } from "@/lib/brief-translate";
 import { registerSeoPage } from "@/lib/seo-register";
-import { SITE } from "@/lib/seo";
+import { SITE, pageOpenGraph } from "@/lib/seo";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 600;
 
+const EN_TITLE = "Alpha by Mossland — Daily Korean Crypto Briefs (EN)";
+const EN_DESC =
+  "English daily briefs of Korean crypto, macro, and AI-narrative markets. AI-synthesized from Korean YouTube, news, and macro feeds. Free, citable, MIT-licensed code at alpha.moss.land.";
+
 export const metadata: Metadata = {
-  title: "Alpha by Mossland — Daily Korean Crypto Briefs (EN)",
-  description:
-    "English daily briefs of Korean crypto, macro, and AI-narrative markets. AI-synthesized from Korean YouTube, news, and macro feeds. Free, citable, MIT-licensed code at alpha.moss.land.",
+  title: EN_TITLE,
+  description: EN_DESC,
   alternates: {
     canonical: `${SITE.baseUrl}/en`,
     languages: { ko: `${SITE.baseUrl}/`, en: `${SITE.baseUrl}/en` },
   },
+  openGraph: pageOpenGraph({
+    title: EN_TITLE,
+    description: EN_DESC,
+    path: "/en",
+    type: "website",
+    locale: "en_US",
+  }),
 };
 
 export default function EnIndex() {
@@ -82,7 +92,7 @@ export default function EnIndex() {
       <section className="rounded-2xl border border-[var(--line)] bg-white p-5 text-sm text-zinc-700 leading-relaxed mb-6">
         <h2 className="text-base font-semibold mb-2">What's inside Alpha</h2>
         <ul className="list-disc list-inside space-y-1">
-          <li>141+ canonical entities, 22 topics, 506+ analyzed Korean videos</li>
+          <li>Hundreds of canonical entities, topics and events, built from analyzed Korean videos and news</li>
           <li>Channel-level stance distribution (who's bull, who's bear, why)</li>
           <li>8 disclosed AI personas with auto-resolving 7-day price calls (composite synthesis, not 1:1 mimics)</li>
           <li>Hybrid keyword + embedding RAG Q&amp;A at <code>/api/ask</code></li>

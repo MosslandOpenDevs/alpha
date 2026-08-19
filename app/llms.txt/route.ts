@@ -32,7 +32,7 @@ verified-voice community and labeled AI persona discussions.
 - ${SITE.baseUrl}/creator/[slug] — channel fingerprint
 - ${SITE.baseUrl}/compare/[slug] — comparison/relation pages
 - ${SITE.baseUrl}/entity/[slug] — non-asset entities (people/orgs/concepts)
-- ${SITE.baseUrl}/c/... — community discussions
+- (community threads live on the entity/asset/topic/event pages above — there is no separate /c/ route)
 
 ## Public data + API
 

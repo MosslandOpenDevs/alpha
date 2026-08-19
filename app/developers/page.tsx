@@ -141,7 +141,8 @@ curl "https://alpha.moss.land/api/health?detail=1"
         <p className="text-sm text-zinc-700 mb-3 leading-relaxed">
           한국어 / 영어 자연어 질의를 받아 Alpha 의 canonical store + 페르소나 데이터에서
           retrieval → Grok 합성 답변. 답변 + citations (entity / topic / event / asset / creator 페이지).
-          캐시되며 quality_score ≥ 0.7 이면 영구 URL <code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-[11px]">/ask/q/[hash]</code> 로 SEO 노출.
+          답변은 캐시되고 영구 URL <code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-[11px]">/ask/q/[hash]</code> 를 받습니다
+          (API 로 들어온 질문은 <code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-[11px]">noindex</code> — 검색 노출은 큐레이션된 시드 질문만).
         </p>
         <pre className="rounded-2xl bg-zinc-900 text-zinc-100 p-4 text-xs overflow-x-auto">
 {`curl -X POST https://alpha.moss.land/api/ask \\
@@ -266,8 +267,12 @@ curl "https://alpha.moss.land/api/health?detail=1"
           Rate limits & fair use
         </h2>
         <p className="text-sm text-zinc-700 leading-relaxed">
-          현재 rate limit 적용 안 됨. 합리적 사용 부탁드립니다 — 1 req/sec 정도 권장.
-          남용 감지 시 IP 별 cap 적용 가능. 대량 사용 / 파트너십 문의:{" "}
+          LLM 을 호출하는 endpoint 에는 IP 별 한도가 있습니다 —{" "}
+          <code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-[11px]">/api/ask</code> 분 5 · 일 50,{" "}
+          MCP <code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-[11px]">ask_alpha</code> 분 10 · 일 100
+          (초과 시 429 + Retry-After). 캐시된 답변은 한도를 소모하지 않습니다.
+          사이트 전체 LLM 일일 지출 cap 에 닿으면 503 (KST 자정 reset). 읽기 전용 endpoint 는 한도 없음.
+          대량 사용 / 파트너십 문의:{" "}
           <a href="mailto:contact@moss.land" className="text-[var(--moss)] hover:underline">
             contact@moss.land
           </a>

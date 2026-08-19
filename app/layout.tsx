@@ -53,10 +53,14 @@ export const metadata: Metadata = {
     title: `${SITE.longName} — 오늘의 알파, 모든 시각으로`,
     description: SITE.description,
   },
+  // No title/description here on purpose. Metadata merges shallowly, so a
+  // root-level twitter.title is inherited by every route unchanged — and once
+  // a twitter title exists Next does NOT backfill it from the page's
+  // openGraph. Result: every page's X card showed the homepage title. With
+  // only card/site set, twitter:title and twitter:description resolve from
+  // each page's openGraph (and from the root openGraph on the home page).
   twitter: {
     card: "summary_large_image",
-    title: `${SITE.longName} — 오늘의 알파, 모든 시각으로`,
-    description: SITE.description,
     site: "@TheMossland",
   },
   alternates: {
