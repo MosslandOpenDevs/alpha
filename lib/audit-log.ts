@@ -22,7 +22,26 @@
  * show a trend, so /health can read it without parsing a directory of files.
  */
 
+import path from "node:path";
 import { getDb } from "./db";
+
+/**
+ * Where audit JSON lands — one resolver for every script that writes or reads it.
+ *
+ * Beside the persistent SQLite DB by default, never `cwd/docs`: pm2 runs the
+ * scripts with `cwd` set to the release worktree, so a relative path wrote each
+ * week's paid gpt-4o run into a directory the next deployment threw away, and
+ * nothing after 2026-05-18 survived. The historical files under
+ * docs/audit-results/ are a frozen archive of what did survive (see the README
+ * there); live output has not gone there since AUDIT_RESULTS_DIR existed.
+ */
+export function auditResultsDir(): string {
+  if (process.env.AUDIT_RESULTS_DIR) return path.resolve(process.env.AUDIT_RESULTS_DIR);
+  const base = process.env.DB_PATH
+    ? path.dirname(path.resolve(process.env.DB_PATH))
+    : path.join(process.cwd(), "data");
+  return path.join(base, "audit-results");
+}
 
 export type AuditRun = {
   /** KST date of the run, YYYY-MM-DD. Primary key: one summary per day. */
