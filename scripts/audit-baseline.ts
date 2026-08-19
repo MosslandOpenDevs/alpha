@@ -8,13 +8,14 @@
  *   pnpm tsx scripts/audit-baseline.ts report           # 누적 결과 표
  *   pnpm tsx scripts/audit-baseline.ts kpi              # KPI 요약
  *
- * 결과 저장: docs/audit-results/[YYYY-MM-DD].json
+ * 결과 저장: <AUDIT_RESULTS_DIR>/[YYYY-MM-DD].json (lib/audit-log.ts auditResultsDir)
  *
  * 자동화 (Phase 2+): GitHub Actions cron + LLM API 호출.
  */
 
 import fs from "node:fs";
 import path from "node:path";
+import { auditResultsDir } from "../lib/audit-log";
 
 type LLMVendor = "chatgpt" | "claude" | "gemini" | "perplexity";
 
@@ -82,7 +83,9 @@ type Result = {
   notes?: string;
 };
 
-const RESULTS_DIR = path.join(process.cwd(), "docs", "audit-results");
+// Same location as the weekly audit. Writing into the repo's docs/ put new
+// manual results into a public tree the code never reads.
+const RESULTS_DIR = auditResultsDir();
 
 function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
@@ -156,7 +159,7 @@ function cmdRecord(args: string[]) {
   const all = loadResults(date);
   all.push(result);
   saveResults(date, all);
-  console.log(`Recorded ${qid} × ${llm} (cited=${cited}). Saved to docs/audit-results/${date}.json (${all.length} total).`);
+  console.log(`Recorded ${qid} × ${llm} (cited=${cited}). Saved to ${path.join(RESULTS_DIR, `${date}.json`)} (${all.length} total).`);
 }
 
 function cmdReport() {

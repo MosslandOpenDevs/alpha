@@ -12,7 +12,7 @@
  *
  * 사용법:
  *   pnpm tsx scripts/backfill-audit-runs.ts [--dir <경로>] [--dry-run]
- *   기본 경로: AUDIT_RESULTS_DIR, 없으면 docs/audit-results (구 위치)
+ *   기본 경로: docs/audit-results (구 위치 — 이 스크립트의 존재 이유). 새 위치를 읽으려면 --dir.
  */
 
 import fs from "node:fs";

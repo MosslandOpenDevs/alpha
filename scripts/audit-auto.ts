@@ -8,7 +8,7 @@
  *   pnpm tsx scripts/audit-auto.ts --query=Q26        # 단일 질의
  *   pnpm tsx scripts/audit-auto.ts --scheduled        # 월요일 11시 KST에만, 중복 제외
  *
- * 결과 저장: docs/audit-results/[YYYY-MM-DD]-auto.json
+ * 결과 저장: <AUDIT_RESULTS_DIR>/[YYYY-MM-DD]-auto.json (lib/audit-log.ts auditResultsDir)
  *
  * 비용: gpt-4o + web_search 30 query ~$0.20-0.40 (web_search 호출당 fee 별도).
  *
@@ -167,26 +167,11 @@ function parseFlag(args: string[], name: string): string | undefined {
   return undefined;
 }
 
-/**
- * Where weekly audit results land.
- *
- * Defaults beside the persistent SQLite DB, not `cwd/docs` — pm2 runs this
- * with `cwd` set to the release worktree, so the old relative path wrote each
- * week's paid gpt-4o run into a directory the next deployment throws away.
- * Nothing after 2026-05-18 survived. Same trap INDEXNOW_STATE_FILE already
- * solved; same fix.
- */
-const AUDIT_RESULTS_DIR = process.env.AUDIT_RESULTS_DIR
-  ? path.resolve(process.env.AUDIT_RESULTS_DIR)
-  : path.join(
-      process.env.DB_PATH
-        ? path.dirname(path.resolve(process.env.DB_PATH))
-        : path.join(process.cwd(), "data"),
-      "audit-results"
-    );
-
 async function main() {
   const { isScheduledNow } = await import("../lib/kst");
+  // Beside the persistent DB, never cwd/docs — see lib/audit-log.ts.
+  const { auditResultsDir } = await import("../lib/audit-log");
+  const AUDIT_RESULTS_DIR = auditResultsDir();
   const args = process.argv.slice(2);
   const scheduled = args.includes("--scheduled");
   const limit = Number(parseFlag(args, "limit") || QUERIES.length);
