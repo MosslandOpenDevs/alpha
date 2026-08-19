@@ -1,4 +1,4 @@
-import { askAlpha, getCachedAnswer } from "@/lib/ask";
+import { askAlpha, getCachedAnswer, validateQuestion } from "@/lib/ask";
 import { CORS_POST_HEADERS, corsPreflight } from "@/lib/cors";
 import {
   checkRateLimit,
@@ -23,19 +23,14 @@ export async function POST(req: Request) {
       { status: 400, headers: CORS_POST_HEADERS }
     );
   }
-  const q = (body.question || "").trim();
-  if (!q || q.length < 5) {
+  const check = validateQuestion(body.question);
+  if (!check.ok) {
     return Response.json(
-      { error: "question_too_short" },
+      { error: check.error },
       { status: 400, headers: CORS_POST_HEADERS }
     );
   }
-  if (q.length > 500) {
-    return Response.json(
-      { error: "question_too_long" },
-      { status: 400, headers: CORS_POST_HEADERS }
-    );
-  }
+  const q = check.question;
 
   // Cached answers are free — serve them without consuming the rate budget.
   const cached = getCachedAnswer(q);

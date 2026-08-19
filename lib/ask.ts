@@ -101,6 +101,30 @@ export function markQuestionSource(question: string, source: QuestionSource): vo
     .run(source, questionHash(question));
 }
 
+/** Bounds every entry point to the paid ask path must enforce. */
+export const QUESTION_MIN_CHARS = 5;
+export const QUESTION_MAX_CHARS = 500;
+
+export type QuestionCheck =
+  | { ok: true; question: string }
+  | { ok: false; error: "question_too_short" | "question_too_long" };
+
+/**
+ * One validator for both doors to the same paid Grok call.
+ *
+ * /api/ask enforced 5–500 chars; the MCP ask_alpha tool advertised the same
+ * range in its schema and enforced nothing, so an anonymous JSON-RPC caller
+ * could send a 300 KB "question" straight into the prompt — a single request
+ * costing hundreds of times a normal one, and a few dozen of them exhausting
+ * the site-wide daily LLM cap for every real visitor.
+ */
+export function validateQuestion(raw: unknown): QuestionCheck {
+  const question = typeof raw === "string" ? raw.trim() : "";
+  if (question.length < QUESTION_MIN_CHARS) return { ok: false, error: "question_too_short" };
+  if (question.length > QUESTION_MAX_CHARS) return { ok: false, error: "question_too_long" };
+  return { ok: true, question };
+}
+
 function questionHash(q: string): string {
   // normalize: lowercase, trim, collapse whitespace
   const norm = q.trim().toLowerCase().replace(/\s+/g, " ");

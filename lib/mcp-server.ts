@@ -27,7 +27,8 @@ import {
 import { getSynthesis } from "./synthesis";
 import { getConnectionsForEntity } from "./connections";
 import { getBriefSummary } from "./brief";
-import { askAlpha, getCachedAnswer } from "./ask";
+import { askAlpha, getCachedAnswer, validateQuestion } from "./ask";
+import { kstClock } from "./kst";
 import {
   checkRateLimit,
   rateLimitResponse,
@@ -131,7 +132,11 @@ const TOOLS: ToolDef[] = [
     },
     handler: async (input) => {
       const q = String(input.query || "");
-      const limit = Math.min(50, Number(input.limit ?? 10));
+      // Clamp to [1, 50]. Math.min alone let a negative limit through, and
+      // search() slices with it — slice(0, -5) is "everything but the last
+      // five", so the advertised max was a suggestion.
+      const raw = Number(input.limit ?? 10);
+      const limit = Number.isFinite(raw) ? Math.min(50, Math.max(1, Math.floor(raw))) : 10;
       const hits = search(q, limit);
       return {
         query: q,
@@ -268,8 +273,10 @@ const TOOLS: ToolDef[] = [
     handler: async (input) => {
       let date = String(input.date || "").trim();
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        const t = new Date(Date.now() - 24 * 3600_000);
-        date = t.toISOString().slice(0, 10);
+        // Briefs are keyed by KST date. The old UTC-based "yesterday" was two
+        // KST days back for the nine hours after KST midnight — the window in
+        // which the morning's readers actually ask.
+        date = kstClock(new Date(Date.now() - 24 * 3600_000)).date;
       }
       const brief = getBriefSummary(date);
       if (!brief) return { error: "brief_not_found", date };
@@ -319,7 +326,13 @@ const TOOLS: ToolDef[] = [
       required: ["question"],
     },
     handler: async (input) => {
-      const q = String(input.question || "");
+      // Same bounds as /api/ask, enforced here too: this is the other door
+      // to the same paid call. Rejected before any LLM cost is incurred.
+      const check = validateQuestion(input.question);
+      if (!check.ok) {
+        throw { code: -32602, message: `invalid_params: ${check.error}` };
+      }
+      const q = check.question;
       const r = await askAlpha(q);
       return {
         question: r.question,
@@ -459,8 +472,13 @@ async function handleMethod(req: JsonRpcRequest, ctx: McpContext): Promise<unkno
       // gate fresh calls so legitimate clients with repeated queries
       // aren't penalized.
       if (name === "ask_alpha" && ctx.httpReq) {
-        const q = String(args.question ?? "");
-        const cached = q.length >= 5 ? getCachedAnswer(q) : null;
+        // Reject malformed questions before they touch the rate budget or
+        // the cache; the handler checks again for the non-HTTP path.
+        const check = validateQuestion(args.question);
+        if (!check.ok) {
+          throw { code: -32602, message: `invalid_params: ${check.error}` };
+        }
+        const cached = getCachedAnswer(check.question);
         if (!cached) {
           const verdict = checkRateLimit(ctx.httpReq, RL_MCP_ASK);
           if (!verdict.ok) {
@@ -526,14 +544,14 @@ export async function processMcpRequest(
         error: errorObj as { code: number; message: string; data?: unknown },
       };
     }
+    // Log the real message for the operator; the caller gets a generic one.
+    // Raw messages named env vars and echoed upstream API bodies to anonymous
+    // clients, which is more than a public endpoint should say about itself.
+    console.error("[mcp] internal error:", err);
     return {
       jsonrpc: "2.0",
       id: req.id,
-      error: {
-        code: -32603,
-        message: "Internal error",
-        data: (err as Error).message,
-      },
+      error: { code: -32603, message: "Internal error" },
     };
   }
 }
