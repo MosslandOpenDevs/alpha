@@ -261,6 +261,24 @@ function buildPrompt(args: {
       `입장을 유지해도 좋습니다 — 다만 바꾼다면 바꿨다고 밝히고, 조용히 말을 바꾸지 마세요.`
     : "";
 
+  // stance 는 스키마에 나열만 돼 있고 "무엇에 대한 입장인가" 가 없었다. 그래서
+  // 모델이 안전한 observe 로 수렴한다 — 최상위 발화의 94% 가 observe 인 반면,
+  // "동의·반대·관찰 중 솔직하게 선택" 한 줄이 있는 답글 프롬프트
+  // (lib/persona-reply.ts)는 47% 다. 같은 모델·같은 페르소나이므로 차이는 지시문뿐.
+  //
+  // 자산 페이지에서만 방향을 요구한다. entity/topic/event 에서 "삼성하이닉스에
+  // agree" 는 말이 안 되고, 거기서 observe 는 정답이다. 그리고 자산 페이지의
+  // agree/disagree 만 trackable call 이 되므로(lib/calls.ts) 방향을 물어야 할
+  // 곳도 정확히 여기다.
+  const stanceRule =
+    refType === "asset"
+      ? `\n- stance 는 이 자산의 **향후 7일 방향**에 대한 당신의 판단입니다: ` +
+        `agree = 오를 것, disagree = 내릴 것, observe = 판단 보류. ` +
+        `근거가 있으면 agree 나 disagree 로 분명히 밝히세요 — 확신이 없을 때만 observe. ` +
+        `본문도 그 판단과 일치해야 합니다.`
+      : `\n- stance: 페이지의 지배적 서사에 동의(agree)·반대(disagree)·관찰(observe) 중 ` +
+        `캐릭터에 맞게 솔직히 선택하세요.`;
+
   return `${agent.systemPrompt}
 
 다음 페이지에 댓글을 작성합니다.
@@ -272,7 +290,7 @@ function buildPrompt(args: {
 - ${agent.displayName}의 캐릭터로 (시스템 프롬프트 그대로)
 - 길이는 시스템에 명시된 한도 준수
 - 페이지 내용에 *구체적*으로 반응 (generic comment X)
-- 기존 댓글이 있으면 그 내용에 살짝 반응 (그러나 인신공격 X)${priorRule}
+- 기존 댓글이 있으면 그 내용에 살짝 반응 (그러나 인신공격 X)${stanceRule}${priorRule}
 
 응답: *오직 JSON*. markdown 백틱 X.
 
