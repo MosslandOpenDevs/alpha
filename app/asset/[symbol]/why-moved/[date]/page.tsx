@@ -54,6 +54,11 @@ export default async function WhyMovedPage({ params }: Props) {
   const canonicalSymbol = entity
     ? assetSlugFromEntity(entity)
     : symbol.toLowerCase();
+  // Pulses exist for instruments that have no asset page (BTC-KRW, USDKRW —
+  // roughly a third of active pulses). Their why-moved articles are real, but
+  // /asset/<slug> for them is a 404, so every parent link on this page —
+  // nav, footer, breadcrumb JSON-LD — pointed at one. Send those to /pulse.
+  const parentHref = entity ? `/asset/${canonicalSymbol}` : "/pulse";
   if (symbol.toLowerCase() !== canonicalSymbol) {
     deleteSeoPage(`/asset/${symbol.toLowerCase()}/why-moved/${date}`);
     permanentRedirect(`/asset/${canonicalSymbol}/why-moved/${date}`);
@@ -67,7 +72,7 @@ export default async function WhyMovedPage({ params }: Props) {
         <nav className="text-xs text-[var(--muted)] mb-4">
           <a href="/" className="hover:underline">α Alpha</a>
           <span className="mx-2">/</span>
-          <a href={`/asset/${symbol.toLowerCase()}`} className="hover:underline">
+          <a href={parentHref} className="hover:underline">
             {symbol.toUpperCase()}
           </a>
           <span className="mx-2">/</span>
@@ -82,11 +87,8 @@ export default async function WhyMovedPage({ params }: Props) {
             이상 변동만 감지합니다.
           </p>
           <p className="mt-3">
-            <a
-              href={`/asset/${symbol.toLowerCase()}`}
-              className="text-[var(--moss)] hover:underline"
-            >
-              ← {symbol.toUpperCase()} 페이지로
+            <a href={parentHref} className="text-[var(--moss)] hover:underline">
+              ← {entity ? `${symbol.toUpperCase()} 페이지로` : "Pulse 목록으로"}
             </a>
           </p>
         </header>
@@ -108,7 +110,7 @@ export default async function WhyMovedPage({ params }: Props) {
 
   const breadcrumb = breadcrumbJsonLd([
     { name: "홈", href: "/" },
-    { name: assetLabel, href: `/asset/${canonicalSymbol}` },
+    { name: assetLabel, href: parentHref },
     { name: `Why moved ${date}`, href: `/asset/${canonicalSymbol}/why-moved/${date}` },
   ]);
 
@@ -143,10 +145,7 @@ export default async function WhyMovedPage({ params }: Props) {
       <nav className="text-xs text-[var(--muted)] mb-4">
         <a href="/" className="hover:underline">α Alpha</a>
         <span className="mx-2">/</span>
-        <a
-          href={`/asset/${canonicalSymbol}`}
-          className="hover:underline"
-        >
+        <a href={parentHref} className="hover:underline">
           {assetLabel}
         </a>
         <span className="mx-2">/</span>
@@ -233,11 +232,8 @@ export default async function WhyMovedPage({ params }: Props) {
         <span className="mx-2">·</span>
         <span>Alpha 합성 — pulse + sources 기반</span>
         <span className="mx-2">·</span>
-        <a
-          href={`/asset/${canonicalSymbol}`}
-          className="text-[var(--moss)] hover:underline"
-        >
-          ← {assetLabel} 페이지로
+        <a href={parentHref} className="text-[var(--moss)] hover:underline">
+          ← {entity ? `${assetLabel} 페이지로` : "Pulse 목록으로"}
         </a>
       </footer>
     </main>

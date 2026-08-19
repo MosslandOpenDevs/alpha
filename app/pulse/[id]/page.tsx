@@ -17,9 +17,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const dirSign = p.direction === "up" ? "+" : "-";
   const title = `${p.assetLabel || p.asset} ${dirSign}${Math.abs(p.magnitudePct).toFixed(2)}% — Pulse ${id}`;
   const description = p.summary.slice(0, 200);
+  // Same rule the body registers with registerSeoPage: raw/pending pulses are
+  // noindex there and in the sitemap, so say so in <head> too instead of
+  // inheriting the root's index,follow.
+  const noindex = p.synthesisState === "raw" || p.synthesisState === "pending";
   return {
     title,
     description,
+    robots: noindex ? { index: false, follow: true } : undefined,
     alternates: { canonical: `${SITE.baseUrl}/pulse/${id}` },
     openGraph: pageOpenGraph({ title, description, path: `/pulse/${id}` }),
   };
