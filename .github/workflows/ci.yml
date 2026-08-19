@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      # Match production (atrn-vm-linux runs Node 22 / pnpm 11).
+      # Match the production runtime (Node 22 / pnpm 11).
       NODE_ENV: production
     steps:
       - uses: actions/checkout@v4

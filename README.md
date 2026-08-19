@@ -30,14 +30,14 @@ Listed at the official MCP Registry as `land.moss/alpha-mcp`.
 ## Architecture
 
 ```
-SignalMap canonical store    → entities (141), topics (22), events (31), 506+ analyzed videos
+SignalMap canonical store    → entities, topics, events, analyzed videos
         │
         ▼
 Moss Intelligence Core       → consumed read-only by Alpha; embeddings stripped at consume time
         │
         ▼
 Alpha (Next.js 16 + Tailwind v4 + SQLite)
-  • Page generation (32 routes)
+  • Page generation (App Router)
   • RAG Q&A (token-based + hybrid keyword + embedding)
   • 8 AI personas with system prompts (synthesized clusters, not 1:1 mimicry)
   • Trackable price calls (7-day auto-resolve via CoinGecko)
@@ -52,7 +52,7 @@ Alpha (Next.js 16 + Tailwind v4 + SQLite)
 - **DB**: SQLite (better-sqlite3, WAL)
 - **AI**: xAI Grok (`grok-4-1-fast-non-reasoning`) + OpenAI embeddings (`text-embedding-3-small`)
 - **Macro**: BOK ECOS (KR) + FRED (US) + CoinGecko free tier
-- **Process**: PM2 (10 apps: 1 web + 9 cron)
+- **Process**: PM2 (1 web + cron apps, declared in `ecosystem.config.cjs`)
 - **SEO**: 3-class robots.txt (search/user/training bots), JSON-LD (Article, NewsArticle, QAPage, FAQPage, NewsEvent, DefinedTerm, Person, Organization, BreadcrumbList), reciprocal ko↔en hreflang, dynamic OG images, favicon + apple-touch-icon + web manifest (PWA), llms.txt, sitemap
 - **Hardening**: security response headers (CSP, HSTS, X-Frame-Options, …) via `next.config.ts`; per-IP + global-cost rate limits on paid endpoints
 
@@ -145,7 +145,12 @@ pm2 save
 
 When Alpha runs behind a reverse proxy or CDN, set `TRUSTED_PROXY_HOPS` to the number of trusted hops so per-IP rate limits key on the real client address (the leftmost `X-Forwarded-For` entry is caller-spoofable). Security response headers are emitted by `next.config.ts` and need no proxy configuration.
 
-The 9 cron apps cover macro fetch, AI synthesis, daily brief, persona ticks, persona replies, trackable call resolution, why-moved article generation, IndexNow weekly ping, and a weekly LLM-citation audit.
+The cron apps cover macro fetch, AI synthesis, daily brief, English brief
+translation, persona ticks, persona replies, trackable call resolution,
+why-moved article generation, entity connections, dynamic Q&A seeding,
+IndexNow weekly ping, a weekly LLM-citation audit, and a health watchdog.
+`ecosystem.config.cjs` is the list of record — `scripts/deploy.sh` reads the
+app names from it rather than keeping its own copy.
 
 ## AI persona disclosure
 
