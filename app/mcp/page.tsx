@@ -1,16 +1,20 @@
 import { listToolsPublic } from "@/lib/mcp-server";
 import { registerSeoPage } from "@/lib/seo-register";
-import { SITE } from "@/lib/seo";
+import { SITE, pageOpenGraph } from "@/lib/seo";
 import type { Metadata } from "next";
 
 export const dynamic = "force-static";
 export const revalidate = 86400;
 
+const TITLE = "MCP Server — Alpha by Mossland";
+const DESC =
+  "Claude Desktop · Cursor · Continue 등 MCP 클라이언트에서 Alpha의 한국 크립토·매크로 데이터를 도구로 사용. 12개 tools 노출.";
+
 export const metadata: Metadata = {
-  title: "MCP Server — Alpha by Mossland",
-  description:
-    "Claude Desktop · Cursor · Continue 등 MCP 클라이언트에서 Alpha의 한국 크립토·매크로 데이터를 도구로 사용. 12개 tools 노출.",
+  title: TITLE,
+  description: DESC,
   alternates: { canonical: `${SITE.baseUrl}/mcp` },
+  openGraph: pageOpenGraph({ title: TITLE, description: DESC, path: "/mcp", type: "website" }),
 };
 
 export default function McpDocPage() {
@@ -175,7 +179,7 @@ curl -X POST https://alpha.moss.land/api/mcp \\
       <footer className="mt-12 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
         <span>운영: Mossland</span>
         <span className="mx-2">·</span>
-        <span>인증: 무료 read-only (rate limit 미적용 — 향후 변경 가능)</span>
+        <span>인증: 무료 read-only · ask_alpha 만 IP 별 분 10 · 일 100 (429), 나머지 tools 는 한도 없음</span>
         <span className="mx-2">·</span>
         <span>스펙: <a href="https://modelcontextprotocol.io" className="hover:text-[var(--fg)]">modelcontextprotocol.io</a></span>
       </footer>

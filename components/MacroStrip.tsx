@@ -56,7 +56,7 @@ export function MacroStrip({
       <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2 flex items-center gap-2">
         매크로 한 컷
         <span className="text-[10px] normal-case font-normal text-[var(--muted)]">
-          (FRED · 자동 갱신)
+          (FRED · ECOS · 자동 갱신)
         </span>
       </h2>
       <div className="flex flex-wrap gap-2">

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getPulse } from "@/lib/mic";
 import { registerSeoPage } from "@/lib/seo-register";
-import { SITE } from "@/lib/seo";
+import { SITE, pageOpenGraph } from "@/lib/seo";
 import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import { PulseCard } from "@/components/PulseCard";
 import type { Metadata } from "next";
@@ -16,10 +16,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!p) return { title: `Pulse ${id}`, robots: { index: false } };
   const dirSign = p.direction === "up" ? "+" : "-";
   const title = `${p.assetLabel || p.asset} ${dirSign}${Math.abs(p.magnitudePct).toFixed(2)}% — Pulse ${id}`;
+  const description = p.summary.slice(0, 200);
   return {
     title,
-    description: p.summary.slice(0, 200),
+    description,
     alternates: { canonical: `${SITE.baseUrl}/pulse/${id}` },
+    openGraph: pageOpenGraph({ title, description, path: `/pulse/${id}` }),
   };
 }
 

@@ -44,7 +44,7 @@ export default function HealthPage() {
         </h1>
         <p className="text-sm text-zinc-700 leading-relaxed">
           Alpha 의 데이터 subsystem 별 마지막 갱신 시각. 운영 / 디버깅 용. JSON
-          버전: <a href="/api/health" className="text-[var(--moss)] hover:underline">/api/health?detail=1</a>
+          버전: <a href="/api/health?detail=1" className="text-[var(--moss)] hover:underline">/api/health?detail=1</a>
         </p>
         <p className="mt-2 text-xs text-[var(--muted)] font-mono">
           checked at {fmtKst(health.generatedAt)}
