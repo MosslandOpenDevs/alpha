@@ -59,7 +59,7 @@
 #   DEPLOY_HEALTH_RETRIES / DEPLOY_HEALTH_INTERVAL         (20 / 3)
 #   DEPLOY_KEEP_RELEASES   old releases to keep on disk    (default 4)
 #   DEPLOY_KEEP_BACKUPS    pre-swap DB/pm2 backups to keep (default 10)
-#   DEPLOY_QUIET_HOURS_KST hours (KST) in which to build but not swap
+#   DEPLOY_QUIET_HOURS_KST hours (KST) in which to defer the deploy entirely
 #                          (default "6 7 8 9 12 13" — the cron slots; a swap
 #                          re-registers every cron and pm2 runs each once)
 #   DEPLOY_HOLD_FILE       operator hold — exists ⇒ do nothing
@@ -529,12 +529,24 @@ main() {
   fi
 
   if [ "${CHECK_ONLY}" = "1" ]; then
-    log "would deploy ${DEPLOYED:0:8} -> ${TARGET:0:8}  (live: ${LIVE_DIR})$(in_quiet_hours && printf ' [quiet hour %s KST: would build, defer swap]' "$(kst_hour)")"
+    log "would deploy ${DEPLOYED:0:8} -> ${TARGET:0:8}  (live: ${LIVE_DIR})$(in_quiet_hours && printf ' [quiet hour %s KST: would defer, not build]' "$(kst_hour)")"
     ( cd "${ALPHA_REPO}" && git --no-pager log --oneline "${DEPLOYED}..${TARGET}" 2>/dev/null | head -10 ) || true
     exit 0
   fi
 
   # --- 3. Build the new release in its own directory ------------------------
+  # Quiet hours are checked BEFORE building, not after. A swap re-registers
+  # every cron app and pm2 runs each one immediately, so inside a cron's own
+  # KST hour that fires it a second time — hence the deferral. But the check
+  # used to sit after the build, so every 5-minute tick during those hours
+  # built the same commit and threw it away: eight full install+build+smoke
+  # cycles for one deploy on 2026-08-19. The verdict does not depend on the
+  # build, so ask first.
+  if in_quiet_hours && [ "${FORCE}" != "1" ]; then
+    log "${TARGET:0:8} is ready but it is $(kst_hour):xx KST (a cron slot) -- deferring to a later tick"
+    exit 0
+  fi
+
   ENV_SRC=${ALPHA_ENV_FILE:-${LIVE_DIR}/.env.local}
   if [ ! -f "${ENV_SRC}" ]; then
     log "ERROR ${ENV_SRC} not found -- a release without .env.local would start with no DB_PATH"
@@ -568,18 +580,6 @@ main() {
     || fail_build "check-health smoke test"
 
   # --- 4. Swap -------------------------------------------------------------
-  # Swapping re-registers every cron app and pm2 runs each once immediately.
-  # The --scheduled guards make that a no-op OUTSIDE their slot; inside it
-  # they would fire a second time. So: build now, but during those KST hours
-  # leave the built release on disk and let a later tick swap it. The next
-  # tick finds LIVE≠TARGET, rebuilds (seconds; pnpm store is hardlinked) and
-  # swaps once the hour has passed.
-  if in_quiet_hours && [ "${FORCE}" != "1" ]; then
-    log "built ${TARGET:0:8} but it is $(kst_hour):xx KST (a cron slot) -- deferring the swap to a later tick"
-    discard_release "${NEW_DIR}"
-    exit 0
-  fi
-
   backup_before_swap "${NEW_DIR}" || fail_build "pre-swap backup"
 
   # From here production is being touched. A failure is recorded as phase
