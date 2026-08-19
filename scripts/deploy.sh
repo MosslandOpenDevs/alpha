@@ -61,7 +61,8 @@
 #   DEPLOY_KEEP_BACKUPS    pre-swap DB/pm2 backups to keep (default 10)
 #   DEPLOY_QUIET_HOURS_KST hours (KST) in which to defer the deploy entirely
 #                          (default "6 7 8 9 12 13" — the cron slots; a swap
-#                          re-registers every cron and pm2 runs each once)
+#                          re-registers every cron and pm2 runs each once).
+#                          Set to an empty string to disable.
 #   DEPLOY_HOLD_FILE       operator hold — exists ⇒ do nothing
 #   DEPLOY_CI_WAIT_MIN     how long to wait for a CI run to appear before
 #                          deploying without one (default 15)
@@ -161,12 +162,21 @@ acquire_lock() {
 # run for that merge was created at 08:59:01, and the deploy went out one
 # second ahead of its own gate. Set DEPLOY_REQUIRE_CI=0 for a repo without CI.
 ci_conclusion() {
-  local sha="$1" url auth body
+  local sha="$1" url auth body code
   url="https://api.github.com/repos/${DEPLOY_GITHUB_REPO}/commits/${sha}/check-runs"
   if [ -n "${GITHUB_TOKEN:-}" ]; then auth="Authorization: Bearer ${GITHUB_TOKEN}"
   else auth="X-No-Auth: 1"; fi
-  body=$(curl -fsS -m 20 -H 'Accept: application/vnd.github+json' -H "${auth}" "${url}" 2>/dev/null) \
+  # No -f: a 401 (revoked token), 403/429 (rate limit) or 404 (wrong repo)
+  # must be told apart from "GitHub is down". All of them still pass the gate
+  # (below), but the operator gets the status code instead of "unknown".
+  body=$(curl -sS -m 20 -w '\n%{http_code}' -H 'Accept: application/vnd.github+json' -H "${auth}" "${url}" 2>/dev/null) \
     || { echo "unknown"; return 0; }
+  code=${body##*$'\n'}
+  body=${body%$'\n'*}
+  case "${code}" in
+    2*) ;;
+    *) echo "error:${code}"; return 0 ;;
+  esac
   printf '%s' "${body}" | python3 -c '
 import json, sys
 try:
@@ -408,7 +418,10 @@ main() {
   DEPLOY_HEALTH_INTERVAL=${DEPLOY_HEALTH_INTERVAL:-3}
   DEPLOY_KEEP_RELEASES=${DEPLOY_KEEP_RELEASES:-4}
   DEPLOY_KEEP_BACKUPS=${DEPLOY_KEEP_BACKUPS:-10}
-  DEPLOY_QUIET_HOURS_KST=${DEPLOY_QUIET_HOURS_KST:-"6 7 8 9 12 13"}
+  # `-` not `:-`: unset takes the default, but an explicit empty string means
+  # "no quiet hours". With `:-` the empty value was silently replaced by the
+  # default and the guard could not be turned off.
+  DEPLOY_QUIET_HOURS_KST=${DEPLOY_QUIET_HOURS_KST-"6 7 8 9 12 13"}
   # The webhook is a credential and this repo is public, so it lives only in
   # the server's .env.local (gitignored) — same file the TS scripts read.
   if [ -z "${DEPLOY_ALERT_WEBHOOK:-}" ] && [ -f "${LIVE_ENV_HINT:-${ALPHA_REPO}/.env.local}" ]; then
@@ -458,6 +471,21 @@ main() {
   }
   TARGET=$(cd "${ALPHA_REPO}" && git rev-parse "${DEPLOY_REMOTE}/${DEPLOY_BRANCH}")
 
+  # Read what is live BEFORE fast-forwarding the checkout below. On a host
+  # bootstrapped the README way, alpha-web runs from ${ALPHA_REPO} itself; if
+  # the ff-only ran first it moved that HEAD to the tip, LIVE_SHA equalled
+  # TARGET, and every new commit was "adopted" as deployed without a build.
+  LIVE_DIR=$(live_release_dir)
+  if [ -z "${LIVE_DIR}" ] || [ ! -d "${LIVE_DIR}" ]; then
+    log "ERROR cannot determine the live release from pm2 (alpha-web missing?) -- refusing to run"
+    # This is what a swap interrupted between pm2 delete and pm2 start looks
+    # like: nothing serving on 6900 and a poller that refuses to touch it.
+    # Say so somewhere a person will see it.
+    alert "alpha CRITICAL: alpha-web is not registered in pm2 -- site likely down; poller refusing to run"
+    exit 1
+  fi
+  LIVE_SHA=$(cd "${LIVE_DIR}" && git rev-parse HEAD 2>/dev/null || echo "")
+
   # Keep the object-store checkout on the tip too. This is what PM2 runs the
   # poller from, so this fast-forward is how deploy.sh updates itself; the
   # main() wrapper makes that safe mid-run. Fast-forward only — if someone
@@ -468,13 +496,6 @@ main() {
     # Always logged: while this holds, deploy.sh itself is not being updated.
     log "NOTE ${ALPHA_REPO} not fast-forwarded (dirty, untracked collision, or diverged) -- poller script may be stale; releases unaffected"
   fi
-
-  LIVE_DIR=$(live_release_dir)
-  if [ -z "${LIVE_DIR}" ] || [ ! -d "${LIVE_DIR}" ]; then
-    log "ERROR cannot determine the live release from pm2 (alpha-web missing?) -- refusing to run"
-    exit 1
-  fi
-  LIVE_SHA=$(cd "${LIVE_DIR}" && git rev-parse HEAD 2>/dev/null || echo "")
 
   DEPLOYED=$(cat "${DEPLOY_STATE_FILE}" 2>/dev/null || true)
   if [ -z "${DEPLOYED}" ] || ! ( cd "${ALPHA_REPO}" && git cat-file -e "${DEPLOYED}^{commit}" 2>/dev/null ); then
@@ -508,7 +529,13 @@ main() {
     if [ "${DEPLOY_REQUIRE_CI}" = "1" ]; then
       CI=$(ci_conclusion "${TARGET}" | tail -n 1 | tr -d '[:space:]')
       case "${CI}" in
-        success|unknown) ;;
+        success) ;;
+        # Fail-open by design (see ci_conclusion) — but never silently. This
+        # used to share the `success` branch and print nothing, so a revoked
+        # token turned the gate off with no trace in the log.
+        unknown|error:*)
+          log "WARN no CI verdict for ${TARGET:0:8} (${CI}) -- GitHub API unreachable or rejected the request; deploying without one"
+          alert "alpha: deploying ${TARGET:0:8} WITHOUT a CI verdict (${CI})" ;;
         # "none" = the run does not exist yet (see ci_conclusion). Wait a tick —
         # but not forever: if Actions is disabled or the workflow file is broken
         # no run will ever appear, and a poller stuck on that is a silent
@@ -585,6 +612,15 @@ main() {
   # From here production is being touched. A failure is recorded as phase
   # "swap" — terminal for this SHA — BEFORE anything else, so a rollback that
   # itself fails cannot skip the bookkeeping under set -e.
+  #
+  # And from here a dropped SSH session (HUP) or a stray Ctrl-C must not stop
+  # us: pm2_swap_to deletes 13 apps and then starts them, and dying between
+  # the two leaves nothing serving and nothing that will restart it. Ignore
+  # those signals for the few seconds the swap and any rollback take. SIGKILL
+  # cannot be caught — pm2 stop's escalation is still a hazard for a MANUAL
+  # run of this script under pm2, which is why the poller is a loop that
+  # invokes this script rather than this script itself.
+  trap '' HUP INT TERM
   if ! pm2_swap_to "${NEW_DIR}"; then
     record_failure "${TARGET}" swap
     rollback_to "${LIVE_DIR}" || true

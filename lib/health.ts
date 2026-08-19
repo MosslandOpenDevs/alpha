@@ -283,9 +283,32 @@ export function getSystemHealth(): {
     // health surface — see scripts/check-health.ts.
     `SELECT MAX(date) AS d, MAX(translated_at) AS g FROM alpha_brief_translations WHERE lang = 'en'`
   );
-  const macro = row<{ d: string; f: string }>(
-    `SELECT MAX(date) AS d, MAX(fetched_at) AS f FROM alpha_macro_observations`
+  // Per source, not MAX() over the whole table. FRED (US) and ECOS (Korea)
+  // share alpha_macro_observations, and lib/ecos.ts prefixes its series
+  // KR_. A table-wide MAX(fetched_at) stays fresh as long as EITHER source
+  // writes, so a revoked ECOS key or a FRED outage was invisible here while
+  // the strip kept showing that source's last value under an old date.
+  const macroBySource = rows<{ src: "fred" | "ecos"; d: string; f: string }>(
+    `SELECT CASE WHEN substr(series_id, 1, 3) = 'KR_' THEN 'ecos' ELSE 'fred' END AS src,
+            MAX(date) AS d, MAX(fetched_at) AS f
+     FROM alpha_macro_observations GROUP BY src`
   );
+  const macroFred = macroBySource.find((r) => r.src === "fred");
+  const macroEcos = macroBySource.find((r) => r.src === "ecos");
+  // The subsystem is as fresh as its STALER source; a source with no rows at
+  // all counts as never fetched.
+  const macroStaler =
+    !macroFred || !macroEcos
+      ? null
+      : macroFred.f <= macroEcos.f
+      ? macroFred
+      : macroEcos;
+  const macro = macroStaler
+    ? { d: macroStaler.d, f: macroStaler.f }
+    : undefined;
+  const macroNote =
+    `FRED ${macroFred?.f?.slice(0, 16) ?? "없음"} · ECOS ${macroEcos?.f?.slice(0, 16) ?? "없음"}` +
+    (!macroFred || !macroEcos ? " — 한쪽 소스가 한 번도 적재되지 않음" : "");
   const connections = row<{ g: string }>(
     `SELECT MAX(generated_at) AS g FROM alpha_connections`
   );
@@ -398,6 +421,7 @@ export function getSystemHealth(): {
       latestDate: macro?.d,
       warnAfterSec: 26 * ONE_HOUR,
       failAfterSec: 50 * ONE_HOUR,
+      note: macroNote,
     }),
     (() => {
       // Event-driven: only posts on a priceable asset produce calls.

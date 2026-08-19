@@ -38,17 +38,26 @@ async function main() {
   try {
     if (!live) {
       // 각 subsystem 의 테이블을 만든다. 스키마가 있어야 컬럼 오타가 드러난다.
-      const [community, calls, brief, translate, whyMoved, ai, rate, heartbeat] =
-        await Promise.all([
-          import("../lib/community"),
-          import("../lib/calls"),
-          import("../lib/brief"),
-          import("../lib/brief-translate"),
-          import("../lib/why-moved"),
-          import("../lib/grok"),
-          import("../lib/rate-limit"),
-          import("../lib/cron-heartbeat"),
-        ]);
+      // Every table getSystemHealth() queries must exist here, or a column
+      // typo in that query is swallowed as "no such table" and this gate
+      // passes it. synthesis / macro / connections were missing from this
+      // list — three of the health queries were never actually smoke-tested.
+      const [
+        community, calls, brief, translate, whyMoved, ai, rate, heartbeat,
+        synthesis, fred, connections,
+      ] = await Promise.all([
+        import("../lib/community"),
+        import("../lib/calls"),
+        import("../lib/brief"),
+        import("../lib/brief-translate"),
+        import("../lib/why-moved"),
+        import("../lib/grok"),
+        import("../lib/rate-limit"),
+        import("../lib/cron-heartbeat"),
+        import("../lib/synthesis"),
+        import("../lib/fred"),
+        import("../lib/connections"),
+      ]);
       community.ensureCommunityTables();
       calls.getHandleStats("__schema__");
       brief.getBriefSummary("2026-01-01");
@@ -57,6 +66,9 @@ async function main() {
       ai.todayAiSpendUsd();
       rate.rateLimitSnapshot();
       heartbeat.getAllHeartbeats();
+      synthesis.getSynthesis("entity", "__schema__");
+      fred.getLatestObservation("__schema__");
+      connections.getConnection("__a__", "__b__");
     }
 
     const { getSystemHealth } = await import("../lib/health");
