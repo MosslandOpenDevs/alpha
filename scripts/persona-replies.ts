@@ -74,8 +74,9 @@ async function main() {
   const { generatePersonaReply } = await import("../lib/persona-reply");
   const { getActiveAgents } = await import("../lib/agents");
 
-  const Database = (await import("better-sqlite3")).default;
-  const db = new Database(process.env.DB_PATH!, { readonly: true });
+  // Shared handle, same fallback as every lib/ module — see track-calls.ts.
+  const { getDb } = await import("../lib/db");
+  const db = getDb();
 
   // 최근 24시간 페르소나 글 (답글 < 5)
   //
@@ -113,7 +114,7 @@ async function main() {
     stance: string | null;
     body: string;
   }[];
-  db.close();
+  // (shared handle — nothing to close)
 
   const agents = getActiveAgents();
 

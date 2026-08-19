@@ -236,6 +236,18 @@ async function main() {
 
   const results: Result[] = [];
 
+  // Checkpoint after every query, atomically. Results used to be written once
+  // after the loop, so anything that killed the process mid-run — a deploy's
+  // `pm2 delete` on a Monday 11:xx swap, an OOM, a reboot — threw away every
+  // paid gpt-4o answer so far, and the --scheduled re-run (which dedupes on
+  // this file) started again from zero. Now a restart resumes where it died.
+  fs.mkdirSync(outDir, { recursive: true });
+  const checkpoint = () => {
+    const tmp = `${outFile}.${process.pid}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify([...existing, ...results], null, 2));
+    fs.renameSync(tmp, outFile);
+  };
+
   for (let i = 0; i < queries.length; i++) {
     const q = queries[i];
     process.stdout.write(`  [${i + 1}/${queries.length}] ${q.id} ${q.query.slice(0, 50)}...\n`);
@@ -262,11 +274,9 @@ async function main() {
       ? `❌ ${reply.error.slice(0, 80)}`
       : "no";
     console.log(`    openai: ${status} (${reply.urls.length} cites)`);
+    checkpoint();
     await new Promise((r) => setTimeout(r, 800));
   }
-
-  fs.mkdirSync(outDir, { recursive: true });
-  fs.writeFileSync(outFile, JSON.stringify([...existing, ...results], null, 2));
 
   // Summary
   const byVendor: Record<string, { cited: number; total: number }> = {};
