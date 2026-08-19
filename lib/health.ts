@@ -11,7 +11,7 @@ import path from "node:path";
 import { getDb } from "./db";
 import { rateLimitSnapshot } from "./rate-limit";
 import { getHeartbeat } from "./cron-heartbeat";
-import { assetCoverage } from "./coingecko";
+import { assetCoverage, isCallableAsset } from "./prices";
 import { todayAiSpendUsd } from "./grok";
 import { recentAuditRuns, type AuditRun } from "./audit-log";
 import { getAllEntities, getStubAssetEntities } from "./mic";
@@ -248,6 +248,17 @@ export function getSystemHealth(): {
       throw err;
     }
   };
+  /** Same contract as row(), for the queries that need every matching row. */
+  const rows = <T,>(sql: string): T[] => {
+    try {
+      return db.prepare(sql).all() as T[];
+    } catch (err) {
+      if (err instanceof Error && /no such table/i.test(err.message)) {
+        return [];
+      }
+      throw err;
+    }
+  };
 
   // ─── DB-backed subsystems ───────────────────────────────────────
   const brief = row<{ d: string; g: string }>(
@@ -389,35 +400,65 @@ export function getSystemHealth(): {
       failAfterSec: 50 * ONE_HOUR,
     }),
     (() => {
-      // Event-driven: only crypto-mapped persona posts produce calls.
+      // Event-driven: only posts on a priceable asset produce calls.
       // Health based on heartbeat; latest call age shown as info.
       const hb = getHeartbeat("alpha-calls-cron");
-      // How many assets can actually carry a call today. This is the number
-      // that silently went to zero-growth: the CoinGecko map covered four of
-      // the canonical asset entities, two of them stablecoins. Surfacing it
-      // means the next mapping drift shows up here instead of as three months
-      // of quiet.
+      //
+      // What this note must answer: is the call supply capped, and by what?
+      //
+      // It used to answer that with "call 가능 자산 3/44 · 미매핑 39", which
+      // read as a backlog of 39 assets waiting to be mapped. There is no such
+      // backlog. The canonical `asset` type means "not a person, org, place or
+      // event", so that 39 was 호르무즈 해협, MetLife Stadium, 북극여우,
+      // 모르핀, RTX 2070 Super, 천궁-II — things with no price at all. The
+      // number pointed at work that does not exist while hiding the actual
+      // constraint, which is where posts land: in the 30 days to 2026-08-19,
+      // this same query counted 9 top-level asset posts, 0 of them on a page
+      // the old coin-only map could price.
+      //
+      // So report the funnel instead of the map. A wide map with no posts
+      // landing on it is still zero calls, and only this phrasing shows that.
+      //
       // getAllEntities() parses the SignalMap canonical JSON from disk. That
       // file is rewritten by an upstream pipeline, so a read can land on a
       // half-written or truncated file — and this runs on the liveness path.
       // A diagnostic must never be able to take the health endpoint down.
+      //
+      // The disk read and the DB query are caught separately on purpose. A
+      // single try around both would report a SQL column typo as "canonical
+      // 읽기 실패" — naming the wrong cause — and would swallow the exact
+      // class of bug scripts/check-health.ts exists to catch. The DB side goes
+      // through rows(), which swallows only "no such table" and rethrows the
+      // rest, same as every other query on this page.
       let coverageNote: string;
       try {
         const poolAssets = [...getAllEntities(), ...getStubAssetEntities()]
           .filter((e) => e.type === "asset" && hasEnoughPageContext(e))
           .map((e) => e.id);
-        const coverage = assetCoverage(poolAssets);
+        const cov = assetCoverage(poolAssets);
         coverageNote =
-          `call 가능 자산 ${coverage.callable.length}/${coverage.total}` +
-          (coverage.pegged.length ? ` (페그 제외 ${coverage.pegged.length})` : "") +
-          (coverage.unmapped.length ? ` · 미매핑 ${coverage.unmapped.length}` : "");
+          `call 가능 자산 ${cov.callable.length}` +
+          (cov.pegged.length ? ` (페그 ${cov.pegged.length} 제외)` : "");
       } catch {
         coverageNote = "call 가능 자산 산출 불가 (canonical 읽기 실패)";
       }
+      const recentAssetPosts = rows<{ ref_id: string; n: number }>(
+        `SELECT ref_id, COUNT(*) AS n FROM alpha_posts
+         WHERE ref_type = 'asset' AND parent_id IS NULL AND is_deleted = 0
+           AND ref_id IS NOT NULL
+           AND created_at >= date('now', '-30 day')
+         GROUP BY ref_id`
+      );
+      const postedTotal = recentAssetPosts.reduce((a, r) => a + r.n, 0);
+      const postedCallable = recentAssetPosts
+        .filter((r) => isCallableAsset(r.ref_id))
+        .reduce((a, r) => a + r.n, 0);
+      coverageNote +=
+        ` · 최근 30일 asset 글 ${postedTotal}건 중 call 가능 페이지 ${postedCallable}건`;
       const sub = toSubsystem({
         key: "trackable_calls",
         label: "Trackable price calls",
-        cadence: "매일 13:00 KST cron · CoinGecko 매핑 자산만",
+        cadence: "매일 13:00 KST cron · 가격 출처가 있는 자산만",
         lastAt: hb?.lastRunAt ?? trackable?.c ?? null,
         latestDate: trackable?.d ?? null,
         warnAfterSec: 28 * ONE_HOUR,

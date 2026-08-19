@@ -150,7 +150,7 @@ async function main() {
 
   const { createCallFromPost, resolveCall, getPendingCallsDue, expireUnresolvableCalls } =
     await import("../lib/calls");
-  const { coingeckoIdFor, isCallableAsset } = await import("../lib/coingecko");
+  const { isCallableAsset, marketFor } = await import("../lib/prices");
   const { getDb } = await import("../lib/db");
 
   // Trigger table creation by calling getHandleStats once
@@ -199,8 +199,8 @@ async function main() {
     let unmapped = 0;
     for (const post of candidates) {
       // Callability, not just priceability — a pegged asset would only ever
-      // resolve flat. Resolve (Phase 2) still uses coingeckoIdFor so calls
-      // already on record keep settling.
+      // resolve flat. Resolve (Phase 2) goes through lib/prices.ts directly so
+      // calls already on record keep settling.
       if (!post.ref_id || !isCallableAsset(post.ref_id)) {
         skipped++;
         unmapped++;
@@ -243,9 +243,11 @@ async function main() {
     tally.resolveDue = due.length;
     let resolved = 0;
     for (const call of due) {
-      if (!coingeckoIdFor(call.asset_id)) {
+      // marketFor, not isCallableAsset: a pegged asset can no longer receive
+      // new calls but the ones already published still have to settle.
+      if (!marketFor(call.asset_id)) {
         tally.resolveUnmapped++;
-        console.warn(`  - ${call.id}: no CoinGecko mapping for ${call.asset_id}`);
+        console.warn(`  - ${call.id}: no price source for ${call.asset_id}`);
         continue;
       }
       try {
