@@ -113,19 +113,46 @@ async function probeOnce(): Promise<Probe> {
       signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
       cache: "no-store",
     });
-    const body = (await res.json()) as {
+    // Read text first, then try JSON. When getSystemHealth() throws, Next
+    // answers a plain-text 500 — res.json() on that threw, landed in the catch
+    // below, and the alert said "응답 없음" with httpStatus null: the app had
+    // answered, with an application error, and the message said the opposite.
+    const text = await res.text();
+    let body: {
       status?: string;
       db?: string;
       worst_status?: string;
       subsystems?: Subsystem[];
-    };
+    } = {};
+    let parsed = false;
+    try {
+      body = JSON.parse(text);
+      parsed = true;
+    } catch {
+      /* non-JSON body: keep the status code and a snippet */
+    }
     const worst = body.worst_status ?? null;
     const db = body.db ?? null;
+    const known = parsed && (worst != null || db != null || body.status != null);
     let level: Level = "ok";
-    if (!res.ok && res.status >= 500) level = "down";
-    else if (db === "fail" || worst === "fail" || body.status === "fail") level = "fail";
-    else if (worst === "warn") level = "warn";
-    return { level, httpStatus: res.status, worst, db, subsystems: body.subsystems ?? [] };
+    if (!res.ok && !known) {
+      // Any error status without a recognisable health body — 404 from a
+      // moved route, 502 from nginx, 500 text from Next — is "down". The old
+      // rule keyed on >= 500 only, so a 4xx JSON error read as healthy.
+      level = "down";
+    } else if (db === "fail" || worst === "fail" || body.status === "fail") {
+      level = "fail";
+    } else if (worst === "warn") {
+      level = "warn";
+    }
+    return {
+      level,
+      httpStatus: res.status,
+      worst,
+      db,
+      subsystems: body.subsystems ?? [],
+      error: level === "down" ? `HTTP ${res.status} ${text.slice(0, 120).replace(/\s+/g, " ")}` : undefined,
+    };
   } catch (err) {
     return {
       level: "down",
@@ -202,9 +229,13 @@ async function main() {
   const { date, hour } = kstNow();
   const nowIso = new Date().toISOString();
 
+  // "응답 없음" only when there really was none (httpStatus null: timeout,
+  // refused, DNS). An HTTP error is reported as the status it was.
   const detail =
     p.level === "down"
-      ? `\`${HEALTH_URL}\` 응답 없음${p.error ? ` — ${p.error}` : ""}`
+      ? p.httpStatus == null
+        ? `\`${HEALTH_URL}\` 응답 없음${p.error ? ` — ${p.error}` : ""}`
+        : `\`${HEALTH_URL}\` 오류 응답 — ${p.error ?? `HTTP ${p.httpStatus}`}`
       : `HTTP ${p.httpStatus} · worst=\`${p.worst}\` · db=\`${p.db}\`${subsystemLines(p)}`;
 
   let spoke = false;
