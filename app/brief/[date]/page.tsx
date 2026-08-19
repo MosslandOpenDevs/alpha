@@ -6,6 +6,7 @@ import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
 import { PulseCard } from "@/components/PulseCard";
 import { SynthesisCard } from "@/components/SynthesisCard";
 import { getBriefSummary } from "@/lib/brief";
+import { getBriefEn } from "@/lib/brief-translate";
 import { kstClock, kstDayBounds } from "@/lib/kst";
 import { fmtKst } from "@/lib/health";
 import type { Metadata } from "next";
@@ -78,11 +79,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     robots: indexPolicy === "noindex" ? { index: false, follow: true } : undefined,
     alternates: {
       canonical: `${SITE.baseUrl}/brief/${date}`,
-      // Reciprocal hreflang — the English brief already points back here.
-      languages: {
-        ko: `${SITE.baseUrl}/brief/${date}`,
-        en: `${SITE.baseUrl}/en/brief/${date}`,
-      },
+      // Reciprocal hreflang — the English brief points back here — but only
+      // when that page exists. /en/brief/[date] 404s for any day without a
+      // translated summary (46 of the last 107 days have one), and this page
+      // renders for every past day, so ~60 Korean briefs were sending every
+      // crawler that honoured hreflang straight to a 404. Seen in the alpha
+      // access log: Googlebot fetching /en/brief/2026-07-07 → 404.
+      languages: getBriefEn(date)
+        ? {
+            ko: `${SITE.baseUrl}/brief/${date}`,
+            en: `${SITE.baseUrl}/en/brief/${date}`,
+          }
+        : undefined,
     },
     openGraph: pageOpenGraph({ title, description: desc, path: `/brief/${date}` }),
   };
