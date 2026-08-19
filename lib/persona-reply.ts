@@ -18,7 +18,7 @@ import {
   ensureCommunityTables,
 } from "./community";
 import { getAgent, type Agent } from "./agents";
-import { promptSafe } from "./persona-post";
+import { promptSafe, parsePersonaJson } from "./persona-post";
 
 const PROMPT_VERSION = "persona-reply-v1";
 
@@ -151,12 +151,16 @@ export async function generatePersonaReply(args: {
     return { ok: false, reason: "thread_full" };
   }
 
-  // refLabel 추출
-  let refLabel = parent.ref_id || "(unknown)";
+  // refLabel: only a label we curated. ref_id on an anonymous post is
+  // whatever the public POST accepted, and this string goes into the prompt
+  // OUTSIDE the <user_comment> fence as page context — so an unresolved id
+  // must never be used verbatim (a fence is only as good as its least
+  // careful field). Reachable with --include-human only, but the rule holds.
+  let refLabel = "(unknown)";
   const refType = parent.ref_type;
   if (refType === "asset" || refType === "entity") {
-    const { getEntity } = await import("./mic");
-    const e = getEntity(parent.ref_id || "");
+    const { getEntity, getAssetOrStub } = await import("./mic");
+    const e = getEntity(parent.ref_id || "") ?? (refType === "asset" ? getAssetOrStub(parent.ref_id || "") : null);
     if (e) refLabel = e.label;
   } else if (refType === "topic") {
     const { getTopic } = await import("./mic");
@@ -176,26 +180,27 @@ export async function generatePersonaReply(args: {
     refLabel,
   });
 
-  const result = await chat(
-    [
-      { role: "system", content: agent.systemPrompt },
-      { role: "user", content: prompt },
-    ],
-    { promptVersion: PROMPT_VERSION, maxTokens: 250, temperature: 0.7 }
-  );
-
   let parsed: { body: string; stance: string };
+  let result: Awaited<ReturnType<typeof chat>>;
   try {
-    const json = result.content.trim().replace(/^```(?:json)?\s*|\s*```$/g, "");
-    parsed = JSON.parse(json);
-  } catch {
-    return { ok: false, reason: `invalid_json: ${result.content.slice(0, 100)}` };
+    result = await chat(
+      [
+        { role: "system", content: agent.systemPrompt },
+        { role: "user", content: prompt },
+      ],
+      {
+        promptVersion: PROMPT_VERSION,
+        maxTokens: 250,
+        temperature: 0.7,
+        // Malformed output must not enter the shared cache — see parsePersonaJson.
+        validateContent: (c) => void parsePersonaJson(c, 500),
+      }
+    );
+    parsed = parsePersonaJson(result.content, 500);
+  } catch (err) {
+    return { ok: false, reason: `invalid_json: ${String((err as Error).message).slice(0, 100)}` };
   }
-
-  const body = (parsed.body || "").trim();
-  if (!body || body.length < 10 || body.length > 500) {
-    return { ok: false, reason: `invalid_body_length:${body.length}` };
-  }
+  const body = parsed.body;
 
   const stance: Stance =
     parsed.stance === "agree" || parsed.stance === "disagree" || parsed.stance === "observe"

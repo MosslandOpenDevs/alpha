@@ -160,9 +160,12 @@ async function main() {
   const { ensureCommunityTables } = await import("../lib/community");
   ensureCommunityTables();
 
-  void getDb;
-  const Database = (await import("better-sqlite3")).default;
-  const dbReadonly = new Database(process.env.DB_PATH!, { readonly: true });
+  // One shared connection. A second hand-built `new Database(DB_PATH,
+  // {readonly:true})` threw "In-memory/temporary databases cannot be
+  // readonly" whenever DB_PATH was unset (lib/db.ts falls back to
+  // data/alpha-dev.sqlite; this did not), and then wrote an `error`
+  // heartbeat for the run into that dev DB.
+  const dbReadonly = getDb();
 
   // === Phase 1: backfill ===
   if (!skipBackfill) {
@@ -275,7 +278,7 @@ async function main() {
     console.log(`Resolve done. ${resolved}/${due.length} resolved.\n`);
   }
 
-  dbReadonly.close();
+  // (shared handle — nothing to close)
 
   const { status, reason } = gradeRun(tally);
   const summary = `${reason}. ${summarize(tally, skipBackfill, skipResolve)}`;

@@ -117,7 +117,9 @@ json_string() {
 }
 
 alert() {
-  [ -n "${DEPLOY_ALERT_WEBHOOK}" ] || return 0
+  # Never silent: an alert with nowhere to go is still worth a log line, or
+  # the operator believes the channel is wired when it is not.
+  [ -n "${DEPLOY_ALERT_WEBHOOK}" ] || { log "NOTE alert not sent (no webhook configured): $1"; return 0; }
   curl -fsS -m 10 -X POST -H 'Content-Type: application/json' \
     -d "{\"text\":$(json_string "$1"),\"content\":$(json_string "$1")}" \
     "${DEPLOY_ALERT_WEBHOOK}" >/dev/null 2>&1 || true
@@ -244,15 +246,23 @@ strict_ok() {
 # `pm2 start ecosystem.config.cjs` on already-registered names would keep the
 # OLD cwd/script path and only restart. Only the release's own apps are
 # touched — never the poller, never another project's.
+# App names touched by the previous pm2_swap_to in THIS run. A rollback calls
+# pm2_swap_to(LIVE_DIR) after pm2_swap_to(NEW_DIR); its union is then OLD ∪ OLD,
+# so an app that only the NEW release declared stayed registered — pointing at
+# the directory discard_release removes seconds later, and persisted by
+# `pm2 save`. Carrying the forward swap's set into the rollback closes that.
+SWAP_APPS=""
+
 pm2_swap_to() {
   local dir="$1" app apps
   # Delete the union of what the OLD release declared and what the NEW one
   # declares: an app dropped from the ecosystem must not linger on the old
   # release, and an app added must not be skipped.
-  apps="$(release_apps "${dir}") $(release_apps "${LIVE_DIR:-}")"
+  apps="$(release_apps "${dir}") $(release_apps "${LIVE_DIR:-}") ${SWAP_APPS}"
   if [ -z "$(echo "${apps}" | tr -d '[:space:]')" ]; then
     log "ERROR could not read app names from ${dir}/ecosystem.config.cjs"; return 1
   fi
+  SWAP_APPS="${apps}"
   for app in $(echo "${apps}" | tr ' ' '\n' | sort -u); do
     case "${app}" in
       alpha-deploy) continue ;;                          # never touch the poller
@@ -287,9 +297,13 @@ db.backup(out).then(() => { db.close(); }).catch((e) => { console.error(e.messag
 ' "${DEPLOY_BACKUP_DIR}" "${ts}" ) || { log "ERROR DB backup failed -- not swapping"; return 1; }
   log "backed up DB and pm2 dump to ${DEPLOY_BACKUP_DIR} (${ts})"
   # Retention. Every swap adds a full DB copy; unbounded, that fills the disk
-  # the app and the next build both need.
-  ls -1t "${DEPLOY_BACKUP_DIR}"/moss_land-before-*.sqlite 2>/dev/null | tail -n "+$((DEPLOY_KEEP_BACKUPS + 1))" | xargs -r rm -f
-  ls -1t "${DEPLOY_BACKUP_DIR}"/dump.pm2-before-* 2>/dev/null | tail -n "+$((DEPLOY_KEEP_BACKUPS + 1))" | xargs -r rm -f
+  # the app and the next build both need. Retention must never veto the swap:
+  # under pipefail an `ls` over an empty glob returns non-zero, and as the
+  # last command of this function that failed the whole deploy as "pre-swap
+  # backup" on a host with no dump.pm2 yet — after the DB backup succeeded.
+  ls -1t "${DEPLOY_BACKUP_DIR}"/moss_land-before-*.sqlite 2>/dev/null | tail -n "+$((DEPLOY_KEEP_BACKUPS + 1))" | xargs -r rm -f || true
+  ls -1t "${DEPLOY_BACKUP_DIR}"/dump.pm2-before-* 2>/dev/null | tail -n "+$((DEPLOY_KEEP_BACKUPS + 1))" | xargs -r rm -f || true
+  return 0
 }
 
 # Remove a release directory that will never be live. Called on every failure
@@ -423,7 +437,12 @@ main() {
   # default and the guard could not be turned off.
   DEPLOY_QUIET_HOURS_KST=${DEPLOY_QUIET_HOURS_KST-"6 7 8 9 12 13"}
   # The webhook is a credential and this repo is public, so it lives only in
-  # the server's .env.local (gitignored) — same file the TS scripts read.
+  # a server-side .env.local (gitignored). The TS scripts read the LIVE
+  # RELEASE's copy; that is preferred once LIVE_DIR is known (below, in
+  # main). This early read of the object-store checkout's copy is only the
+  # fallback for the path where LIVE_DIR cannot be determined at all. A value
+  # given explicitly in the environment always wins over both files.
+  DEPLOY_ALERT_WEBHOOK_EXPLICIT=${DEPLOY_ALERT_WEBHOOK:-}
   if [ -z "${DEPLOY_ALERT_WEBHOOK:-}" ] && [ -f "${LIVE_ENV_HINT:-${ALPHA_REPO}/.env.local}" ]; then
     DEPLOY_ALERT_WEBHOOK=$(sed -n 's/^ALERT_WEBHOOK_URL=//p' "${LIVE_ENV_HINT:-${ALPHA_REPO}/.env.local}" | head -1)
   fi
@@ -485,6 +504,12 @@ main() {
     exit 1
   fi
   LIVE_SHA=$(cd "${LIVE_DIR}" && git rev-parse HEAD 2>/dev/null || echo "")
+  # Prefer the live release's webhook — the same file health-alert.ts and the
+  # other TS scripts read — over the object-store checkout's.
+  if [ -z "${DEPLOY_ALERT_WEBHOOK_EXPLICIT:-}" ] && [ -f "${LIVE_DIR}/.env.local" ]; then
+    _hook=$(sed -n 's/^ALERT_WEBHOOK_URL=//p' "${LIVE_DIR}/.env.local" | head -1)
+    [ -n "${_hook}" ] && DEPLOY_ALERT_WEBHOOK="${_hook}"
+  fi
 
   # Keep the object-store checkout on the tip too. This is what PM2 runs the
   # poller from, so this fast-forward is how deploy.sh updates itself; the
