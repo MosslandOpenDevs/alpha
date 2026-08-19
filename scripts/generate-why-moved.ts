@@ -142,6 +142,9 @@ async function main(parsed: ParsedArgs) {
     kstDateForTimestamp,
     kstDayBounds,
     listAllWhyMoved,
+    articleWorthy,
+    ARTICLE_MIN_SINGLE_MOVE_PCT,
+    ARTICLE_MIN_NET_MOVE_PCT,
   } = await import("../lib/why-moved");
   const { formatPulseLoadDiagnostics, getAllPulses, getPulseLoadDiagnostics } =
     await import("../lib/mic");
@@ -178,7 +181,7 @@ async function main(parsed: ParsedArgs) {
   }
   const combos = new Map<
     string,
-    { asset: string; date: string; pulseIds: string[] }
+    { asset: string; date: string; pulseIds: string[]; pulses: typeof pulses }
   >();
   for (const p of pulses) {
     // getAllPulses() already rejects pulses without a parseable detectedAt.
@@ -187,9 +190,16 @@ async function main(parsed: ParsedArgs) {
     const asset = p.asset.toLowerCase();
     const key = `${asset}|${date}`;
     const combo = combos.get(key);
-    if (combo) combo.pulseIds.push(p.id);
-    else combos.set(key, { asset, date, pulseIds: [p.id] });
+    if (combo) { combo.pulseIds.push(p.id); combo.pulses.push(p); }
+    else combos.set(key, { asset, date, pulseIds: [p.id], pulses: [p] });
   }
+  // A day whose biggest five-minute move is 0.2% does not get a "왜 움직였나"
+  // article — see articleWorthy(). Counted, not silent.
+  let filteredQuiet = 0;
+  for (const [key, combo] of [...combos.entries()]) {
+    if (!articleWorthy(combo.pulses)) { combos.delete(key); filteredQuiet++; }
+  }
+  console.log(`Asset-days: ${combos.size} worth an article, ${filteredQuiet} too quiet (max move < ${ARTICLE_MIN_SINGLE_MOVE_PCT}% and net < ${ARTICLE_MIN_NET_MOVE_PCT}%)`);
 
   const samePulseIds = (
     stored: { id: string }[],

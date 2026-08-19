@@ -21,8 +21,52 @@ import {
   type Pulse,
 } from "./mic";
 
-const PROMPT_VERSION = "why-moved-v1";
+// v2 (2026-08-19): 24-hour KST clock, UTC stamps inside summaries rewritten,
+// confidence + 사후 검증 shown, title fixed, 3–5 points. Bumped so v1 rows are
+// not replayed from cache.
+const PROMPT_VERSION = "why-moved-v2";
 const KST_OFFSET_MS = 9 * 3600_000;
+
+/** HH:MM in KST, 24-hour. toLocaleTimeString("ko-KR") gave "오전 12:20" for
+ *  00:20 and the model wrote "12:20 KST" in the article. */
+function kstHm(iso: string): string {
+  const t = Date.parse(iso);
+  return Number.isFinite(t) ? new Date(t + KST_OFFSET_MS).toISOString().slice(11, 16) : "--:--";
+}
+/** Flatten free text for a prompt line: SignalMap writes raw UTC ISO stamps
+ *  ("2026-08-18T16:11:59.999Z 기준 …") into pulse summaries; rewrite them as
+ *  KST so the model is not handed two clocks. Cut on a sentence boundary. */
+function promptText(text: string | null | undefined, max: number): string {
+  const flat = (text ?? "")
+    .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?Z/g, (m) => `${kstHm(m)} KST`)
+    .replace(/\s+/g, " ")
+    .trim();
+  if (flat.length <= max) return flat;
+  const cut = flat.slice(0, max);
+  const at = Math.max(cut.lastIndexOf("다."), cut.lastIndexOf(". "), cut.lastIndexOf("."));
+  return at > max * 0.5 ? cut.slice(0, at + 1) : cut;
+}
+
+/**
+ * Is this day's pulse set worth an article?
+ *
+ * The cron used to build an article for every asset that had ANY pulse, and
+ * SignalMap's adaptive floor fires on ~0.2% moves on quiet days — so the site
+ * published indexed NewsArticles titled "왜 움직였나" about a 0.19% five-minute
+ * blip whose own text said the cause was unconfirmed. Require a real move.
+ */
+export const ARTICLE_MIN_SINGLE_MOVE_PCT = 0.5;
+export const ARTICLE_MIN_NET_MOVE_PCT = 1.0;
+export function articleWorthy(pulses: Pulse[]): boolean {
+  if (!pulses.length) return false;
+  const maxAbs = Math.max(...pulses.map((p) => Math.abs(p.magnitudePct)));
+  if (maxAbs >= ARTICLE_MIN_SINGLE_MOVE_PCT) return true;
+  const sorted = [...pulses].sort((a, b) => Date.parse(a.detectedAt) - Date.parse(b.detectedAt));
+  const first = sorted.find((p) => Number.isFinite(p.priceFrom))?.priceFrom;
+  const last = [...sorted].reverse().find((p) => Number.isFinite(p.priceTo))?.priceTo;
+  if (first && last) return Math.abs(((last - first) / first) * 100) >= ARTICLE_MIN_NET_MOVE_PCT;
+  return false;
+}
 
 export type WhyMovedArticle = {
   asset: string;
@@ -225,15 +269,18 @@ function parseWhyMovedResponse(content: string): ParsedWhyMovedResponse {
       throw new Error("response must be an object");
     }
     const value = candidate as Record<string, unknown>;
+    // The title is no longer the model's to write (see generateWhyMoved) —
+    // it authored "GLD, 6% 국채금리 급등에 0.4% 하락" over a pulse whose own
+    // 사후 검증 called the cause unconfirmed. Points: 3–5, so a one-fact day
+    // does not force two invented slots.
     if (
-      typeof value.title !== "string" ||
-      !value.title.trim() ||
       typeof value.oneLine !== "string" ||
       !value.oneLine.trim() ||
       typeof value.why !== "string" ||
       !value.why.trim() ||
       !Array.isArray(value.points) ||
-      value.points.length !== 5 ||
+      value.points.length < 3 ||
+      value.points.length > 5 ||
       !value.points.every(
         (point) => typeof point === "string" && point.trim().length > 0
       )
@@ -241,7 +288,7 @@ function parseWhyMovedResponse(content: string): ParsedWhyMovedResponse {
       throw new Error("response does not match the why-moved schema");
     }
     return {
-      title: value.title,
+      title: typeof value.title === "string" ? value.title : "",
       oneLine: value.oneLine,
       why: value.why,
       points: value.points as string[],
@@ -303,22 +350,25 @@ export async function generateWhyMoved(
   const pulseLines = pulses
     .map((p) => {
       const dirSign = p.direction === "up" ? "+" : "-";
-      const t = new Date(p.detectedAt);
-      const timeStr = t.toLocaleTimeString("ko-KR", {
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone: "Asia/Seoul",
-      });
       // State the unit. A bare "90,557,000 → 90,735,000" for a KRW-quoted
       // pulse reads as dollars to the model, and roughly a third of active
       // pulses are KRW-quoted (BTC-KRW, USDKRW).
       const money = (n?: number) => (n == null ? "?" : fmtPulsePrice(n, p.priceUnit));
-      return `- ${timeStr} KST: ${dirSign}${Math.abs(p.magnitudePct).toFixed(2)}% (${money(p.priceFrom)} → ${money(p.priceTo)}) — ${p.summary.slice(0, 200)}`;
+      const head = `- ${kstHm(p.detectedAt)} KST: ${dirSign}${Math.abs(p.magnitudePct).toFixed(2)}% (${money(p.priceFrom)} → ${money(p.priceTo)}) [신뢰도: ${p.confidence}] — ${promptText(p.summary, 320)}`;
+      // The verifier's verdict is the most honest sentence in the data and
+      // was never shown to the model — so the article asserted causes the
+      // 사후 검증 had already called unconfirmed.
+      const verified = p.verifiedSummary ? `\n    사후 검증: ${promptText(p.verifiedSummary, 320)}` : "";
+      return head + verified;
     })
     .join("\n");
 
   const sourceLines = uniqueSources
-    .map((s) => `- ${s.title || s.url} (${s.publisher || "source"})`)
+    .map((s) => {
+      const when = s.publishedAt ? ` · 발행 ${kstHm(s.publishedAt)} KST` : "";
+      const excerpt = s.excerpt ? ` · 발췌: ${promptText(s.excerpt, 160)}` : "";
+      return `- ${s.title || s.url} (${s.publisher || "source"})${when}${excerpt}`;
+    })
     .join("\n");
 
   const prompt = `${date} 한국 시장 시각으로 "${assetLabel}이 왜 움직였나" 정리.
@@ -334,21 +384,24 @@ ${sourceLines}
 
 스키마:
 {
-  "title": "오늘 ${assetLabel}는 왜 움직였나? — ${date} (≤60자)",
   "oneLine": "한 줄 결론 (≤80자, 사실 + 인사이트)",
   "why": "왜 중요한가 (≤120자)",
   "points": [
     "확인된 사실 (≤50자)",
-    "가능한 원인 (≤50자)",
-    "다른 해석 (≤50자)",
-    "연결된 자산/매크로 (≤50자)",
+    "가능한 원인 (≤50자) — 자료에 있을 때만",
+    "다른 해석 (≤50자) — 자료에 있을 때만",
+    "연결된 자산/매크로 (≤50자) — 자료에 있을 때만",
     "아직 불확실한 것 (≤50자)"
   ]
 }
+points 는 3~5개. 해당 근거가 자료에 없는 슬롯은 생략하고, 슬롯끼리 같은 말을 반복하지 않는다.
 
 규칙:
 - 한국어 출력
 - 가격 권유 X · 정치 비방 X · 단정 X
+- 위 자료의 시각은 전부 KST 다. 시차·경과 시간을 계산하지 말고 표기된 시각만 쓴다.
+- 변동률·가격은 위 시그널 줄의 수치 그대로. 여러 건을 합산하지 않는다.
+- 사후 검증이 인과를 부정하거나 미확인으로 두면 한 줄 결론에서 그 원인을 단정하지 않는다. speculative 시그널은 원인 서술 대신 미확인으로 쓴다.
 - pulse summary와 보도 내용 *구체적*으로 인용
 - generic 문구 X
 - "...로 보임", "~가능성" 어휘`;
@@ -375,7 +428,10 @@ ${sourceLines}
   const article: WhyMovedArticle = {
     asset,
     date,
-    title: parsed.title,
+    // Deterministic — the intended SEO form (scripts/audit-baseline.ts Q1),
+    // and it takes the whole class of model-authored causal titles off the
+    // table.
+    title: `오늘 ${assetLabel}는 왜 움직였나? — ${date}`,
     oneLine: parsed.oneLine,
     why: parsed.why,
     points: parsed.points,
