@@ -21,13 +21,58 @@ import {
   getEntity,
   getTopic,
   getEvent,
+  getVideosForEntity,
+  getVideosForTopic,
+  getVideosForEvent,
   type Entity,
   type Pulse,
+  type VideoRecord,
 } from "./mic";
 import { getSynthesis } from "./synthesis";
 import { kstClock } from "./kst";
 
-const PROMPT_VERSION = "persona-v1";
+// v2 (2026-08-19): the model now sees the page's recent videos, never a bare
+// "영상 N편" count, and the persona system prompt is sent once. Bumped so the
+// v1 rows — 58% of which literally contain "영상 N편" — are not replayed.
+const PROMPT_VERSION = "persona-v2";
+
+/** How many recent videos to show the persona, and how long each line is. */
+const PAGE_VIDEO_LINES = 6;
+
+/**
+ * The page's recent videos as prompt lines — what the page is actually about.
+ *
+ * Measured on production 2026-08-19: 11 of the 12 latest persona posts were
+ * generated from a "페이지 핵심" of literally `<라벨> 영상 N편` because only
+ * 41 of 338 entities have a synthesis card. No title, summary or claim ever
+ * reached the model, so it wrapped its catchphrases around the label and the
+ * count — 58% of the last 30 days' posts contain "영상 N편" verbatim.
+ * `since` limits the list to videos newer than the persona's previous post on
+ * this page, so "what changed" has something to point at.
+ */
+export function pageVideoLines(
+  refType: RefType,
+  refId: string,
+  since?: string | null
+): string[] {
+  let vids: VideoRecord[] = [];
+  if (refType === "entity" || refType === "asset") vids = getVideosForEntity(refId, PAGE_VIDEO_LINES * 2);
+  else if (refType === "topic") vids = getVideosForTopic(refId, PAGE_VIDEO_LINES * 2);
+  else if (refType === "event") vids = getVideosForEvent(refId, PAGE_VIDEO_LINES * 2);
+  const sinceT = since ? Date.parse(since) : NaN;
+  return vids
+    .filter((v) => v.meta?.title && v.analysis?.summary_oneline)
+    .filter((v) => {
+      if (!Number.isFinite(sinceT)) return true;
+      const t = v.meta.published_at ? Date.parse(v.meta.published_at) : NaN;
+      return Number.isFinite(t) && t > sinceT;
+    })
+    .slice(0, PAGE_VIDEO_LINES)
+    .map((v) => {
+      const day = v.meta.published_at ? kstClock(new Date(v.meta.published_at)).date.slice(5) : "??-??";
+      return `- (${promptSafe(v.meta.author_name ?? "?", 20)}, ${day}) ${promptSafe(v.meta.title, 70)} — ${promptSafe(v.analysis?.summary_oneline ?? "", 120)}`;
+    });
+}
 
 export type RefType = "entity" | "topic" | "event" | "asset";
 
@@ -236,10 +281,21 @@ function buildPrompt(args: {
   refLabel: string;
   refType: RefType;
   pageContext: string;
+  videoLines: string[];
   topComments: { handle: string; body: string; stance: string | null }[];
   prior: PriorPost | null;
 }): string {
-  const { agent, refLabel, refType, pageContext, topComments, prior } = args;
+  const { agent, refLabel, refType, pageContext, videoLines, topComments, prior } = args;
+
+  // Video titles/summaries come from the analysis pipeline, not from users,
+  // but they quote third-party speech — same fence, same rule.
+  const videosBlock =
+    videoLines.length > 0
+      ? `\n<page_videos${prior ? ' scope="지난 글 이후 새 영상"' : ""}>\n` +
+        videoLines.join("\n") +
+        "\n</page_videos>\n" +
+        notInstructions("page_videos")
+      : "";
 
   // These are anonymous submissions from an unauthenticated endpoint. Fence
   // them and flatten line breaks so an injected block cannot pose as a new
@@ -303,17 +359,20 @@ function buildPrompt(args: {
       : `\n- stance: 페이지의 지배적 서사에 동의(agree)·반대(disagree)·관찰(observe) 중 ` +
         `캐릭터에 맞게 솔직히 선택하세요.`;
 
-  return `${agent.systemPrompt}
-
-다음 페이지에 댓글을 작성합니다.
+  // The persona's system prompt goes once, as the system message (see the
+  // chat() call). It used to be prepended here too, so its catchphrase
+  // instructions were the largest block in the user turn — which is what the
+  // model then wrote when the page gave it nothing else.
+  return `다음 페이지에 댓글을 작성합니다.
 - 페이지 종류: ${refType}
 - 페이지 라벨: ${refLabel}
-- 페이지 핵심: ${pageContext}${commentsBlock}${priorBlock}
+- 페이지 핵심: ${pageContext}${videosBlock}${commentsBlock}${priorBlock}
 
 작성 규칙:
 - ${agent.displayName}의 캐릭터로 (시스템 프롬프트 그대로)
 - 길이는 시스템에 명시된 한도 준수
-- 페이지 내용에 *구체적*으로 반응 (generic comment X)
+- 페이지 내용에 *구체적*으로 반응 — 위 페이지 핵심·<page_videos> 에 실제로 있는 것에 대해 쓰세요.
+- 거기 없는 사실·수치·인과를 만들지 마세요. 입버릇과 전문 용어는 페이지 내용과 실제로 이어질 때만 쓰고, 이어지지 않으면 생략하세요.
 - 기존 댓글이 있으면 그 내용에 살짝 반응 (그러나 인신공격 X)${stanceRule}${priorRule}
 
 응답: *오직 JSON*. markdown 백틱 X.
@@ -364,6 +423,7 @@ export async function generatePersonaPost(args: {
   // 페이지 컨텍스트 수집
   let refLabel = "";
   let pageContext = "";
+  let pageEntity: Entity | null = null;
   let synthRef = args.refType;
   // asset → entity로 매핑 (synthesis는 entity 단위)
   if (synthRef === "asset") synthRef = "entity";
@@ -377,30 +437,52 @@ export async function generatePersonaPost(args: {
       args.refType === "asset" ? getAssetOrStub(args.refId) : getEntity(args.refId);
     if (e) {
       refLabel = e.label;
+      pageEntity = e;
       const synth = getSynthesis("entity", args.refId);
-      // "이더리움 영상 0편" is not context a model can write from. Prefer the
-      // synthesis, then live market data, and only then the video count.
-      pageContext =
-        synth?.oneLine || assetMarketContext(e) || `${e.label} 영상 ${e.videoCount}편`;
+      // Synthesis one-liner, else live market data. Never a video COUNT — the
+      // videos themselves go in <page_videos> below.
+      pageContext = synth?.oneLine || assetMarketContext(e) || "";
     }
   } else if (args.refType === "topic") {
     const t = getTopic(args.refId);
     if (t) {
       refLabel = t.label;
       const synth = getSynthesis("topic", args.refId);
-      pageContext = synth?.oneLine || t.description || `${t.label} 영상 ${t.videoCount}편`;
+      pageContext = synth?.oneLine || t.description || "";
     }
   } else if (args.refType === "event") {
     const ev = getEvent(args.refId);
     if (ev) {
       refLabel = ev.label;
       const synth = getSynthesis("event", args.refId);
-      pageContext = synth?.oneLine || `${ev.label}`;
+      pageContext = synth?.oneLine || "";
     }
   }
 
   if (!refLabel) {
     return { ok: false, reason: "ref_not_found" };
+  }
+
+  // What the page is about, as its recent videos. With a prior post on this
+  // page, only videos newer than it — the persona is asked what changed, and
+  // this is the only place "what changed" can come from.
+  const videoLines = pageVideoLines(args.refType, args.refId, prior?.created_at ?? null);
+
+  // Nothing real to react to → say so and let the tick move on. A persona
+  // with only a label and a number produced the "narrative 게임 제대로네 📈"
+  // class of post: in character, about nothing.
+  if (!pageContext && videoLines.length === 0) {
+    return { ok: false, reason: "no_page_context" };
+  }
+  if (prior && videoLines.length === 0) {
+    // Asset pages can still have moved since — that counts as new.
+    const movedSince =
+      pageEntity != null &&
+      recentPulsesFor(pageEntity).some((p) => Date.parse(p.detectedAt) > Date.parse(prior.created_at));
+    if (!movedSince) return { ok: false, reason: "no_new_content_since_prior" };
+  }
+  if (!pageContext) {
+    pageContext = "(합성 카드 없음 — 아래 <page_videos> 가 페이지 내용)";
   }
 
   // top 사람 댓글 (있으면 참고)
@@ -423,6 +505,7 @@ export async function generatePersonaPost(args: {
     refLabel,
     refType: args.refType,
     pageContext,
+    videoLines,
     topComments,
     prior,
   });

@@ -94,8 +94,16 @@ async function main() {
   const pool: Candidate[] = [];
   // Stub assets included: they have live pages, just no canonical row yet.
   // hasEnoughPageContext() is what keeps the empty ones out.
+  let skippedPersons = 0;
   for (const e of [...getAllEntities(), ...getStubAssetEntities()]) {
     if (!hasEnoughPageContext(e)) continue;
+    // People are out. The persona pool is crypto/macro commentators; the
+    // person entities in canonical are overwhelmingly politicians, professors
+    // and news figures (이재명·정청래·오세훈·시진핑·김건희 …), and every
+    // high-severity irrelevance in the 2026-08-19 content review was a persona
+    // dropped onto one of them with nothing to say. Orgs, assets, countries and
+    // concepts stay.
+    if (e.type === "person") { skippedPersons++; continue; }
     const refType = e.type === "asset" ? "asset" : "entity";
     if (!selectedTypes.has(refType)) continue;
     pool.push({
@@ -120,7 +128,7 @@ async function main() {
   pool.sort(() => Math.random() - 0.5);
 
   console.log(
-    `Tick ${today}: pool=${pool.length}, types=${[...selectedTypes].join(",")}, agents=${agents.length}, target=${pages} posts`
+    `Tick ${today}: pool=${pool.length} (persons skipped ${skippedPersons}), types=${[...selectedTypes].join(",")}, agents=${agents.length}, target=${pages} posts`
   );
 
   let posted = 0;
