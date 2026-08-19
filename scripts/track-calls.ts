@@ -150,7 +150,7 @@ async function main() {
 
   const { createCallFromPost, resolveCall, getPendingCallsDue, expireUnresolvableCalls } =
     await import("../lib/calls");
-  const { isCallableAsset, marketFor } = await import("../lib/prices");
+  const { isCallableAsset, marketFor, formatPrice } = await import("../lib/prices");
   const { getDb } = await import("../lib/db");
 
   // Trigger table creation by calling getHandleStats once
@@ -211,7 +211,7 @@ async function main() {
         if (call) {
           created++;
           process.stdout.write(
-            `  ✓ ${call.asset_id} ${call.direction} @${post.author_handle} → ref $${call.reference_price.toFixed(4)}\n`
+            `  ✓ ${call.asset_id} ${call.direction} @${post.author_handle} → ref ${formatPrice(call.asset_id, call.reference_price)}\n`
           );
         } else {
           skipped++;
