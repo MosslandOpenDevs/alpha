@@ -138,6 +138,7 @@ let _entitiesCache: Cache<Entity[]> | null = null;
 let _topicsCache: Cache<Topic[]> | null = null;
 let _eventsCache: Cache<EventItem[]> | null = null;
 let _pulsesCache: Cache<Pulse[]> | null = null;
+let _videoIndexCache: Cache<VideoIndexEntry[]> | null = null;
 let _pulseDiagnosticsCache: Cache<PulseLoadDiagnostics> | null = null;
 
 function fresh<T>(c: Cache<T> | null): boolean {
@@ -222,6 +223,62 @@ export function getVideo(videoId: string): VideoRecord | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * One row per analysed video, from SignalMap's `_signalmap.json` index —
+ * title, channel, publishedAt, category and the analysis one-liner/claims/
+ * quotes, WITHOUT the transcript or embedding.
+ *
+ * This is the only way to ask "what was published on day X" without opening
+ * all 11k `yt-*.json` files (2+ GB). One 28 MB parse, cached like the
+ * canonical files.
+ */
+export type VideoIndexEntry = {
+  videoId: string;
+  channelName?: string;
+  channelId?: string;
+  category?: string;
+  videoTitle?: string;
+  publishedAt?: string;
+  topicLabel?: string;
+  summaryOneline?: string;
+  stance?: string;
+  claims?: unknown[];
+  quotes?: { text?: string; ts_seconds?: number }[];
+};
+
+export function getVideoIndex(): VideoIndexEntry[] {
+  if (fresh(_videoIndexCache)) return _videoIndexCache!.data;
+  const p = path.join(MIC_DATA_PATH, "_signalmap.json");
+  let data: VideoIndexEntry[] = [];
+  if (fs.existsSync(p)) {
+    try {
+      const raw = JSON.parse(fs.readFileSync(p, "utf8")) as { videos?: Record<string, unknown>[] };
+      data = (raw.videos ?? []).map((v) => {
+        const { embedding, ...rest } = v as { embedding?: unknown; [k: string]: unknown };
+        void embedding;
+        return rest as VideoIndexEntry;
+      });
+    } catch {
+      // A half-written file (SignalMap rewrites it) reads as no index this
+      // round; the next TTL expiry tries again.
+      data = [];
+    }
+  }
+  _videoIndexCache = { data, loadedAt: Date.now() };
+  return data;
+}
+
+/** Videos whose publishedAt falls in [start, end) (epoch ms). Newest first. */
+export function getVideosPublishedBetween(start: number, end: number): VideoIndexEntry[] {
+  return getVideoIndex()
+    .filter((v) => {
+      if (!v.publishedAt) return false;
+      const t = Date.parse(v.publishedAt);
+      return Number.isFinite(t) && t >= start && t < end;
+    })
+    .sort((a, b) => Date.parse(b.publishedAt!) - Date.parse(a.publishedAt!));
 }
 
 /** Get videos for an entity, ordered by published_at desc when available. */
