@@ -83,8 +83,9 @@ export default async function WhyMovedPage({ params }: Props) {
             {symbol.toUpperCase()} — {date} 데이터 없음
           </h1>
           <p className="text-sm text-[var(--muted)]">
-            이 날에 추적된 가격 시그널이 없습니다. signalmap이 매 5분 윈도우 1%
-            이상 변동만 감지합니다.
+            이 날에 추적된 가격 시그널이 없습니다. signalmap 은 5분 윈도우 변동을
+            자산별 적응형 임계값(조용한 장에서는 0.2% 안팎부터)으로 감지하고, Alpha 는
+            그중 의미 있는 움직임(단일 0.5% 또는 하루 순변화 1% 이상)이 있는 날만 기사로 씁니다.
           </p>
           <p className="mt-3">
             <a href={parentHref} className="text-[var(--moss)] hover:underline">
@@ -118,7 +119,9 @@ export default async function WhyMovedPage({ params }: Props) {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
     headline: article.title,
-    datePublished: date + "T00:00:00+09:00",
+    // When the article was actually written — not the URL date at midnight,
+    // which was a constant unrelated to anything that happened.
+    datePublished: article.generatedAt,
     dateModified: article.generatedAt,
     author: { "@type": "Organization", name: "Alpha by Mossland" },
     publisher: { "@type": "Organization", name: "Mossland" },
@@ -193,9 +196,11 @@ export default async function WhyMovedPage({ params }: Props) {
           <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
             가격 시그널 ({article.pulses.length})
           </h2>
+          {/* Not compact: this is the one page whose point is causation, and
+              PulseCard hides the 사후 검증 block in compact mode. */}
           <div className="space-y-3">
             {article.pulses.map((p) => (
-              <PulseCard key={p.id} pulse={p} compact />
+              <PulseCard key={p.id} pulse={p} />
             ))}
           </div>
         </section>
