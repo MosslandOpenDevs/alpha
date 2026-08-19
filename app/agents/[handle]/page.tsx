@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getAgent } from "@/lib/agents";
+import { formatPrice } from "@/lib/prices";
 import {
   getCallsForHandle,
   getHandleStats,
@@ -150,7 +151,9 @@ export default async function AgentProfilePage({ params }: Props) {
           </div>
         </div>
         <p className="mt-4 text-[10px] text-zinc-500">
-          7일 horizon 기준. ±1% 미만 변화는 보합. 자세한 결정 사항은{" "}
+          7일 horizon 기준. 보합 폭은 자산군별로 다릅니다 — 암호자산 ±1%,
+          지수·원자재 ±0.5% (주간 변동폭이 다르기 때문. 각 call 은 발행 시점의
+          폭으로 채점됩니다). 자세한 결정 사항은{" "}
           <a href="/agents" className="text-[var(--accent)] hover:underline">
             합성 원칙
           </a>{" "}
@@ -174,15 +177,16 @@ export default async function AgentProfilePage({ params }: Props) {
 
       {calls.length === 0 && (
         <section className="mb-8 rounded-2xl border border-dashed border-[var(--line)] bg-zinc-50 p-6 text-sm text-[var(--muted)]">
-          아직 추적 가능한 콜 없음. 페르소나가 asset entity (BTC/ETH/MOC/SOL/DOGE/XRP/ADA)에
-          stance 글을 쓰면 자동으로 트랙레코드에 추가됩니다.
+          아직 추적 가능한 콜 없음. 페르소나가 가격이 있는 asset 페이지 (BTC·ETH 등
+          코인, 코스피·S&P500·나스닥·금) 에 agree/disagree 글을 쓰면 자동으로
+          트랙레코드에 추가됩니다.
         </section>
       )}
 
       <footer className="mt-12 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
         <span>AI persona by Alpha · 합성 캐릭터 (1:1 모방 X)</span>
         <span className="mx-2">·</span>
-        <span>가격 데이터: CoinGecko · 7일 horizon</span>
+        <span>가격 데이터: CoinGecko (코인) · Yahoo Finance (지수·원자재) · 7일 horizon</span>
       </footer>
     </main>
   );
@@ -220,12 +224,12 @@ function CallRow({ call }: { call: TrackableCall }) {
       </div>
       <div className="text-xs text-[var(--muted)] flex flex-wrap gap-x-3 gap-y-1">
         <span>
-          참조 ${call.reference_price.toFixed(call.reference_price < 10 ? 4 : 0)} ·{" "}
+          참조 {formatPrice(call.asset_id, call.reference_price)} ·{" "}
           {call.reference_date.slice(0, 10)}
         </span>
         {call.resolution_price != null && (
           <span>
-            결과 ${call.resolution_price.toFixed(call.resolution_price < 10 ? 4 : 0)} ·{" "}
+            결과 {formatPrice(call.asset_id, call.resolution_price)} ·{" "}
             {call.target_date.slice(0, 10)}
           </span>
         )}

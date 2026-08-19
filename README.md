@@ -40,7 +40,7 @@ Alpha (Next.js 16 + Tailwind v4 + SQLite)
   • Page generation (App Router)
   • RAG Q&A (token-based + hybrid keyword + embedding)
   • 8 AI personas with system prompts (synthesized clusters, not 1:1 mimicry)
-  • Trackable price calls (7-day auto-resolve via CoinGecko)
+  • Trackable price calls (7-day auto-resolve — CoinGecko for coins, Yahoo Finance for indices)
   • Daily/weekly cron jobs (PM2)
   • MCP server (12 tools)
 ```

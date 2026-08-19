@@ -5,22 +5,18 @@
  * 1. 페르소나/사용자가 asset entity에 stance 글 작성
  * 2. lib/calls.ts가 자동으로 call 레코드 생성
  *    - direction: agree → up, disagree → down, observe → skip
- *    - reference_price: 글 작성 시점 가격 (CoinGecko)
+ *    - reference_price: 글 작성 시점 가격 (lib/prices.ts — 코인이면
+ *      CoinGecko, 지수·원자재면 Yahoo)
  *    - target_date: reference_date + horizon
+ *    - flat_pct: 그 시점의 보합 폭을 행에 기록 (자산군별로 다름)
  * 3. horizon 후 cron이 resolution_price 가져와서 자동 검증
- *    - actual change ≥ +1% AND direction='up' → correct
- *    - actual change ≤ -1% AND direction='down' → correct
- *    - 그 외 → wrong (반대) 또는 flat (변화 ≤ 1%)
+ *    - |변화| < flat_pct → flat
+ *    - 방향 일치 → correct, 불일치 → wrong
  * 4. handle별 적중률 누적 → /agents/[handle] 트랙레코드
  */
 
 import { getDb } from "./db";
-import {
-  coingeckoIdFor,
-  getCurrentPrice,
-  getHistoricalPrice,
-  isCallableAsset,
-} from "./coingecko";
+import { currentPrice, flatPctFor, isCallableAsset, marketFor, priceOn } from "./prices";
 
 export type Direction = "up" | "down";
 export type ResolutionStatus =
@@ -44,6 +40,8 @@ export type TrackableCall = {
   reference_price: number;
   reference_date: string;
   target_date: string;
+  /** 보합 판정 폭(%). 발행 시점의 규칙을 행이 스스로 설명한다. */
+  flat_pct: number;
   resolution_status: ResolutionStatus;
   resolution_price: number | null;
   resolved_at: string | null;
@@ -53,8 +51,13 @@ export type TrackableCall = {
 
 // 기본 horizon (post에 명시 없으면)
 const DEFAULT_HORIZON_DAYS = 7;
-// flat 임계 (절대 변화 < FLAT_THRESHOLD_PCT 면 flat 판정)
-const FLAT_THRESHOLD_PCT = 1;
+/**
+ * 보합 폭의 기본값. 실제 폭은 자산군별로 다르고 (lib/prices.ts) call 생성
+ * 시점에 행에 기록된다 — 폭을 나중에 바꿔도 이미 발행된 기록이 조용히
+ * 재채점되지 않게 하기 위해서다. 이 상수는 그 컬럼이 없던 시절에 만들어진
+ * 행들이 실제로 채점받았던 값이기도 하다.
+ */
+const LEGACY_FLAT_PCT = 1;
 /**
  * How long past target_date we keep trying to price a call.
  *
@@ -66,9 +69,27 @@ const FLAT_THRESHOLD_PCT = 1;
  * inside the window where a retry can still succeed.
  */
 const RESOLVE_GIVE_UP_DAYS = 300;
+/**
+ * How long after target_date a call becomes due for settlement.
+ *
+ * Exchange-traded assets settle on the close of the target date's session,
+ * and that session must be over before it can be read. Without a delay the
+ * 13:00 KST cron reached a US index call on its target date at 04:00 UTC —
+ * hours before that day's open — and settled it on the PREVIOUS session's
+ * close; had that run failed, the retry a day later would have used the
+ * target day's close instead. Same call, two prices, decided by whether a
+ * cron tick succeeded. KOSPI was worse: mid-session print vs close.
+ *
+ * A full day clears every mapped market's close (the latest is 21:00 UTC),
+ * so the first eligible run always sees the same finished bar. Coin prices
+ * come from CoinGecko's 00:00 UTC snapshot and were already deterministic;
+ * they just settle one run later than before.
+ */
+const SETTLE_DELAY_MS = 24 * 3600_000;
 
 function ensureTable() {
-  getDb().exec(`
+  const db = getDb();
+  db.exec(`
     CREATE TABLE IF NOT EXISTS alpha_trackable_calls (
       id TEXT PRIMARY KEY,
       post_id TEXT NOT NULL UNIQUE,
@@ -81,6 +102,7 @@ function ensureTable() {
       reference_price REAL NOT NULL,
       reference_date TEXT NOT NULL,
       target_date TEXT NOT NULL,
+      flat_pct REAL NOT NULL DEFAULT ${LEGACY_FLAT_PCT},
       resolution_status TEXT NOT NULL DEFAULT 'pending',
       resolution_price REAL,
       resolved_at TEXT,
@@ -92,6 +114,24 @@ function ensureTable() {
     CREATE INDEX IF NOT EXISTS idx_calls_status ON alpha_trackable_calls(resolution_status);
     CREATE INDEX IF NOT EXISTS idx_calls_target ON alpha_trackable_calls(target_date);
   `);
+
+  // Existing databases predate flat_pct. The default backfills every row with
+  // 1, which is exactly the band those calls were graded under, so the
+  // published record stays true.
+  const cols = db
+    .prepare(`PRAGMA table_info(alpha_trackable_calls)`)
+    .all() as { name: string }[];
+  if (!cols.some((c) => c.name === "flat_pct")) {
+    try {
+      db.exec(
+        `ALTER TABLE alpha_trackable_calls ADD COLUMN flat_pct REAL NOT NULL DEFAULT ${LEGACY_FLAT_PCT}`
+      );
+    } catch (err) {
+      // The web process and the cron can reach this concurrently; losing the
+      // race is fine, the column exists either way.
+      if (!/duplicate column name/i.test(String(err))) throw err;
+    }
+  }
 }
 
 function nano(): string {
@@ -128,17 +168,19 @@ export async function createCallFromPost(post: {
     .get(post.id);
   if (existing) return null;
 
-  // 가격이 있어도 페그 자산이면 방향성 call 자체가 성립하지 않는다.
+  // 가격 출처가 없거나, 있어도 페그 자산이면 방향성 call 이 성립하지 않는다.
+  // (isCallableAsset 이 두 조건을 모두 본다.)
   if (!isCallableAsset(post.ref_id)) return null;
-  const cgId = coingeckoIdFor(post.ref_id);
-  if (!cgId) return null; // CoinGecko에 없는 자산
 
-  const price = await getCurrentPrice(cgId);
-  if (price == null || !Number.isFinite(price)) return null;
+  const price = await currentPrice(post.ref_id);
+  if (price == null || !Number.isFinite(price) || price <= 0) return null;
 
-  // entity label 가져오기
-  const { getEntity } = await import("./mic");
-  const entity = getEntity(post.ref_id);
+  // getAssetOrStub, not getEntity: getAllEntities() reads the canonical store
+  // only, so an asset that lives as a stub (ethereum was one) resolves to null
+  // and the published call would carry the raw id — "ethereum" where the page
+  // says 이더리움.
+  const { getAssetOrStub } = await import("./mic");
+  const entity = getAssetOrStub(post.ref_id);
   const assetLabel = entity?.label || post.ref_id;
 
   const direction: Direction = post.stance === "agree" ? "up" : "down";
@@ -157,6 +199,7 @@ export async function createCallFromPost(post: {
     reference_price: price,
     reference_date: refDate.toISOString(),
     target_date: targetDate.toISOString(),
+    flat_pct: flatPctFor(post.ref_id),
     resolution_status: "pending",
     resolution_price: null,
     resolved_at: null,
@@ -169,9 +212,9 @@ export async function createCallFromPost(post: {
       `INSERT INTO alpha_trackable_calls
         (id, post_id, author_kind, author_handle, asset_id, asset_label,
          direction, horizon_days, reference_price, reference_date, target_date,
-         resolution_status, resolution_price, resolved_at, actual_change_pct,
-         created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+         flat_pct, resolution_status, resolution_price, resolved_at,
+         actual_change_pct, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       call.id,
@@ -185,6 +228,7 @@ export async function createCallFromPost(post: {
       call.reference_price,
       call.reference_date,
       call.target_date,
+      call.flat_pct,
       call.resolution_status,
       null,
       null,
@@ -204,18 +248,23 @@ export async function resolveCall(callId: string): Promise<TrackableCall | null>
   if (!row) return null;
   if (row.resolution_status !== "pending") return row;
 
-  const cgId = coingeckoIdFor(row.asset_id);
-  if (!cgId) return null;
+  // Resolve still works for pegged assets: they cannot receive NEW calls, but
+  // ones already on record have to keep settling.
+  if (!marketFor(row.asset_id)) return null;
 
   const targetDateStr = row.target_date.slice(0, 10);
-  const resolutionPrice = await getHistoricalPrice(cgId, targetDateStr);
+  const resolutionPrice = await priceOn(row.asset_id, targetDateStr);
   if (resolutionPrice == null) return null;
 
   const change =
     ((resolutionPrice - row.reference_price) / row.reference_price) * 100;
 
+  // The band the call was PUBLISHED under, not today's — an older row grades
+  // by the rule it was issued with.
+  const flatPct = Number.isFinite(row.flat_pct) ? row.flat_pct : LEGACY_FLAT_PCT;
+
   let status: ResolutionStatus;
-  if (Math.abs(change) < FLAT_THRESHOLD_PCT) {
+  if (Math.abs(change) < flatPct) {
     status = "flat";
   } else if (
     (row.direction === "up" && change > 0) ||
@@ -320,6 +369,7 @@ export function getCallsForHandle(handle: string, limit = 20): TrackableCall[] {
 export function getPendingCallsDue(): TrackableCall[] {
   ensureTable();
   const now = Date.now();
+  const due = new Date(now - SETTLE_DELAY_MS).toISOString();
   const cutoff = new Date(now - RESOLVE_GIVE_UP_DAYS * 86400_000).toISOString();
   return getDb()
     .prepare(
@@ -328,7 +378,7 @@ export function getPendingCallsDue(): TrackableCall[] {
        AND target_date < ?
        AND target_date >= ?`
     )
-    .all(new Date(now).toISOString(), cutoff) as TrackableCall[];
+    .all(due, cutoff) as TrackableCall[];
 }
 
 /**
