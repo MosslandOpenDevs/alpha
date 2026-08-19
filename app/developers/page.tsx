@@ -120,8 +120,16 @@ export default function DevelopersPage() {
 # 모니터링 연결: fail 이면 503
 curl -f https://alpha.moss.land/api/health?strict=1
 
-# subsystem 별 신선도
-curl "https://alpha.moss.land/api/health?detail=1"`}
+# subsystem 별 신선도 + LLM citation audit 추이
+curl "https://alpha.moss.land/api/health?detail=1"
+# {
+#   ...,
+#   "audit": {                       # 결과이지 가동 상태가 아님 —
+#     "latest_date": "2026-05-18",   # worst_status 에 포함되지 않습니다
+#     "latest_rate": 0,
+#     "runs": [{ "date": "...", "queries": 60, "cited": 0, "distinct_cited": 0 }]
+#   }
+# }`}
         </pre>
       </section>
 

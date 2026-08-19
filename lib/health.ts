@@ -13,6 +13,7 @@ import { rateLimitSnapshot } from "./rate-limit";
 import { getHeartbeat } from "./cron-heartbeat";
 import { assetCoverage } from "./coingecko";
 import { todayAiSpendUsd } from "./grok";
+import { recentAuditRuns, type AuditRun } from "./audit-log";
 import { getAllEntities, getStubAssetEntities } from "./mic";
 import { hasEnoughPageContext } from "./persona-post";
 
@@ -171,11 +172,63 @@ export function getCostBudget(): CostBudget {
   };
 }
 
+/**
+ * LLM citation audit — an outcome, not a subsystem.
+ *
+ * Deliberately kept out of `subsystems`: those measure "is the pipeline
+ * running", and this one runs perfectly while reporting 0%. Folding a content
+ * result into a liveness roll-up would either page someone weekly over
+ * something no restart fixes, or get ignored — and `?strict=1` is wired to
+ * uptime monitors. It is reported beside them instead.
+ */
+export type AuditSummary = {
+  runs: AuditRun[];
+  latest: AuditRun | null;
+  /** Citation rate of the newest run, 0..1. null when nothing has run. */
+  latestRate: number | null;
+  /** Days since the newest run. The cadence is weekly, so a number well past
+   *  7 means the cron stopped — without this the page shows a stale figure
+   *  with no hint of its age. */
+  ageDays: number | null;
+  /** Last attempt as recorded by the cron itself, including runs that wrote no
+   *  summary because every call errored. */
+  lastRun: { at: string; status: string; note: string | null } | null;
+};
+
+function getAuditSummary(): AuditSummary {
+  let runs: AuditRun[] = [];
+  try {
+    runs = recentAuditRuns(8);
+  } catch (err) {
+    // Same policy as row() above: only a missing table means "nothing has run
+    // yet". Swallowing everything would turn a real DB error into the page
+    // saying "아직 기록된 실행이 없습니다", which is the false-green this
+    // whole section exists to remove — and scripts/check-health.ts, which only
+    // fails on a throw, would pass right over it.
+    if (!(err instanceof Error && /no such table/i.test(err.message))) throw err;
+  }
+  const latest = runs[0] ?? null;
+  const hb = getHeartbeat("alpha-audit-cron");
+  const ageSec = latest ? ageSeconds(`${latest.date}T00:00:00Z`) : null;
+  return {
+    runs,
+    latest,
+    // Rate is over answers, not distinct queries — one query asked twice
+    // yields two chances to be cited.
+    latestRate: latest && latest.answers > 0 ? latest.cited / latest.answers : null,
+    ageDays: ageSec == null ? null : Math.floor(ageSec / 86400),
+    lastRun: hb
+      ? { at: hb.lastRunAt, status: hb.lastStatus, note: hb.lastNote }
+      : null,
+  };
+}
+
 export function getSystemHealth(): {
   generatedAt: string;
   worstStatus: Status;
   subsystems: SubsystemHealth[];
   costBudget: CostBudget;
+  audit: AuditSummary;
 } {
   const db = getDb();
 
@@ -410,6 +463,7 @@ export function getSystemHealth(): {
     worstStatus: worst,
     subsystems,
     costBudget,
+    audit: getAuditSummary(),
   };
 }
 

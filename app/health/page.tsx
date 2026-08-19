@@ -114,6 +114,94 @@ export default function HealthPage() {
         </div>
       </section>
 
+      {/* LLM citation audit — 결과이지 가동 여부가 아니라 subsystem 표 밖에 둔다 */}
+      <section className="mb-8">
+        <div className="rounded-2xl border border-[var(--line)] bg-white p-5">
+          <div className="flex items-baseline justify-between mb-3">
+            <h2 className="text-base font-semibold">LLM citation audit</h2>
+            <span className="text-xs text-[var(--muted)] font-mono">
+              매주 월 11:00 KST
+            </span>
+          </div>
+          {health.audit.latest ? (
+            <>
+              <div className="flex items-baseline gap-2 mb-3 font-mono">
+                <span className="text-2xl font-semibold">
+                  {health.audit.latestRate != null
+                    ? `${(health.audit.latestRate * 100).toFixed(0)}%`
+                    : "—"}
+                </span>
+                <span className="text-sm text-[var(--muted)]">
+                  {health.audit.latest.cited}/{health.audit.latest.answers} 인용
+                  {health.audit.latest.errors > 0 && (
+                    <span className="text-rose-600">
+                      {" "}· 실패 {health.audit.latest.errors}
+                    </span>
+                  )}
+                </span>
+                <span className="ml-auto text-xs text-[var(--muted)]">
+                  {health.audit.latest.date}
+                  {health.audit.ageDays != null && health.audit.ageDays > 10 && (
+                    <span className="text-amber-600">
+                      {" "}· {health.audit.ageDays}일 전
+                    </span>
+                  )}
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="text-[var(--muted)] uppercase tracking-wider">
+                    <tr>
+                      <th className="text-left py-1">날짜</th>
+                      <th className="text-right py-1">인용</th>
+                      <th className="text-right py-1">답변</th>
+                      <th className="text-right py-1">질의</th>
+                      <th className="text-right py-1">고유</th>
+                      <th className="text-right py-1">mossland</th>
+                    </tr>
+                  </thead>
+                  <tbody className="font-mono">
+                    {health.audit.runs.map((r) => (
+                      <tr key={r.date} className="border-t border-[var(--line)]">
+                        <td className="py-1">{r.date}</td>
+                        <td className="text-right py-1">{r.cited}</td>
+                        <td className="text-right py-1">{r.answers}</td>
+                        <td className="text-right py-1">{r.queries}</td>
+                        <td className="text-right py-1">{r.distinctCited}</td>
+                        <td className="text-right py-1">{r.mosslandCited}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-[var(--muted)]">기록된 실행이 없습니다.</p>
+          )}
+          {health.audit.lastRun && (
+            <p className="mt-2 text-xs font-mono text-[var(--muted)]">
+              cron 마지막 시도 {fmtKst(health.audit.lastRun.at)} ·{" "}
+              <span
+                className={
+                  health.audit.lastRun.status === "error" ? "text-rose-600" : ""
+                }
+              >
+                {health.audit.lastRun.status}
+              </span>
+              {health.audit.lastRun.note ? ` · ${health.audit.lastRun.note}` : ""}
+            </p>
+          )}
+          <p className="mt-3 text-xs text-[var(--muted)] leading-relaxed">
+            gpt-4o web_search 로 한국어 질의를 던져 답변이 alpha.moss.land 를
+            인용하는지 측정합니다. <strong>가동 상태가 아니라 결과</strong>라
+            위 subsystem 표와 <code className="font-mono">?strict=1</code> 판정에는
+            포함하지 않습니다 — cron 은 정상인데 0% 일 수 있고, 재시작으로 고쳐지는
+            종류가 아닙니다. 질의별 인용 URL·답변 발췌는{" "}
+            <code className="font-mono">AUDIT_RESULTS_DIR</code> 의 JSON 에 남습니다.
+          </p>
+        </div>
+      </section>
+
       <section className="mb-8">
         <div className="overflow-x-auto rounded-2xl border border-[var(--line)] bg-white">
           <table className="w-full text-sm">
