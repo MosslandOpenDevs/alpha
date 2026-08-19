@@ -64,8 +64,9 @@
 #                          re-registers every cron and pm2 runs each once).
 #                          Set to an empty string to disable.
 #   DEPLOY_HOLD_FILE       operator hold — exists ⇒ do nothing
-#   DEPLOY_CI_WAIT_MIN     how long to wait for a CI run to appear before
-#                          deploying without one (default 15)
+#   DEPLOY_CI_WAIT_MIN     how long to keep waiting for a CI verdict (run not
+#                          created yet, or GitHub API failing) before deploying
+#                          without one, with a warning + alert (default 15)
 #   DEPLOY_ALERT_WEBHOOK   Slack/Discord webhook for failures
 #   DEPLOY_VERBOSE         1 = log no-op ticks too
 #   DEPLOY_RETRY_BASE_MIN / DEPLOY_RETRY_MAX_MIN           (5 / 60)
@@ -156,13 +157,16 @@ acquire_lock() {
 # unknown. Fetch and parse are two steps on purpose: a pipeline under pipefail
 # printed two verdicts on failure and blocked forever.
 #
-# "unknown" (API unreachable) passes — the box must not be unable to deploy
-# because GitHub is down. "none" does NOT pass here, unlike the sibling
-# scripts on this box: this repo has CI, so an empty check-run list means the
-# run has not been created yet, not that there is nothing to wait for. That is
-# exactly what happened on 2026-08-18: the poller ticked at 08:59:00, the CI
-# run for that merge was created at 08:59:01, and the deploy went out one
-# second ahead of its own gate. Set DEPLOY_REQUIRE_CI=0 for a repo without CI.
+# Neither "unknown"/"error:*" (API unreachable or rejecting) nor "none" (empty
+# check-run list) passes immediately. This repo has CI, so an empty list means
+# the run has not been created yet — on 2026-08-18 the poller ticked at
+# 08:59:00, the run was created at 08:59:01, and the deploy went out one second
+# ahead of its own gate — and an API error is usually a blip (a 504 at 06:46Z
+# on 2026-08-19 was a 200 one tick later). main() waits up to
+# DEPLOY_CI_WAIT_MIN for a real verdict, then fails open with a warning and an
+# alert: the box must not be unable to deploy because GitHub is down, but it
+# must not be quietly unable to tell either. Set DEPLOY_REQUIRE_CI=0 for a
+# repo without CI.
 ci_conclusion() {
   local sha="$1" url auth body code
   url="https://api.github.com/repos/${DEPLOY_GITHUB_REPO}/commits/${sha}/check-runs"
@@ -375,7 +379,7 @@ record_failure() {
   printf '%s %s %s %s\n' "${target}" "${n}" "$(date +%s)" "${phase}" >"${DEPLOY_ATTEMPT_FILE}" 2>/dev/null || true
 }
 
-# Has "no CI run yet" persisted for TARGET longer than DEPLOY_CI_WAIT_MIN?
+# Has "no CI verdict" persisted for TARGET longer than DEPLOY_CI_WAIT_MIN?
 # First sighting is stamped in a small file keyed by SHA; a new SHA resets it.
 ci_wait_expired() {
   local target="$1" f="${DEPLOY_CI_WAIT_FILE}" seen_sha seen_at now
@@ -555,23 +559,23 @@ main() {
       CI=$(ci_conclusion "${TARGET}" | tail -n 1 | tr -d '[:space:]')
       case "${CI}" in
         success) ;;
-        # Fail-open by design (see ci_conclusion) — but never silently. This
-        # used to share the `success` branch and print nothing, so a revoked
-        # token turned the gate off with no trace in the log.
-        unknown|error:*)
-          log "WARN no CI verdict for ${TARGET:0:8} (${CI}) -- GitHub API unreachable or rejected the request; deploying without one"
-          alert "alpha: deploying ${TARGET:0:8} WITHOUT a CI verdict (${CI})" ;;
-        # "none" = the run does not exist yet (see ci_conclusion). Wait a tick —
-        # but not forever: if Actions is disabled or the workflow file is broken
-        # no run will ever appear, and a poller stuck on that is a silent
-        # outage of its own. After DEPLOY_CI_WAIT_MIN with still no run, warn
-        # loudly and go ahead, the way a repo without CI would.
-        none)
+        # No verdict — either the run does not exist yet ("none": the poller
+        # ticked before Actions created it, the 2026-08-18 race) or the API
+        # did not answer usefully ("unknown" / "error:<code>": GitHub 5xx,
+        # rate limit, bad token). Both are usually transient, so wait a tick
+        # and ask again — GitHub answered 504 at 06:46Z on 2026-08-19 and 200
+        # one tick later; deploying on the 504 was correct only by luck (CI had
+        # gone green 27s earlier). But not forever: Actions disabled, a broken
+        # workflow file, or a revoked token would leave the poller stuck, and
+        # that is a silent outage of its own. After DEPLOY_CI_WAIT_MIN with
+        # still no verdict, warn loudly, alert, and go ahead — fail-open, the
+        # way a repo without CI would, but never silently.
+        none|unknown|error:*)
           if ci_wait_expired "${TARGET}"; then
-            log "WARN no CI run appeared for ${TARGET:0:8} in ${DEPLOY_CI_WAIT_MIN}m -- Actions disabled or workflow broken? deploying without a CI verdict"
-            alert "alpha: deploying ${TARGET:0:8} WITHOUT a CI verdict -- no check run appeared in ${DEPLOY_CI_WAIT_MIN}m"
+            log "WARN no CI verdict for ${TARGET:0:8} after ${DEPLOY_CI_WAIT_MIN}m (last: ${CI}) -- Actions disabled, workflow broken, or GitHub API failing? deploying without one"
+            alert "alpha: deploying ${TARGET:0:8} WITHOUT a CI verdict -- none in ${DEPLOY_CI_WAIT_MIN}m (last: ${CI})"
           else
-            log "CI run not created yet for ${TARGET:0:8} -- not deploying yet"; exit 0
+            log "no CI verdict yet for ${TARGET:0:8} (${CI}) -- not deploying yet"; exit 0
           fi ;;
         pending) log "CI is pending for ${TARGET:0:8} -- not deploying yet"; exit 0 ;;
         failure) log "CI is ${CI} for ${TARGET:0:8} -- not deploying"; exit 0 ;;
