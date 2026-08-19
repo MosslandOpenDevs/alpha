@@ -1,11 +1,5 @@
 import { notFound } from "next/navigation";
-import {
-  getAllPulses,
-  getAllEntities,
-  getAllTopics,
-  getAllEvents,
-  getActivePulses,
-} from "@/lib/mic";
+import { getAllPulses, getAllTopics, getAllEvents } from "@/lib/mic";
 import { registerSeoPage } from "@/lib/seo-register";
 import { SITE, pageOpenGraph } from "@/lib/seo";
 import { jsonLdScript, breadcrumbJsonLd } from "@/lib/jsonld";
@@ -37,16 +31,51 @@ function isValidDate(d: string): boolean {
 // `kstDayBounds`. Reading the same label with UTC bounds shifted this page's
 // pulse/entity window nine hours off the summary it sits under.
 
+/**
+ * What this day's brief page is made of, and whether it should be indexed.
+ *
+ * One function for both generateMetadata and the page body, so the robots
+ * meta and the seo_pages/sitemap policy cannot disagree — they did: the body
+ * registered `noindex` for the in-progress day and printed "자정 후 인덱싱
+ * 활성", while <head> inherited index,follow from the root layout.
+ *
+ * Only pulses and the AI summary count toward "is there content". Topic /
+ * event / entity `updatedAt` is stamped by SignalMap's regeneration, so a
+ * per-day filter on it is non-empty for the latest regen day only and empty
+ * for every archived day (lib/brief.ts documents this and falls back for the
+ * same reason). Gating on it made every past brief degrade to "없습니다" and
+ * noindex within a day.
+ */
+function briefDay(date: string) {
+  const { start, end } = kstDayBounds(date);
+  const isToday = date === kstClock().date;
+  const inDay = (iso: string) => {
+    const t = Date.parse(iso);
+    return t >= start && t < end;
+  };
+  const pulses = getAllPulses().filter((p) => inDay(p.detectedAt));
+  const summary = getBriefSummary(date);
+  const hasSummary = Boolean(summary && summary.points.length > 0);
+  const substance = pulses.length + (hasSummary ? 3 : 0);
+  const indexPolicy: "index" | "noindex" =
+    isToday || substance < 3 ? "noindex" : "index";
+  return { start, end, isToday, inDay, pulses, summary, hasSummary, substance, indexPolicy };
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { date } = await params;
   if (!isValidDate(date)) {
     return { title: `Brief ${date}`, robots: { index: false } };
   }
+  const { indexPolicy } = briefDay(date);
   const title = `${date} 시장 브리프 — Alpha`;
   const desc = `${date} 한국 크립토·매크로 시장 한 컷. Pulse·토픽·이벤트 정리.`;
   return {
     title,
     description: desc,
+    // Must match the registerSeoPage policy below, or the sitemap and the
+    // page disagree (same rule app/ask/q/[hash]/page.tsx follows).
+    robots: indexPolicy === "noindex" ? { index: false, follow: true } : undefined,
     alternates: {
       canonical: `${SITE.baseUrl}/brief/${date}`,
       // Reciprocal hreflang — the English brief already points back here.
@@ -63,44 +92,28 @@ export default async function BriefPage({ params }: Props) {
   const { date } = await params;
   if (!isValidDate(date)) notFound();
 
-  const { start, end } = kstDayBounds(date);
   // Compare KST label against KST today. Judging "future" by UTC midnight made
   // /today — which redirects to the KST date — 404 every day from KST 00:00
   // until 09:00, i.e. the whole morning the 08:30 brief is meant to be read.
-  const today = kstClock().date;
-  const isToday = date === today;
+  if (date > kstClock().date) notFound();
 
-  if (date > today) notFound();
+  const { end, isToday, inDay, pulses, summary: briefSummary, hasSummary, substance, indexPolicy } =
+    briefDay(date);
 
-  const pulses = getAllPulses().filter((p) => {
-    const t = Date.parse(p.detectedAt);
-    return t >= start && t < end;
-  });
-
-  // entities/topics/events updated within this day
-  const updatedToday = (iso: string) => {
-    const t = Date.parse(iso);
-    return t >= start && t < end;
-  };
-  const updatedTopics = getAllTopics().filter((t) => updatedToday(t.updatedAt));
-  const updatedEvents = getAllEvents().filter((e) => updatedToday(e.updatedAt));
-  const updatedEntities = getAllEntities().filter((e) =>
-    updatedToday(e.updatedAt)
-  );
-
-  const total = pulses.length + updatedTopics.length + updatedEvents.length;
-
-  // 오늘 진행중 = noindex, 어제 이전 = index (after midnight)
-  const indexPolicy = isToday ? "noindex" : total >= 3 ? "index" : "noindex";
+  // Topics/events that carry this day's regeneration stamp. Shown when
+  // present (that is the latest regen day); NOT counted as content — see
+  // briefDay().
+  const updatedTopics = getAllTopics().filter((t) => inDay(t.updatedAt));
+  const updatedEvents = getAllEvents().filter((e) => inDay(e.updatedAt));
 
   registerSeoPage({
     path: `/brief/${date}`,
     page_type: "brief",
     canonical_id: date,
     title: `${date} 시장 브리프 — Alpha`,
-    meta_description: `${date} pulse ${pulses.length}건, 토픽 ${updatedTopics.length}, 이벤트 ${updatedEvents.length}.`,
+    meta_description: `${date} pulse ${pulses.length}건${hasSummary ? " · AI 브리프" : ""}.`,
     index_policy: indexPolicy,
-    quality_score: total >= 5 ? 0.8 : total >= 1 ? 0.4 : 0.1,
+    quality_score: substance >= 5 ? 0.8 : substance >= 1 ? 0.4 : 0.1,
     lastmod: isToday ? new Date().toISOString() : new Date(end - 1).toISOString(),
   });
 
@@ -150,7 +163,6 @@ export default async function BriefPage({ params }: Props) {
       </header>
 
       {(() => {
-        const briefSummary = getBriefSummary(date);
         return briefSummary && briefSummary.points.length > 0 ? (
           <SynthesisCard
             synthesis={{
@@ -171,8 +183,8 @@ export default async function BriefPage({ params }: Props) {
           한 줄 요약 (데이터)
         </h2>
         <p className="text-base">
-          이 날 pulse {pulses.length}건, 갱신된 토픽 {updatedTopics.length},
-          이벤트 {updatedEvents.length}, 엔티티 {updatedEntities.length}.
+          이 날 가격 시그널(pulse) {pulses.length}건
+          {hasSummary ? " · AI 브리프 있음" : ""}.
         </p>
       </section>
 
@@ -235,14 +247,13 @@ export default async function BriefPage({ params }: Props) {
         </section>
       )}
 
-      {total === 0 && (
+      {pulses.length === 0 && !hasSummary && updatedTopics.length === 0 && updatedEvents.length === 0 && (
         <section className="rounded-2xl border border-[var(--line)] bg-white p-6 text-sm text-[var(--muted)]">
           이 날에 추적된 pulse·토픽·이벤트가 없습니다.
         </section>
       )}
 
       {(() => {
-        const briefSummary = getBriefSummary(date);
         return (
           <footer className="mt-12 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)] flex flex-wrap gap-x-3 gap-y-1">
             {briefSummary?.generatedAt && (

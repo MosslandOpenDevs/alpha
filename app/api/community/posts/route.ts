@@ -33,6 +33,24 @@ async function getOrCreateAnonToken(): Promise<string> {
 
 export async function POST(req: Request) {
   ensureCommunityTables();
+
+  // Refuse before touching the rate budget, so a forged request never debits
+  // the visitor whose browser it came from.
+  //
+  // A cross-site page can POST here as a CORS "simple request" (text/plain
+  // body, no preflight) using each visitor's IP; SameSite=Lax withholds the
+  // cookie so it minted a fresh anon token and posted anyway. Requiring
+  // application/json forces a preflight for cross-origin callers, and this
+  // route answers no OPTIONS and sends no Access-Control-Allow-Origin, so the
+  // browser drops it. Sec-Fetch-Site is the belt to that suspender.
+  const ctype = req.headers.get("content-type")?.toLowerCase() ?? "";
+  if (!ctype.startsWith("application/json")) {
+    return Response.json({ error: "unsupported_media_type" }, { status: 415 });
+  }
+  if (req.headers.get("sec-fetch-site") === "cross-site") {
+    return Response.json({ error: "cross_site" }, { status: 403 });
+  }
+
   // Shared, trusted-proxy-aware IP derivation (not the spoofable leftmost XFF).
   const ip = clientIp(req);
   const ipHash = hashIp(ip);

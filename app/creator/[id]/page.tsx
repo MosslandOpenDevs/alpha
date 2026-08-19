@@ -131,8 +131,9 @@ export default async function CreatorPage({ params }: Props) {
           한 줄 요약
         </h2>
         <p className="text-base">
-          이 채널은 분석된 영상 {fp.videoCount}편에서 stance가 {dist.agree}/
+          이 채널은 최근 분석된 영상 {videos.length}편에서 stance가 {dist.agree}/
           {dist.disagree}/{dist.observe}로 분포. 갈림 점수 {dist.divergenceScore}.
+          {fp.videoCount > videos.length && ` (분석된 영상 전체 ${fp.videoCount}편)`}
         </p>
       </section>
 

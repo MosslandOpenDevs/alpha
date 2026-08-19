@@ -125,9 +125,15 @@ export async function embedQuery(query: string): Promise<number[] | null> {
     const vec = data.data?.[0]?.embedding;
     if (!Array.isArray(vec) || vec.length !== EMBED_DIM) return null;
 
+    // OR IGNORE: two concurrent first-time asks of the same question both
+    // miss the cache and both fetch; the second INSERT used to hit the
+    // PRIMARY KEY, land in the catch below, and return null — discarding a
+    // perfectly good vector and answering that request keyword-only. Same
+    // hash means same model + normalized query, so the row already there is
+    // equivalent.
     getDb()
       .prepare(
-        `INSERT INTO alpha_query_embeddings (query_hash, query, model, vector, created_at)
+        `INSERT OR IGNORE INTO alpha_query_embeddings (query_hash, query, model, vector, created_at)
          VALUES (?, ?, ?, ?, ?)`
       )
       .run(hash, query, EMBED_MODEL, vectorToBuffer(vec), new Date().toISOString());

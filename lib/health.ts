@@ -506,7 +506,7 @@ export function getSystemHealth(): {
         warnAfterSec: 28 * ONE_HOUR,
         failAfterSec: 50 * ONE_HOUR,
         note: hb
-          ? `cron 마지막 실행 ${hb.lastStatus}. latest connection ${connections?.g?.slice(0, 10) ?? "-"}.`
+          ? `cron 마지막 실행 ${hb.lastStatus}. latest connection ${connections?.g ? fmtKst(connections.g).slice(0, 10) : "-"}.`
           : "heartbeat 없음 — cron 첫 실행 대기 중.",
       });
       return applyContentStaleness(applyHeartbeatFailure(sub, hb), connections?.g ?? null, {
