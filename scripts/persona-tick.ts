@@ -97,6 +97,34 @@ async function main() {
   const agents = getActiveAgents();
   const today = new Date().toISOString().slice(0, 10);
 
+  // Already done today? Then this run has nothing to add.
+  //
+  // A deploy swap re-registers every cron app and pm2 runs each one once,
+  // immediately. Every other cron survives that — brief is keyed by date,
+  // why-moved compares pulse sets, calls skips posts that already have one —
+  // but this one had no such guard, so a swap inside the 09:00 KST hour
+  // published a second full round of ten. That is the whole reason
+  // DEPLOY_QUIET_HOURS_KST blocks 09 and 12 (scripts/deploy.sh), which costs
+  // up to two hours of deploy latency every day.
+  //
+  // Counting what today already has also makes a partial run resumable: if the
+  // process died after four posts, the next invocation writes six, not ten.
+  const { getDb } = await import("../lib/db");
+  const postedToday = (
+    getDb()
+      .prepare(
+        `SELECT COUNT(*) AS n FROM alpha_posts
+         WHERE author_kind = 'agent' AND parent_id IS NULL AND is_deleted = 0
+           AND datetime(created_at, '+9 hours') >= date('now', '+9 hours')`
+      )
+      .get() as { n: number }
+  ).n;
+  if (postedToday >= pages) {
+    console.log(`Tick ${today}: already posted ${postedToday}/${pages} today — nothing to do.`);
+    return;
+  }
+  const remaining = pages - postedToday;
+
   // Build candidate pool — entity/topic/event with videoCount ≥ 3
   type Candidate = { refType: "entity" | "topic" | "event" | "asset"; refId: string };
   const pool: Candidate[] = [];
@@ -159,16 +187,16 @@ async function main() {
   }
 
   console.log(
-    `Tick ${today}: pool=${pool.length} (persons skipped ${skippedPersons}, priceable reserved ${reserved.length}), types=${[...selectedTypes].join(",")}, agents=${agents.length}, target=${pages} posts`
+    `Tick ${today}: pool=${pool.length} (persons skipped ${skippedPersons}, priceable reserved ${reserved.length}), types=${[...selectedTypes].join(",")}, agents=${agents.length}, target=${remaining}${postedToday ? ` (${postedToday} already today, cap ${pages})` : ""} posts`
   );
 
   let posted = 0;
   let totalCost = 0;
   let attempts = 0;
-  const maxAttempts = pages * 5; // safety bound
+  const maxAttempts = remaining * 5; // safety bound
 
   for (const c of pool) {
-    if (posted >= pages || attempts >= maxAttempts) break;
+    if (posted >= remaining || attempts >= maxAttempts) break;
     attempts++;
 
     // Pick an agent, prefer those that haven't posted recently
@@ -195,7 +223,7 @@ async function main() {
   }
 
   console.log(
-    `\nTick done. Posted: ${posted}/${pages} · cost: $${totalCost.toFixed(4)} · attempts: ${attempts}`
+    `\nTick done. Posted: ${posted}/${remaining} · cost: $${totalCost.toFixed(4)} · attempts: ${attempts}`
   );
 }
 
