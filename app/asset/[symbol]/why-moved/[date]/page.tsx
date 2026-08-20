@@ -1,5 +1,5 @@
 import { notFound, permanentRedirect } from "next/navigation";
-import { getWhyMoved } from "@/lib/why-moved";
+import { getWhyMoved, whyMovedIndexPolicy } from "@/lib/why-moved";
 import { assetSlugFromEntity, getAssetOrStub } from "@/lib/mic";
 import { registerSeoPage } from "@/lib/seo-register";
 import { deleteSeoPage } from "@/lib/db";
@@ -35,6 +35,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: article.title,
     description: article.oneLine.slice(0, 200),
+    // Must match the seo_pages policy the body registers, or the sitemap and
+    // the page disagree — the rule app/ask/q/[hash] and /brief already follow.
+    robots: whyMovedIndexPolicy(article.pulses) === "noindex" ? { index: false, follow: true } : undefined,
     alternates: {
       canonical: `${SITE.baseUrl}/asset/${canonicalSymbol}/why-moved/${date}`,
     },

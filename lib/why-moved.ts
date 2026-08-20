@@ -57,6 +57,10 @@ function promptText(text: string | null | undefined, max: number): string {
  */
 export const ARTICLE_MIN_SINGLE_MOVE_PCT = 0.5;
 export const ARTICLE_MIN_NET_MOVE_PCT = 1.0;
+export function whyMovedIndexPolicy(pulses: Pulse[]): "index" | "noindex" {
+  return articleWorthy(pulses) ? "index" : "noindex";
+}
+
 export function articleWorthy(pulses: Pulse[]): boolean {
   if (!pulses.length) return false;
   const maxAbs = Math.max(...pulses.map((p) => Math.abs(p.magnitudePct)));
@@ -473,7 +477,7 @@ points 는 3~5개. 해당 근거가 자료에 없는 슬롯은 생략하고, 슬
       `INSERT INTO alpha_seo_pages
         (path, page_type, canonical_id, title, meta_description,
          index_policy, lastmod, generated_at, quality_score)
-       VALUES (?, 'event', ?, ?, ?, 'index', ?, ?, 0.85)
+       VALUES (?, 'event', ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(path) DO UPDATE SET
          page_type=excluded.page_type,
          canonical_id=excluded.canonical_id,
@@ -488,8 +492,16 @@ points 는 3~5개. 해당 근거가 자료에 없는 슬롯은 생략하고, 슬
       `${asset}-${date}`,
       article.title,
       article.oneLine.slice(0, 200),
+      // A day the gate would not have written about today does not belong in
+      // the sitemap either. 357 of the 683 articles already on disk were
+      // generated before articleWorthy() existed, over ~0.2% five-minute
+      // moves; they stay reachable (no 404, no lost inbound link) but stop
+      // asking to be indexed. The page's own robots meta is derived from the
+      // same call, so head and sitemap agree.
+      whyMovedIndexPolicy(pulses),
       article.generatedAt,
-      article.generatedAt
+      article.generatedAt,
+      articleWorthy(pulses) ? 0.85 : 0.3
     );
   })();
 
