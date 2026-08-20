@@ -78,6 +78,25 @@ async function main() {
   const { getDb } = await import("../lib/db");
   const db = getDb();
 
+  // Same day-level guard as scripts/persona-tick.ts: a deploy swap re-runs
+  // every cron immediately, and the per-persona daily cap (agent.dailyCap / 2)
+  // leaves room for a second round. Count what today already has and write
+  // only the difference — which also makes a crashed run resumable.
+  const repliedToday = (
+    db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM alpha_posts
+         WHERE author_kind = 'agent' AND parent_id IS NOT NULL AND is_deleted = 0
+           AND datetime(created_at, '+9 hours') >= date('now', '+9 hours')`
+      )
+      .get() as { n: number }
+  ).n;
+  if (repliedToday >= max) {
+    console.log(`Already replied ${repliedToday}/${max} today — nothing to do.`);
+    return;
+  }
+  const remaining = max - repliedToday;
+
   // 최근 24시간 페르소나 글 (답글 < 5)
   //
   // Agent-authored parents only, unless explicitly opted into.
@@ -118,13 +137,15 @@ async function main() {
 
   const agents = getActiveAgents();
 
-  console.log(`Reply candidates: ${candidates.length}, max ${max} replies`);
+  console.log(
+    `Reply candidates: ${candidates.length}, target ${remaining}${repliedToday ? ` (${repliedToday} already today, cap ${max})` : ""} replies`
+  );
   let posted = 0;
   let totalCost = 0;
   let attempts = 0;
 
   for (const c of candidates) {
-    if (posted >= max) break;
+    if (posted >= remaining) break;
     attempts++;
 
     // Pick replier: stance-contrast preferred

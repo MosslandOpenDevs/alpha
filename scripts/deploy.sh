@@ -60,9 +60,9 @@
 #   DEPLOY_KEEP_RELEASES   old releases to keep on disk    (default 4)
 #   DEPLOY_KEEP_BACKUPS    pre-swap DB/pm2 backups to keep (default 10)
 #   DEPLOY_QUIET_HOURS_KST hours (KST) in which to defer the deploy entirely
-#                          (default "6 7 8 9 12 13" — the cron slots; a swap
-#                          re-registers every cron and pm2 runs each once).
-#                          Set to an empty string to disable.
+#                          (default "6 7 8 13" — cron slots whose script is not
+#                          yet safe to re-run; a swap re-registers every cron
+#                          and pm2 runs each once). Empty string disables.
 #   DEPLOY_HOLD_FILE       operator hold — exists ⇒ do nothing
 #   DEPLOY_CI_WAIT_MIN     how long to keep waiting for a CI verdict (run not
 #                          created yet, or GitHub API failing) before deploying
@@ -439,7 +439,14 @@ main() {
   # `-` not `:-`: unset takes the default, but an explicit empty string means
   # "no quiet hours". With `:-` the empty value was silently replaced by the
   # default and the guard could not be turned off.
-  DEPLOY_QUIET_HOURS_KST=${DEPLOY_QUIET_HOURS_KST-"6 7 8 9 12 13"}
+  # 09 (persona-tick) and 12 (persona-replies) came off the list on 2026-08-20:
+  # both scripts now count what the KST day already has and write only the
+  # difference, so the immediate re-run a swap triggers is a no-op. The hours
+  # still listed are the ones whose crons have not been verified re-run-safe
+  # the same way — 06 macro, 07 synthesis/seed-qa/connections, 08 brief/
+  # translate/why-moved, 13 calls. Each can be dropped once its script carries
+  # the same guard.
+  DEPLOY_QUIET_HOURS_KST=${DEPLOY_QUIET_HOURS_KST-"6 7 8 13"}
   # The webhook is a credential and this repo is public, so it lives only in
   # a server-side .env.local (gitignored). The TS scripts read the LIVE
   # RELEASE's copy; that is preferred once LIVE_DIR is known (below, in
