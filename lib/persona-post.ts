@@ -30,11 +30,14 @@ import {
 } from "./mic";
 import { getSynthesis } from "./synthesis";
 import { kstClock } from "./kst";
+import { isCallableAsset } from "./prices";
 
 // v2 (2026-08-19): the model now sees the page's recent videos, never a bare
 // "영상 N편" count, and the persona system prompt is sent once. Bumped so the
 // v1 rows — 58% of which literally contain "영상 N편" — are not replayed.
-const PROMPT_VERSION = "persona-v2";
+// v3 (2026-08-20): the 7-day direction is asked only where a price source
+// exists, not on every canonical `asset` (which includes 모르핀 and 석탄).
+const PROMPT_VERSION = "persona-v3";
 
 /** How many recent videos to show the persona, and how long each line is. */
 const PAGE_VIDEO_LINES = 6;
@@ -280,12 +283,14 @@ function buildPrompt(args: {
   agent: Agent;
   refLabel: string;
   refType: RefType;
+  /** The page is a real market instrument with a price source (lib/prices.ts). */
+  priceable: boolean;
   pageContext: string;
   videoLines: string[];
   topComments: { handle: string; body: string; stance: string | null }[];
   prior: PriorPost | null;
 }): string {
-  const { agent, refLabel, refType, pageContext, videoLines, topComments, prior } = args;
+  const { agent, refLabel, refType, priceable, pageContext, videoLines, topComments, prior } = args;
 
   // Video titles/summaries come from the analysis pipeline, not from users,
   // but they quote third-party speech — same fence, same rule.
@@ -346,12 +351,17 @@ function buildPrompt(args: {
   // "동의·반대·관찰 중 솔직하게 선택" 한 줄이 있는 답글 프롬프트
   // (lib/persona-reply.ts)는 47% 다. 같은 모델·같은 페르소나이므로 차이는 지시문뿐.
   //
-  // 자산 페이지에서만 방향을 요구한다. entity/topic/event 에서 "삼성하이닉스에
-  // agree" 는 말이 안 되고, 거기서 observe 는 정답이다. 그리고 자산 페이지의
-  // agree/disagree 만 trackable call 이 되므로(lib/calls.ts) 방향을 물어야 할
-  // 곳도 정확히 여기다.
+  // 가격 출처가 있는 자산 페이지에서만 방향을 요구한다.
+  //
+  // refType === "asset" 이 기준이었는데, canonical 의 `asset` 타입은 "사람·조직·
+  // 국가·개념이 아닌 것" 이다. 2026-08-20 09:00 tick 의 asset 발화 6건은 모르핀,
+  // 석탄, GPU, 경상권, GPT 5.4, 낸시 그레이스 로먼 우주망원경이었다 — 전부
+  // "향후 7일 방향" 을 요구받았다. 모르핀이 오를지 내릴지 묻는 프롬프트다.
+  // 실제로 방향을 물어야 할 곳은 call 이 만들어질 수 있는 곳,
+  // 즉 lib/prices.ts 에 가격 출처가 있는 자산뿐이다 (lib/calls.ts 가 같은
+  // isCallableAsset 로 거른다 — 프롬프트만 어긋나 있었다).
   const stanceRule =
-    refType === "asset"
+    priceable
       ? `\n- stance 는 이 자산의 **향후 7일 방향**에 대한 당신의 판단입니다: ` +
         `agree = 오를 것, disagree = 내릴 것, observe = 판단 보류. ` +
         `근거가 있으면 agree 나 disagree 로 분명히 밝히세요 — 확신이 없을 때만 observe. ` +
@@ -504,6 +514,7 @@ export async function generatePersonaPost(args: {
     agent,
     refLabel,
     refType: args.refType,
+    priceable: args.refType === "asset" && isCallableAsset(args.refId),
     pageContext,
     videoLines,
     topComments,
