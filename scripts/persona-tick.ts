@@ -45,6 +45,14 @@ function parseFlag(args: string[], name: string): string | undefined {
 /** Intended KST hour of the pm2 cron (09:00 KST = 00:00 UTC). */
 const SCHEDULED_KST_HOUR = 9;
 
+/**
+ * How many of each tick's pages are reserved for priceable assets.
+ *
+ * See the pool build below. Bounded by the 30-day (persona, page) cooldown:
+ * 8 priceable assets × 8 personas ÷ 30 days ≈ 2.1 sustainable draws a day.
+ */
+const CALLABLE_ASSET_QUOTA = 2;
+
 async function main() {
   const args = process.argv.slice(2);
 
@@ -127,8 +135,31 @@ async function main() {
   // Shuffle
   pool.sort(() => Math.random() - 0.5);
 
+  // Reserve the first slots for assets that can actually carry a price call.
+  //
+  // Without this the draw is uniform over the whole pool, and on 2026-08-20
+  // that pool was 237 pages of which 8 are priceable (비트코인·코스피·S&P500·
+  // 금·S&P500 ETF·나스닥·XRP·이더리움): expected 0.34 priceable pages per day,
+  // 29% chance of even one. Trackable calls — the track record the site
+  // publishes on /agents — are produced only there, which is why none had been
+  // created since 2026-05-16 even after the price sources were fixed.
+  //
+  // The quota is 2, not more: (persona, page) pairs have a 30-day cooldown, so
+  // 8 assets × 8 personas ÷ 30 days ≈ 2.1 sustainable draws a day. Asking for
+  // more would just produce SKIPs and crowd out the rest of the site.
+  const { isCallableAsset } = await import("../lib/prices");
+  const reserved = pool
+    .filter((c) => c.refType === "asset" && isCallableAsset(c.refId))
+    .slice(0, CALLABLE_ASSET_QUOTA);
+  if (reserved.length) {
+    const reservedKeys = new Set(reserved.map((c) => `${c.refType}:${c.refId}`));
+    const rest = pool.filter((c) => !reservedKeys.has(`${c.refType}:${c.refId}`));
+    pool.length = 0;
+    pool.push(...reserved, ...rest);
+  }
+
   console.log(
-    `Tick ${today}: pool=${pool.length} (persons skipped ${skippedPersons}), types=${[...selectedTypes].join(",")}, agents=${agents.length}, target=${pages} posts`
+    `Tick ${today}: pool=${pool.length} (persons skipped ${skippedPersons}, priceable reserved ${reserved.length}), types=${[...selectedTypes].join(",")}, agents=${agents.length}, target=${pages} posts`
   );
 
   let posted = 0;
