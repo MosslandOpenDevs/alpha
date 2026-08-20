@@ -102,13 +102,19 @@ export default async function WhyMovedPage({ params }: Props) {
 
   const assetLabel = entity?.label || symbol.toUpperCase();
 
+  // The policy is the gate's, not a constant — and it must be passed
+  // explicitly here. registerSeoPage() defaults to 'index', so rendering a
+  // quiet-day article (a crawler fetching it is enough) silently promoted the
+  // row back to index and undid scripts/reindex-why-moved.ts.
+  const indexPolicy = whyMovedIndexPolicy(article.pulses);
   registerSeoPage({
     path: `/asset/${canonicalSymbol}/why-moved/${date}`,
     page_type: "event",
     canonical_id: `${canonicalSymbol}-${date}`,
     title: article.title,
     meta_description: article.oneLine.slice(0, 200),
-    quality_score: 0.85,
+    index_policy: indexPolicy,
+    quality_score: indexPolicy === "index" ? 0.85 : 0.3,
     lastmod: article.generatedAt,
   });
 
