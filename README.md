@@ -70,6 +70,18 @@ cp .env.example .env.local
 pnpm dev    # http://localhost:6900
 ```
 
+The checks CI runs, and the ones `scripts/deploy.sh` re-runs on the server
+before it swaps a release:
+
+```bash
+pnpm typecheck && pnpm test && pnpm build && pnpm tsx scripts/check-health.ts && pnpm audit:deps
+```
+
+`pnpm typecheck` covers `scripts/` as well as the app. `pnpm audit:deps` fails only
+on a *new* high-severity advisory — the ones already assessed are listed with
+their reasoning in `pnpm-workspace.yaml`, and that list is the thing to re-open
+on every Next.js upgrade.
+
 ### Required env vars
 
 | Var | Purpose | Default |
@@ -119,10 +131,26 @@ anything; `touch ~/alpha/.git/alpha-deploy-hold` pauses deploys (do this
 tick); `--force` overrides the hold, the CI gate and the failure backoff. All
 knobs are documented at the top of the script.
 
-Because the poller deploys whatever reaches `main`, `main` should be
-protected — PR required, at least one approval, no self-approval — before it
-is switched on. Anyone with push access is otherwise one push away from
-production.
+Because the poller deploys whatever reaches `main`, what protects `main`
+protects production. The `main` ruleset currently enforces: a PR (no direct
+pushes), no deletion, no force-push, and the `checks` status check — so
+nothing reaches production without CI green. It does **not** require a human
+approval: `required_approving_review_count` is 0 and `require_last_push_approval`
+is off, which means a merge is one click by whoever opened the PR.
+
+Whether to close that gap depends on how many people can merge. With more than
+one maintainer, require an approval and make it a real second pair of eyes:
+
+```bash
+gh api repos/MosslandOpenDevs/alpha/rulesets/20975561 | jq '{name,target,enforcement,conditions,rules:(.rules|map(if .type=="pull_request" then (.parameters.required_approving_review_count=1 | .parameters.require_last_push_approval=true) else . end))}' | gh api -X PUT repos/MosslandOpenDevs/alpha/rulesets/20975561 --input -
+```
+
+(Read-modify-write, so the other rules and the branch conditions survive; it
+changes only the two approval fields.)
+
+With a single maintainer that setting blocks every merge, including your own,
+and the honest answer is that CI is the gate — say so here rather than
+documenting a control nobody turned on.
 
 Before restarting PM2 by hand, run the health smoke check:
 
@@ -148,9 +176,45 @@ When Alpha runs behind a reverse proxy or CDN, set `TRUSTED_PROXY_HOPS` to the n
 The cron apps cover macro fetch, AI synthesis, daily brief, English brief
 translation, persona ticks, persona replies, trackable call resolution,
 why-moved article generation, entity connections, dynamic Q&A seeding,
-IndexNow weekly ping, a weekly LLM-citation audit, and a health watchdog.
-`ecosystem.config.cjs` is the list of record — `scripts/deploy.sh` reads the
-app names from it rather than keeping its own copy.
+IndexNow weekly ping, a weekly LLM-citation audit, a nightly verified DB
+backup, and a health watchdog. `ecosystem.config.cjs` is the list of record —
+`scripts/deploy.sh` reads the app names from it rather than keeping its own
+copy.
+
+### Backups and restore
+
+`scripts/backup-db.ts` runs nightly at 03:00 KST. It snapshots the DB through
+SQLite's own backup API (not `cp` — the DB is in WAL mode), opens the copy and
+runs `PRAGMA integrity_check` on it, and, when `BACKUP_REMOTE` is set, rsyncs
+it off the box. The result lands on `/health` as `db_backup`, so a backup that
+stopped running, stopped verifying, or stopped leaving the host is visible
+before you need it rather than after.
+
+**Set `BACKUP_REMOTE`.** Without it the only copies of the DB are on the same
+disk as the original, and `scripts/deploy.sh`'s pre-swap snapshot has the same
+problem plus a recovery point of "whenever we last deployed". Community posts,
+trackable calls and audit history cannot be regenerated from anywhere.
+
+Run it once by hand after first deploying it — until it has run, `db_backup`
+reads `fail` (correctly: no backup exists yet) and `?strict=1` answers 503:
+
+```bash
+pnpm tsx scripts/backup-db.ts
+```
+
+The drill that proves a snapshot is restorable — it reads the snapshot, never
+production, so it is safe to run any time:
+
+```bash
+DB_PATH=<snapshot> pnpm tsx scripts/check-health.ts --live
+```
+
+The restore itself. The stale `-wal`/`-shm` beside the *original* must go
+first, or SQLite replays them over the file you just restored:
+
+```bash
+pm2 stop all && rm -f "$DB_PATH-wal" "$DB_PATH-shm" && cp <snapshot> "$DB_PATH" && pm2 start all
+```
 
 ## AI persona disclosure
 

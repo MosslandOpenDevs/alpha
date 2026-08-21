@@ -18,22 +18,9 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { loadScriptEnv } from "../lib/script-env";
 
-function loadEnvFile(file: string) {
-  if (!fs.existsSync(file)) return;
-  const text = fs.readFileSync(file, "utf8");
-  for (const line of text.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eq = trimmed.indexOf("=");
-    if (eq < 0) continue;
-    const key = trimmed.slice(0, eq).trim();
-    const val = trimmed.slice(eq + 1).trim();
-    if (!process.env[key]) process.env[key] = val;
-  }
-}
-loadEnvFile(path.join(process.cwd(), ".env.local"));
-loadEnvFile(path.join(process.cwd(), ".env"));
+loadScriptEnv();
 
 type Query = {
   id: string;
@@ -197,10 +184,15 @@ async function main() {
     existing = JSON.parse(fs.readFileSync(outFile, "utf8"));
   }
 
+  // An errored entry is not an answer. The checkpoint below writes 429s,
+  // timeouts and 5xx to the same file as real results, and this set used to
+  // count them as done — so the --scheduled re-run skipped precisely the
+  // queries that had failed, and a query that errored once was never asked
+  // again. Resume past the answers we have; retry everything else.
   const completedQueryIds = scheduled
     ? new Set(
         existing
-          .filter((result) => result.llm === "openai")
+          .filter((result) => result.llm === "openai" && !result.error)
           .map((result) => result.query_id)
       )
     : new Set<string>();
@@ -209,6 +201,16 @@ async function main() {
     (q) =>
       (!queryFilter || q.id === queryFilter) && !completedQueryIds.has(q.id)
   ).slice(0, limit);
+
+  // Drop the failed attempts for the queries we are about to re-ask, so the
+  // day's file does not end up holding both an error and an answer for the
+  // same query. Only the errors: a successful answer being re-asked (a
+  // hand-run `--limit=3` over a finished day) is a second sample and the
+  // summary is built to count it as one — see `answers` below.
+  const retrying = new Set(queries.map((q) => q.id));
+  existing = existing.filter(
+    (result) => !(retrying.has(result.query_id) && result.error)
+  );
 
   if (scheduled && queries.length === 0) {
     console.log(
@@ -337,7 +339,17 @@ async function main() {
     errors,
   });
   console.log(`Recorded summary for ${clock.date} (alpha_audit_runs): ${summary}`);
-  recordHeartbeat("alpha-audit-cron", errors > 0 ? "error" : "ok", summary);
+  // `ok` with some errors, not `error`. lib/health.ts now reads this heartbeat
+  // as the audit_cron subsystem, and a fail there answers 503 on
+  // /api/health?strict=1 — one gpt-4o 429 out of thirty must not do that. The
+  // failed queries are retried on the next run (see `retrying` above), and the
+  // count stays visible in alpha_audit_runs.errors and on /health. "Every
+  // answer errored" is still an error; that case returns above.
+  recordHeartbeat(
+    "alpha-audit-cron",
+    "ok",
+    errors > 0 ? `${summary} (실패 ${errors}건은 다음 실행에서 재시도)` : summary
+  );
 }
 
 main().catch((err) => {

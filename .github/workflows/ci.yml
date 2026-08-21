@@ -1,12 +1,15 @@
-# The three checks that gate a deploy, run on every PR and every push to main.
+# The checks that gate a deploy, run on every PR and every push to main.
 #
-# Deliberately the SAME checks scripts/deploy.sh runs on the server before it
-# swaps a release — typecheck, production build, and the health smoke test —
-# so a red PR here is a deploy that would have been refused there, and a green
-# one is a build the server will accept. Nothing here needs a secret: the smoke
-# test builds its own throwaway SQLite schema, and none of the three call an
-# external API. That matters because this repository is public and fork PRs
-# run without secrets.
+# Typecheck, tests, production build and the health smoke test are the SAME
+# ones scripts/deploy.sh runs on the server before it swaps a release, so a
+# red PR here is a deploy that would have been refused there, and a green one
+# is a build the server will accept. The dependency audit is CI-only: a
+# registry outage must not be able to block a deploy.
+#
+# Nothing here needs a secret — the smoke test builds its own throwaway SQLite
+# schema, the tests use a temp file, and none of them call an external API
+# (the audit talks to the registry, not to a service of ours). That matters
+# because this repository is public and fork PRs run without secrets.
 #
 # `deploy.sh` reads this workflow's conclusion for the target SHA (see
 # ci_conclusion there) and will not deploy a commit whose checks failed or are
@@ -60,8 +63,15 @@ jobs:
           restore-keys: |
             next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
 
+      # Covers scripts/ as well as the app. It did not until lib/script-env.ts
+      # removed the twenty copies of `process.env.NODE_ENV = …` that forced
+      # the directory out of tsconfig — so the cron scripts, where every
+      # production incident in this repo has started, were unchecked.
       - name: Typecheck
         run: pnpm exec tsc --noEmit
+
+      - name: Test
+        run: pnpm test
 
       - name: Build
         run: pnpm build
@@ -79,3 +89,10 @@ jobs:
         run: pnpm exec tsx scripts/check-health.ts
         env:
           MIC_DATA_PATH: ${{ runner.temp }}/mic-data
+
+      # Fails on a NEW high-severity advisory only; the ones already judged
+      # are listed, with reasons, in pnpm-workspace.yaml's auditConfig. The
+      # Next.js backlog this repo was carrying (30 advisories, 17 high, patch
+      # available) went unnoticed because nothing ever asked.
+      - name: Audit dependencies
+        run: pnpm audit --audit-level=high

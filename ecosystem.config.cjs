@@ -162,6 +162,16 @@ module.exports = {
       note: "매일 13:00 KST — call backfill + pending resolve",
     }),
     cronApp({
+      // The DB was only ever snapshotted by scripts/deploy.sh, immediately
+      // before a swap — so the recovery point was "the last deploy", and both
+      // copies lived on the same disk. This one runs daily, verifies what it
+      // wrote, and pushes it off the box when BACKUP_REMOTE is set.
+      name: "alpha-backup-cron",
+      script: "scripts/backup-db.ts --scheduled",
+      cronRestart: "0 18 * * *",
+      note: "매일 03:00 KST — DB 스냅샷 + 무결성 검사 + off-host 복사",
+    }),
+    cronApp({
       // No --scheduled guard on purpose: this one is supposed to run at every
       // registration. It only reads /api/health and speaks on a state change,
       // so a deploy-time run is exactly what you want — it confirms the new

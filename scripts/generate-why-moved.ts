@@ -19,8 +19,7 @@
  *   - relocated: pulse 가 다른 날짜 키 아래 저장돼 있음 → 감사된 KST repair 전용.
  */
 
-import fs from "node:fs";
-import path from "node:path";
+import { loadScriptEnv } from "../lib/script-env";
 
 const DEFAULT_AUTOMATIC_LIMIT = 20;
 /** Stale articles this many KST days old (or newer) are refreshed by the
@@ -28,22 +27,7 @@ const DEFAULT_AUTOMATIC_LIMIT = 20;
  *  enough to survive a couple of missed cron runs. */
 const AUTO_REFRESH_DAYS = 3;
 
-function loadEnvFile(file: string) {
-  if (!fs.existsSync(file)) return;
-  const text = fs.readFileSync(file, "utf8");
-  for (const line of text.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eq = trimmed.indexOf("=");
-    if (eq < 0) continue;
-    const key = trimmed.slice(0, eq).trim();
-    const val = trimmed.slice(eq + 1).trim();
-    if (!process.env[key]) process.env[key] = val;
-  }
-}
-loadEnvFile(path.join(process.cwd(), ".env.local"));
-loadEnvFile(path.join(process.cwd(), ".env"));
-process.env.NODE_ENV = process.env.NODE_ENV || "production";
+loadScriptEnv();
 
 type ParsedArgs = {
   positional: string[];

@@ -30,7 +30,8 @@ import {
 } from "./mic";
 import { getSynthesis } from "./synthesis";
 import { kstClock } from "./kst";
-import { isCallableAsset } from "./prices";
+import { currentPrice, isCallableAsset } from "./prices";
+import { createPostWithCall } from "./calls";
 
 // v2 (2026-08-19): the model now sees the page's recent videos, never a bare
 // "영상 N편" count, and the persona system prompt is sent once. Bumped so the
@@ -510,11 +511,35 @@ export async function generatePersonaPost(args: {
     stance: string | null;
   }[];
 
+  const priceable = args.refType === "asset" && isCallableAsset(args.refId);
+
+  // The reference price is fetched HERE — before the model call, before the
+  // post exists. Two things follow from that order, and both are the point:
+  //
+  //   - post and call can be written in one transaction below, so a stance on
+  //     a priceable asset either publishes *with* its call or not at all. The
+  //     old order wrote the post, then fetched a price, then inserted the call
+  //     inside a `catch {}` that swallowed everything — a CoinGecko blip left
+  //     a published call that /agents can never show.
+  //   - a price outage costs zero tokens instead of a paid generation that
+  //     ends up half-recorded.
+  let referencePrice: number | null = null;
+  if (priceable) {
+    referencePrice = await currentPrice(args.refId);
+    if (
+      referencePrice == null ||
+      !Number.isFinite(referencePrice) ||
+      referencePrice <= 0
+    ) {
+      return { ok: false, reason: "no_reference_price" };
+    }
+  }
+
   const prompt = buildPrompt({
     agent,
     refLabel,
     refType: args.refType,
-    priceable: args.refType === "asset" && isCallableAsset(args.refId),
+    priceable,
     pageContext,
     videoLines,
     topComments,
@@ -571,25 +596,20 @@ export async function generatePersonaPost(args: {
     };
   }
 
-  const post = createPost({
-    refType: args.refType,
-    refId: args.refId,
-    body,
-    stance,
-    authorKind: "agent",
-    authorToken: `agent:${args.handle}`,
-    authorHandle: `@${args.handle}`,
-  });
-
-  // 트랙레코드: asset entity stance 글이면 자동 call 레코드 생성 (실패 무시)
-  if (post.ref_type === "asset" && stance && stance !== "observe") {
-    try {
-      const { createCallFromPost } = await import("./calls");
-      await createCallFromPost(post);
-    } catch {
-      // call creation 실패는 post 작성과 무관하게 무시
-    }
-  }
+  // 트랙레코드: 글과 call 을 한 transaction 으로 (lib/calls.ts). 실패하면
+  // 글도 남지 않는다 — 그래야 tick 이 다음 후보로 넘어간다.
+  const post = createPostWithCall(
+    {
+      refType: args.refType,
+      refId: args.refId,
+      body,
+      stance,
+      authorKind: "agent",
+      authorToken: `agent:${args.handle}`,
+      authorHandle: `@${args.handle}`,
+    },
+    referencePrice
+  );
 
   return { ok: true, post, costUsd: result.costUsd };
 }

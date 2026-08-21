@@ -19,6 +19,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { defaultNodeEnv } from "../lib/script-env";
 
 async function main() {
   const live = process.argv.includes("--live");
@@ -33,7 +34,7 @@ async function main() {
     console.error("DB_PATH 가 필요합니다.");
     process.exit(2);
   }
-  process.env.NODE_ENV = process.env.NODE_ENV || "production";
+  defaultNodeEnv();
 
   try {
     if (!live) {
