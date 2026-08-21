@@ -8,25 +8,9 @@
  * pm2 cron: 매일 06:00 KST = 21:00 UTC.
  */
 
-import fs from "node:fs";
-import path from "node:path";
+import { loadScriptEnv } from "../lib/script-env";
 
-function loadEnvFile(file: string) {
-  if (!fs.existsSync(file)) return;
-  const text = fs.readFileSync(file, "utf8");
-  for (const line of text.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eq = trimmed.indexOf("=");
-    if (eq < 0) continue;
-    const key = trimmed.slice(0, eq).trim();
-    const val = trimmed.slice(eq + 1).trim();
-    if (!process.env[key]) process.env[key] = val;
-  }
-}
-loadEnvFile(path.join(process.cwd(), ".env.local"));
-loadEnvFile(path.join(process.cwd(), ".env"));
-process.env.NODE_ENV = process.env.NODE_ENV || "production";
+loadScriptEnv();
 
 async function main() {
   const { fetchSeriesLatest, MACRO_SERIES, FRED_AVAILABLE } = await import("../lib/fred");

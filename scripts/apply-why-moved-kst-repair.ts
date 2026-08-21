@@ -51,23 +51,11 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { loadScriptEnv } from "../lib/script-env";
 import Database from "better-sqlite3";
 
-function loadEnvFile(file: string): void {
-  if (!fs.existsSync(file)) return;
-  for (const line of fs.readFileSync(file, "utf8").split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const separator = trimmed.indexOf("=");
-    if (separator < 0) continue;
-    const key = trimmed.slice(0, separator).trim();
-    const value = trimmed.slice(separator + 1).trim();
-    if (!process.env[key]) process.env[key] = value;
-  }
-}
 
-loadEnvFile(path.join(process.cwd(), ".env.local"));
-loadEnvFile(path.join(process.cwd(), ".env"));
+loadScriptEnv();
 
 type WhyMovedRow = {
   asset: string;

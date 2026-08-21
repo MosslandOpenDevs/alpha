@@ -246,7 +246,8 @@ strict_ok() {
   return 1
 }
 
-# Register the 13 alpha apps from a release directory. `pm2 delete` first:
+# Register the release directory's alpha apps (the ecosystem is the list of
+# record; do not hard-code a count here — it has changed four times). `pm2 delete` first:
 # `pm2 start ecosystem.config.cjs` on already-registered names would keep the
 # OLD cwd/script path and only restart. Only the release's own apps are
 # touched — never the poller, never another project's.
@@ -256,6 +257,9 @@ strict_ok() {
 # the directory discard_release removes seconds later, and persisted by
 # `pm2 save`. Carrying the forward swap's set into the rollback closes that.
 SWAP_APPS=""
+# Cleared by a `pm2 save` that would not take. While it is 0, the persisted
+# process list names a release directory we must not delete.
+PM2_SAVE_OK=1
 
 pm2_swap_to() {
   local dir="$1" app apps
@@ -275,11 +279,23 @@ pm2_swap_to() {
     esac
   done
   # pm2 merges the caller's process.env into each app's stored env. Do not
-  # let the poller's GITHUB_TOKEN / DEPLOY_* leak into the 13 apps.
+  # let the poller's GITHUB_TOKEN / DEPLOY_* leak into the cron apps.
   ( cd "${dir}" && env -u GITHUB_TOKEN -u DEPLOY_ALERT_WEBHOOK -u DEPLOY_REQUIRE_CI \
         -u DEPLOY_INTERVAL_SEC "${PM2_BIN}" start ecosystem.config.cjs >/dev/null 2>&1 ) \
     || { log "ERROR pm2 start from ${dir} failed"; return 1; }
-  "${PM2_BIN}" save >/dev/null 2>&1 || log "WARN pm2 save failed"
+  # `pm2 save` rewrites ~/.pm2/dump.pm2, which is what `pm2 resurrect` reads on
+  # boot. If it fails the dump still names the PREVIOUS release directory, and
+  # prune_releases is free to delete that directory a few seconds later — so
+  # the next reboot resurrects nothing and the box comes up serving nothing.
+  # A failure here does not mean the deploy failed (the new release is up and
+  # will pass health_ok), so it must not be recorded as one; it means the
+  # persisted state is stale, which is a different, louder problem. Retry once,
+  # then say so and let the caller skip the prune.
+  if ! "${PM2_BIN}" save >/dev/null 2>&1 && ! "${PM2_BIN}" save >/dev/null 2>&1; then
+    PM2_SAVE_OK=0
+    log "CRITICAL pm2 save failed twice -- ~/.pm2/dump.pm2 still points at the old release; a reboot would not come back. Run 'pm2 save' by hand."
+    alert "alpha CRITICAL: pm2 save failed during the swap to $(basename "${dir}") -- dump.pm2 is stale, a reboot would not restore the apps. Run 'pm2 save' on the box."
+  fi
 }
 
 backup_before_swap() {
@@ -445,7 +461,9 @@ main() {
   # still listed are the ones whose crons have not been verified re-run-safe
   # the same way — 06 macro, 07 synthesis/seed-qa/connections, 08 brief/
   # translate/why-moved, 13 calls. Each can be dropped once its script carries
-  # the same guard.
+  # the same guard. 03 (backup) was never added: a second snapshot is a new
+  # timestamped file under the same retention cap, so re-running it costs a
+  # disk copy and nothing else.
   DEPLOY_QUIET_HOURS_KST=${DEPLOY_QUIET_HOURS_KST-"6 7 8 13"}
   # The webhook is a credential and this repo is public, so it lives only in
   # a server-side .env.local (gitignored). The TS scripts read the LIVE
@@ -544,7 +562,7 @@ main() {
 
   # What PM2 serves is the truth. If it is already the tip — however it got
   # there, including a hand deploy — adopt it and stop. Rebuilding the same
-  # SHA would only restart 13 apps for nothing.
+  # SHA would only restart every app for nothing.
   if [ "${LIVE_SHA}" = "${TARGET}" ]; then
     [ "${DEPLOYED}" = "${TARGET}" ] || { log "live already at ${TARGET:0:8}; adopting as deployed state"; record_success "${TARGET}"; }
     { [ "${DEPLOY_VERBOSE}" = "1" ] || [ "${CHECK_ONLY}" = "1" ]; } && log "up to date at ${TARGET:0:8} (${LIVE_DIR})"
@@ -635,6 +653,10 @@ main() {
     || fail_build "copy .env.local"
 
   ( cd "${NEW_DIR}" && "${PNPM_BIN}" install --frozen-lockfile >/dev/null 2>&1 ) || fail_build "pnpm install"
+  # Cheap (sub-second) and independent of the registry, so it belongs here and
+  # not only in CI: --force and a missing CI verdict both reach this point
+  # without anything having run the tests.
+  ( cd "${NEW_DIR}" && "${PNPM_BIN}" test >/dev/null 2>&1 ) || fail_build "pnpm test"
   ( cd "${NEW_DIR}" && "${PNPM_BIN}" build >/dev/null 2>&1 ) || fail_build "next build"
 
   # The one check tsc and next build cannot make: getSystemHealth()'s raw SQL
@@ -643,6 +665,19 @@ main() {
     || fail_build "check-health smoke test"
 
   # --- 4. Swap -------------------------------------------------------------
+  # Ask again, now that the build is behind us. The check in step 3 is what
+  # stops us wasting an install+build during a cron hour, but it is a verdict
+  # about the time it was taken: install+build+smoke runs for minutes, so a
+  # tick that started at 05:5x lands its swap inside the 06:00 KST slot — and
+  # a swap re-registers every cron app, which pm2 then runs immediately. That
+  # is the double-fire the quiet hours exist to prevent. Nothing is live yet,
+  # so the release is simply discarded and a later tick rebuilds it.
+  if in_quiet_hours && [ "${FORCE}" != "1" ]; then
+    log "build finished but it is now $(kst_hour):xx KST (a cron slot) -- discarding ${NEW_DIR} and deferring the swap"
+    discard_release "${NEW_DIR}"
+    exit 0
+  fi
+
   backup_before_swap "${NEW_DIR}" || fail_build "pre-swap backup"
 
   # From here production is being touched. A failure is recorded as phase
@@ -650,7 +685,7 @@ main() {
   # itself fails cannot skip the bookkeeping under set -e.
   #
   # And from here a dropped SSH session (HUP) or a stray Ctrl-C must not stop
-  # us: pm2_swap_to deletes 13 apps and then starts them, and dying between
+  # us: pm2_swap_to deletes every alpha app and then starts them, and dying between
   # the two leaves nothing serving and nothing that will restart it. Ignore
   # those signals for the few seconds the swap and any rollback take. SIGKILL
   # cannot be caught — pm2 stop's escalation is still a hazard for a MANUAL
@@ -668,7 +703,14 @@ main() {
     record_success "${TARGET}"
     log "deployed ${TARGET:0:8} at ${NEW_DIR}"
     strict_ok || true
-    prune_releases "${NEW_DIR}"
+    # Only prune once the persisted process list actually points here. See
+    # pm2_swap_to: pruning against a stale dump.pm2 is what turns a failed
+    # save into an empty box after the next reboot.
+    if [ "${PM2_SAVE_OK}" = "1" ]; then
+      prune_releases "${NEW_DIR}"
+    else
+      log "WARN skipping release prune -- pm2 save did not take, the old release must stay reachable"
+    fi
     exit 0
   fi
 

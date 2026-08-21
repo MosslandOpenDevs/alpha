@@ -11,3 +11,32 @@ allowBuilds:
   "better-sqlite3@12.9.0": true # native SQLite binding — required at runtime
   "esbuild@0.27.7": true # via tsx, used by every cron script
   "sharp@0.34.5": true # next/image optional dep; prebuilt @img binaries
+
+# `pnpm audit --audit-level=high` runs in CI (.github/workflows/ci.yml).
+# Not `--prod`: devDependencies run in production here — every cron app is
+# `./node_modules/.bin/tsx`, so the dev tree is part of the runtime surface.
+# The point is to catch a NEW advisory, so the ones we have already judged are
+# listed here with the reason — an unexplained ignore is how the Next.js
+# backlog that prompted this got missed in the first place.
+#
+# All four packages below are pinned inside `next` itself and cannot be moved
+# without overriding what Next ships and tests against. Re-check on every Next
+# upgrade: `pnpm audit` with this list removed.
+auditConfig:
+  ignoreGhsas:
+    # postcss 8.4.31, pinned exactly by next. Every one of these needs
+    # attacker-controlled CSS or a sourceMappingURL in it; the only CSS this
+    # build compiles is our own Tailwind input.
+    - GHSA-qx2v-qp2m-jg93 # XSS via unescaped </style> when stringifying CSS
+    - GHSA-6g55-p6wh-862q # file read via attacker-controlled sourceMappingURL
+    - GHSA-r28c-9q8g-f849 # path traversal in previous-source-map auto-loading
+    - GHSA-fxqj-rqcc-2cmp # incomplete fix of GHSA-6g55-p6wh-862q
+    # nanoid 3.3.x, a dependency of that same postcss. Reached only by
+    # postcss's own id generation, never with a caller-supplied size.
+    - GHSA-28wg-ghj8-5hjv # non-secure generator loops on a negative size
+    - GHSA-2v37-7h3g-55p8 # custom generator loops when size is zero
+    # sharp 0.34.5 — next/image's optional encoder. This app imports
+    # next/image nowhere and configures no `images.remotePatterns`, so
+    # /_next/image accepts same-origin paths only and no attacker-supplied
+    # bytes reach libvips.
+    - GHSA-f88m-g3jw-g9cj # inherited libvips CVEs

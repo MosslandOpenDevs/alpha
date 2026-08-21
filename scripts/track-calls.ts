@@ -14,25 +14,10 @@
  * pm2 cron: 매일 04:00 UTC = 13:00 KST.
  */
 
-import fs from "node:fs";
 import path from "node:path";
+import { loadScriptEnv } from "../lib/script-env";
 
-function loadEnvFile(file: string) {
-  if (!fs.existsSync(file)) return;
-  const text = fs.readFileSync(file, "utf8");
-  for (const line of text.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eq = trimmed.indexOf("=");
-    if (eq < 0) continue;
-    const key = trimmed.slice(0, eq).trim();
-    const val = trimmed.slice(eq + 1).trim();
-    if (!process.env[key]) process.env[key] = val;
-  }
-}
-loadEnvFile(path.join(process.cwd(), ".env.local"));
-loadEnvFile(path.join(process.cwd(), ".env"));
-process.env.NODE_ENV = process.env.NODE_ENV || "production";
+loadScriptEnv();
 
 // Reference prices are spot prices fetched when this script runs, so a post
 // can only be recovered here while it is minutes old; otherwise it would be

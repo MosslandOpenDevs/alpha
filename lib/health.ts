@@ -175,11 +175,14 @@ export function getCostBudget(): CostBudget {
 /**
  * LLM citation audit — an outcome, not a subsystem.
  *
- * Deliberately kept out of `subsystems`: those measure "is the pipeline
- * running", and this one runs perfectly while reporting 0%. Folding a content
- * result into a liveness roll-up would either page someone weekly over
- * something no restart fixes, or get ignored — and `?strict=1` is wired to
- * uptime monitors. It is reported beside them instead.
+ * The citation RATE is deliberately kept out of `subsystems`: those measure
+ * "is the pipeline running", and this one runs perfectly while reporting 0%.
+ * Folding a content result into a liveness roll-up would either page someone
+ * weekly over something no restart fixes, or get ignored — and `?strict=1` is
+ * wired to uptime monitors. It is reported beside them instead.
+ *
+ * Whether the cron RAN is a different question, and that one does belong in
+ * the roll-up: it is there as the `audit_cron` subsystem below.
  */
 export type AuditSummary = {
   runs: AuditRun[];
@@ -331,6 +334,8 @@ export function getSystemHealth(): {
 
   const ONE_HOUR = 3600;
   const ONE_DAY = 24 * ONE_HOUR;
+
+  const audit = getAuditSummary();
 
   const subsystems: SubsystemHealth[] = [
     toSubsystem({
@@ -514,6 +519,49 @@ export function getSystemHealth(): {
         failAfterSec: CONTENT_FAIL_SEC,
       });
     })(),
+    (() => {
+      // A backup nobody checks is a backup nobody has. The heartbeat carries
+      // the verification result and whether the copy left the box, so a
+      // snapshot that stopped verifying — or stopped being pushed off-host —
+      // shows up here rather than at restore time.
+      const hb = getHeartbeat("alpha-backup-cron");
+      const sub = toSubsystem({
+        key: "db_backup",
+        label: "DB 백업 (검증 + off-host)",
+        cadence: "매일 03:00 KST cron",
+        lastAt: hb?.lastRunAt ?? null,
+        warnAfterSec: 28 * ONE_HOUR,
+        failAfterSec: 50 * ONE_HOUR,
+        note: hb
+          ? `마지막 실행 ${hb.lastStatus}. ${hb.lastNote ?? ""}`.trim()
+          : "heartbeat 없음 — cron 첫 실행 대기 중.",
+      });
+      return applyHeartbeatFailure(sub, hb);
+    })(),
+    (() => {
+      // Liveness of the weekly audit cron — deliberately NOT its citation
+      // rate. AuditSummary explains why the rate stays out of the roll-up: it
+      // is a content outcome, no restart fixes a 0%, and ?strict=1 is wired to
+      // uptime monitors. But "did the weekly job run" is the same question
+      // every other row here asks, and leaving the whole audit out is why a
+      // 94-day stall (last run 2026-05-18, seen 2026-08-20) never paged
+      // anyone. The rate keeps its own place beside the subsystems.
+      const hb = getHeartbeat("alpha-audit-cron");
+      const sub = toSubsystem({
+        key: "audit_cron",
+        label: "LLM citation audit cron (실행 여부)",
+        cadence: "매주 월요일 11:00 KST",
+        lastAt: hb?.lastRunAt ?? (audit.latest ? `${audit.latest.date}T02:00:00Z` : null),
+        latestDate: audit.latest?.date ?? null,
+        // Weekly: one missed Monday is a warn, two is a fail.
+        warnAfterSec: 9 * ONE_DAY,
+        failAfterSec: 16 * ONE_DAY,
+        note: hb
+          ? `cron 마지막 실행 ${hb.lastStatus}. ${hb.lastNote ?? ""}`.trim()
+          : "heartbeat 없음 — cron 첫 실행 대기 중.",
+      });
+      return applyHeartbeatFailure(sub, hb);
+    })(),
   ];
 
   // Severity order, worst first — the first status any subsystem reports wins.
@@ -528,7 +576,7 @@ export function getSystemHealth(): {
     worstStatus: worst,
     subsystems,
     costBudget,
-    audit: getAuditSummary(),
+    audit,
   };
 }
 

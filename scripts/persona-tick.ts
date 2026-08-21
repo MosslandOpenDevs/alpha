@@ -16,25 +16,9 @@
  *   - 사람 댓글 5+ 페이지는 skip (HN decay)
  */
 
-import fs from "node:fs";
-import path from "node:path";
+import { loadScriptEnv } from "../lib/script-env";
 
-function loadEnvFile(file: string) {
-  if (!fs.existsSync(file)) return;
-  const text = fs.readFileSync(file, "utf8");
-  for (const line of text.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eq = trimmed.indexOf("=");
-    if (eq < 0) continue;
-    const key = trimmed.slice(0, eq).trim();
-    const val = trimmed.slice(eq + 1).trim();
-    if (!process.env[key]) process.env[key] = val;
-  }
-}
-loadEnvFile(path.join(process.cwd(), ".env.local"));
-loadEnvFile(path.join(process.cwd(), ".env"));
-process.env.NODE_ENV = process.env.NODE_ENV || "production";
+loadScriptEnv();
 
 function parseFlag(args: string[], name: string): string | undefined {
   const flag = `--${name}=`;
@@ -46,10 +30,11 @@ function parseFlag(args: string[], name: string): string | undefined {
 const SCHEDULED_KST_HOUR = 9;
 
 /**
- * How many of each tick's pages are reserved for priceable assets.
+ * How many priceable-asset posts a KST day may publish.
  *
- * See the pool build below. Bounded by the 30-day (persona, page) cooldown:
- * 8 priceable assets × 8 personas ÷ 30 days ≈ 2.1 sustainable draws a day.
+ * A ceiling on published posts, not on candidates offered — see the pool
+ * build below. Bounded by the 30-day (persona, page) cooldown: 8 priceable
+ * assets × 8 personas ÷ 30 days ≈ 2.1 sustainable draws a day.
  */
 const CALLABLE_ASSET_QUOTA = 2;
 
@@ -163,7 +148,7 @@ async function main() {
   // Shuffle
   pool.sort(() => Math.random() - 0.5);
 
-  // Reserve the first slots for assets that can actually carry a price call.
+  // Draw priceable assets first, and cap how many of them get published.
   //
   // Without this the draw is uniform over the whole pool, and on 2026-08-20
   // that pool was 237 pages of which 8 are priceable (비트코인·코스피·S&P500·
@@ -172,31 +157,58 @@ async function main() {
   // publishes on /agents — are produced only there, which is why none had been
   // created since 2026-05-16 even after the price sources were fixed.
   //
-  // The quota is 2, not more: (persona, page) pairs have a 30-day cooldown, so
+  // The cap is on what gets POSTED, not on how many candidates are offered.
+  // The first version reserved exactly two candidates, which bought at most
+  // two attempts: a 30-day cooldown hit or a CoinGecko blip on either of them
+  // and the day produced no call at all — the quota named a target it had no
+  // way to reach. Every priceable page goes to the front instead, and the
+  // loop stops drawing them once `CALLABLE_ASSET_QUOTA` have published, so a
+  // SKIP costs the next candidate rather than the whole day.
+  //
+  // The cap is 2, not more: (persona, page) pairs have a 30-day cooldown, so
   // 8 assets × 8 personas ÷ 30 days ≈ 2.1 sustainable draws a day. Asking for
   // more would just produce SKIPs and crowd out the rest of the site.
   const { isCallableAsset } = await import("../lib/prices");
-  const reserved = pool
-    .filter((c) => c.refType === "asset" && isCallableAsset(c.refId))
-    .slice(0, CALLABLE_ASSET_QUOTA);
-  if (reserved.length) {
-    const reservedKeys = new Set(reserved.map((c) => `${c.refType}:${c.refId}`));
-    const rest = pool.filter((c) => !reservedKeys.has(`${c.refType}:${c.refId}`));
+  const key = (c: Candidate) => `${c.refType}:${c.refId}`;
+  const callable = (c: Candidate) =>
+    c.refType === "asset" && isCallableAsset(c.refId);
+  const priceable = pool.filter(callable);
+  if (priceable.length) {
+    const front = new Set(priceable.map(key));
+    const rest = pool.filter((c) => !front.has(key(c)));
     pool.length = 0;
-    pool.push(...reserved, ...rest);
+    pool.push(...priceable, ...rest);
   }
 
+  // Same resumability as `postedToday`: a partial run, or a swap that fires
+  // the tick twice, must not publish a second day's worth of calls.
+  const callablePostedToday = (
+    getDb()
+      .prepare(
+        `SELECT ref_id FROM alpha_posts
+         WHERE author_kind = 'agent' AND parent_id IS NULL AND is_deleted = 0
+           AND ref_type = 'asset'
+           AND datetime(created_at, '+9 hours') >= date('now', '+9 hours')`
+      )
+      .all() as { ref_id: string | null }[]
+  ).filter((r) => r.ref_id && isCallableAsset(r.ref_id)).length;
+
   console.log(
-    `Tick ${today}: pool=${pool.length} (persons skipped ${skippedPersons}, priceable reserved ${reserved.length}), types=${[...selectedTypes].join(",")}, agents=${agents.length}, target=${remaining}${postedToday ? ` (${postedToday} already today, cap ${pages})` : ""} posts`
+    `Tick ${today}: pool=${pool.length} (persons skipped ${skippedPersons}, priceable ${priceable.length} first, ${callablePostedToday}/${CALLABLE_ASSET_QUOTA} priceable already today), types=${[...selectedTypes].join(",")}, agents=${agents.length}, target=${remaining}${postedToday ? ` (${postedToday} already today, cap ${pages})` : ""} posts`
   );
 
   let posted = 0;
+  let callablePosted = callablePostedToday;
   let totalCost = 0;
   let attempts = 0;
   const maxAttempts = remaining * 5; // safety bound
 
   for (const c of pool) {
     if (posted >= remaining || attempts >= maxAttempts) break;
+    // Skipped before `attempts++`: passing over the priceable tail once the
+    // cap is met is not an attempt, and must not eat the safety bound.
+    const isCallable = callable(c);
+    if (isCallable && callablePosted >= CALLABLE_ASSET_QUOTA) continue;
     attempts++;
 
     // Pick an agent, prefer those that haven't posted recently
@@ -211,6 +223,7 @@ async function main() {
       });
       if (r.ok && r.post) {
         posted++;
+        if (isCallable) callablePosted++;
         totalCost += r.costUsd ?? 0;
         process.stdout.write(`OK [$${(r.costUsd ?? 0).toFixed(4)}]\n`);
       } else {
@@ -223,7 +236,7 @@ async function main() {
   }
 
   console.log(
-    `\nTick done. Posted: ${posted}/${remaining} · cost: $${totalCost.toFixed(4)} · attempts: ${attempts}`
+    `\nTick done. Posted: ${posted}/${remaining} (priceable ${callablePosted}/${CALLABLE_ASSET_QUOTA}) · cost: $${totalCost.toFixed(4)} · attempts: ${attempts}`
   );
 }
 

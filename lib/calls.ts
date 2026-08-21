@@ -3,7 +3,9 @@
  *
  * 흐름:
  * 1. 페르소나/사용자가 asset entity에 stance 글 작성
- * 2. lib/calls.ts가 자동으로 call 레코드 생성
+ * 2. 글과 **같은 transaction 안에서** call 레코드 생성 (lib/persona-post.ts).
+ *    글만 남고 call 이 없는 상태는 /agents 가 지키지 못하는 약속이므로,
+ *    reference price 는 글을 쓰기 전에 확보한다.
  *    - direction: agree → up, disagree → down, observe → skip
  *    - reference_price: 글 작성 시점 가격 (lib/prices.ts — 코인이면
  *      CoinGecko, 지수·원자재면 Yahoo)
@@ -15,7 +17,14 @@
  * 4. handle별 적중률 누적 → /agents/[handle] 트랙레코드
  */
 
+import {
+  createPost,
+  ensureCommunityTables,
+  type CreatePostArgs,
+  type Post,
+} from "./community";
 import { getDb } from "./db";
+import { getAssetOrStub } from "./mic";
 import { currentPrice, flatPctFor, isCallableAsset, marketFor, priceOn } from "./prices";
 
 export type Direction = "up" | "down";
@@ -138,11 +147,8 @@ function nano(): string {
   return crypto.randomUUID().replace(/-/g, "").slice(0, 16);
 }
 
-/**
- * 새 글에 대해 call 레코드 생성 (이미 있으면 skip).
- * Returns null if not callable (no asset, no stance, etc.)
- */
-export async function createCallFromPost(post: {
+/** The subset of a post a call is built from. */
+export type CallSource = {
   id: string;
   ref_type: string;
   ref_id: string | null;
@@ -151,39 +157,73 @@ export async function createCallFromPost(post: {
   author_handle: string;
   stance: string | null;
   created_at: string;
-}): Promise<TrackableCall | null> {
-  ensureTable();
+};
 
+/** Create the table from outside, so a caller can do it before opening a
+ *  transaction rather than running DDL inside one. */
+export function ensureCallsTable(): void {
+  ensureTable();
+}
+
+/**
+ * Can this post carry a call, and in which direction? No network, no writes.
+ *
+ * Split out from the insert so a caller can ask the question *before* it
+ * spends money generating the post — lib/persona-post.ts fetches the
+ * reference price up front on the strength of this answer.
+ */
+export function callDirectionFor(post: CallSource): Direction | null {
   // 자산 entity여야 함
   if (post.ref_type !== "asset" || !post.ref_id) return null;
   // 답글은 call 대상이 아니다 — 트랙레코드는 페이지에 대한 최초 판단만 센다.
   // (백필 쿼리에도 같은 조건이 있지만, 여기서도 막아야 호출 경로가 늘어도 안전.)
   if (post.parent_id) return null;
   // stance가 있어야 함 (observe 제외)
-  if (!post.stance || post.stance === "observe" || post.stance === "neutral")
-    return null;
+  if (post.stance !== "agree" && post.stance !== "disagree") return null;
+  // 가격 출처가 없거나, 있어도 페그 자산이면 방향성 call 이 성립하지 않는다.
+  // (isCallableAsset 이 두 조건을 모두 본다.)
+  if (!isCallableAsset(post.ref_id)) return null;
+  return post.stance === "agree" ? "up" : "down";
+}
+
+/**
+ * Write the call for a post whose reference price is already in hand.
+ *
+ * Synchronous on purpose. better-sqlite3 transactions cannot await, and the
+ * only way a stance post and its call are guaranteed to exist together is to
+ * write them in one — see lib/persona-post.ts.
+ *
+ * Throws on an unusable price: by the time we are here the caller has claimed
+ * to have one, and silently dropping the call is the failure mode this split
+ * exists to remove.
+ */
+export function insertCallForPost(
+  post: CallSource,
+  referencePrice: number
+): TrackableCall | null {
+  ensureTable();
+  const direction = callDirectionFor(post);
+  if (!direction) return null;
+  if (!Number.isFinite(referencePrice) || referencePrice <= 0) {
+    throw new Error(
+      `unusable reference price for ${post.ref_id}: ${referencePrice}`
+    );
+  }
   // 이미 있으면 skip
   const existing = getDb()
     .prepare(`SELECT id FROM alpha_trackable_calls WHERE post_id = ?`)
     .get(post.id);
   if (existing) return null;
 
-  // 가격 출처가 없거나, 있어도 페그 자산이면 방향성 call 이 성립하지 않는다.
-  // (isCallableAsset 이 두 조건을 모두 본다.)
-  if (!isCallableAsset(post.ref_id)) return null;
-
-  const price = await currentPrice(post.ref_id);
-  if (price == null || !Number.isFinite(price) || price <= 0) return null;
-
+  const assetId = post.ref_id as string;
   // getAssetOrStub, not getEntity: getAllEntities() reads the canonical store
   // only, so an asset that lives as a stub (ethereum was one) resolves to null
   // and the published call would carry the raw id — "ethereum" where the page
   // says 이더리움.
-  const { getAssetOrStub } = await import("./mic");
-  const entity = getAssetOrStub(post.ref_id);
-  const assetLabel = entity?.label || post.ref_id;
+  const entity = getAssetOrStub(assetId);
+  const assetLabel = entity?.label || assetId;
 
-  const direction: Direction = post.stance === "agree" ? "up" : "down";
+  const price = referencePrice;
   const refDate = new Date(post.created_at);
   const targetDate = new Date(refDate.getTime() + DEFAULT_HORIZON_DAYS * 86400_000);
 
@@ -192,14 +232,14 @@ export async function createCallFromPost(post: {
     post_id: post.id,
     author_kind: post.author_kind === "agent" ? "agent" : "anonymous",
     author_handle: post.author_handle,
-    asset_id: post.ref_id,
+    asset_id: assetId,
     asset_label: assetLabel,
     direction,
     horizon_days: DEFAULT_HORIZON_DAYS,
     reference_price: price,
     reference_date: refDate.toISOString(),
     target_date: targetDate.toISOString(),
-    flat_pct: flatPctFor(post.ref_id),
+    flat_pct: flatPctFor(assetId),
     resolution_status: "pending",
     resolution_price: null,
     resolved_at: null,
@@ -237,6 +277,52 @@ export async function createCallFromPost(post: {
     );
 
   return call;
+}
+
+/**
+ * 글과 call 을 한 transaction 으로 쓴다 — 트랙레코드의 유일한 무결성 보장.
+ *
+ * A stance on a priceable asset IS a call: /agents publishes the record built
+ * from them, so a post that exists without its call is a promise the site
+ * cannot keep. Pass the reference price you already fetched (see
+ * lib/persona-post.ts, which fetches it before the model call) and both rows
+ * land together or neither does.
+ *
+ * `referencePrice` null means "this was never going to carry a call" — an
+ * unpriceable page, a dry stance — and the post is written on its own.
+ * insertCallForPost re-checks stance, asset and duplication, so the caller
+ * does not repeat those conditions and they cannot drift apart.
+ */
+export function createPostWithCall(
+  args: CreatePostArgs,
+  referencePrice: number | null
+): Post {
+  ensureCommunityTables();
+  ensureTable();
+  return getDb().transaction(() => {
+    const post = createPost(args);
+    if (referencePrice != null) insertCallForPost(post, referencePrice);
+    return post;
+  })();
+}
+
+/**
+ * 새 글에 대해 call 레코드 생성 (이미 있으면 skip).
+ * Returns null if not callable (no asset, no stance, no price, …).
+ *
+ * The price is fetched here, so post and call cannot be written together.
+ * That is fine for the backfill path (scripts/track-calls.ts), which is
+ * recovering posts that already exist. A writer creating the post right now
+ * should pre-fetch the price and use insertCallForPost() inside its own
+ * transaction instead.
+ */
+export async function createCallFromPost(
+  post: CallSource
+): Promise<TrackableCall | null> {
+  if (!callDirectionFor(post)) return null;
+  const price = await currentPrice(post.ref_id as string);
+  if (price == null || !Number.isFinite(price) || price <= 0) return null;
+  return insertCallForPost(post, price);
 }
 
 /** target_date 도달한 pending call resolve. */

@@ -33,21 +33,9 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { loadScriptEnv } from "../lib/script-env";
 
-function loadEnvFile(file: string) {
-  if (!fs.existsSync(file)) return;
-  for (const line of fs.readFileSync(file, "utf8").split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eq = trimmed.indexOf("=");
-    if (eq < 0) continue;
-    const key = trimmed.slice(0, eq).trim();
-    const val = trimmed.slice(eq + 1).trim();
-    if (!process.env[key]) process.env[key] = val;
-  }
-}
-loadEnvFile(path.join(process.cwd(), ".env.local"));
-loadEnvFile(path.join(process.cwd(), ".env"));
+loadScriptEnv();
 
 const HEALTH_URL =
   process.env.HEALTH_ALERT_URL ||
@@ -74,12 +62,21 @@ const STATE_FILE = process.env.HEALTH_ALERT_STATE_FILE
 
 type Level = "ok" | "warn" | "fail" | "down";
 type Subsystem = { key: string; status: string; note?: string; latest_date?: string | null };
+/** The citation audit's result, not its liveness — see lib/health.ts. It is
+ *  never a paging condition; it rides along in the daily summary so the number
+ *  the site is actually trying to move gets read by someone once a day. */
+type Audit = {
+  latest_date?: string | null;
+  latest_rate?: number | null;
+  age_days?: number | null;
+};
 type Probe = {
   level: Level;
   httpStatus: number | null;
   worst: string | null;
   db: string | null;
   subsystems: Subsystem[];
+  audit?: Audit;
   error?: string;
 };
 type State = { level: Level; since: string; lastSummaryDate: string };
@@ -123,6 +120,7 @@ async function probeOnce(): Promise<Probe> {
       db?: string;
       worst_status?: string;
       subsystems?: Subsystem[];
+      audit?: Audit;
     } = {};
     let parsed = false;
     try {
@@ -151,6 +149,7 @@ async function probeOnce(): Promise<Probe> {
       worst,
       db,
       subsystems: body.subsystems ?? [],
+      audit: body.audit,
       error: level === "down" ? `HTTP ${res.status} ${text.slice(0, 120).replace(/\s+/g, " ")}` : undefined,
     };
   } catch (err) {
@@ -210,6 +209,19 @@ function subsystemLines(p: Probe): string {
   );
 }
 
+/** One line of citation audit, for the daily summary only. */
+function auditLine(p: Probe): string {
+  // A down probe has no body to read; saying "no runs recorded" there would
+  // report a content result we never actually got.
+  if (p.level === "down") return "\n📊 citation audit: 확인 불가 (health 응답 없음)";
+  const a = p.audit;
+  if (!a || !a.latest_date) return "\n📊 citation audit: 아직 기록된 실행이 없습니다";
+  const rate =
+    a.latest_rate == null ? "—" : `${Math.round(a.latest_rate * 1000) / 10}%`;
+  const age = a.age_days == null ? "" : ` (${a.age_days}일 전)`;
+  return `\n📊 citation audit ${a.latest_date}${age}: ${rate}`;
+}
+
 async function main() {
   const args = process.argv.slice(2);
 
@@ -257,7 +269,9 @@ async function main() {
   const wantSummary = args.includes("--summary") || (hour === SUMMARY_KST_HOUR && prev.lastSummaryDate !== date);
   if (wantSummary) {
     const icon = p.level === "ok" ? "🟢" : p.level === "warn" ? "🟡" : "🔴";
-    await post(`${icon} **alpha 일일 요약** ${date} ${String(hour).padStart(2, "0")}:00 KST\n${detail}`);
+    await post(
+      `${icon} **alpha 일일 요약** ${date} ${String(hour).padStart(2, "0")}:00 KST\n${detail}${auditLine(p)}`
+    );
     spoke = true;
   }
 
