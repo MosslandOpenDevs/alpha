@@ -102,3 +102,22 @@ export function getAllHeartbeats(): Heartbeat[] {
     runCount: r.run_count,
   }));
 }
+
+/**
+ * Off-host state of the daily DB backup, carried inside its heartbeat note.
+ *
+ * The note itself is prose for whoever reads /health. This token is the one
+ * part `lib/health.ts` parses, and it lives here — beside the contract it
+ * rides on — so the writer and the reader cannot drift apart into two string
+ * literals in two files.
+ */
+export type OffHostState = "none" | "ok" | "fail";
+
+export function offHostToken(state: OffHostState): string {
+  return `offhost=${state}`;
+}
+
+export function readOffHost(note: string | null | undefined): OffHostState | null {
+  const m = /\boffhost=(none|ok|fail)\b/.exec(note ?? "");
+  return m ? (m[1] as OffHostState) : null;
+}

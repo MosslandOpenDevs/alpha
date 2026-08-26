@@ -10,7 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { getDb } from "./db";
 import { rateLimitSnapshot } from "./rate-limit";
-import { getHeartbeat } from "./cron-heartbeat";
+import { getHeartbeat, readOffHost } from "./cron-heartbeat";
 import { assetCoverage, isCallableAsset } from "./prices";
 import { todayAiSpendUsd } from "./grok";
 import { recentAuditRuns, type AuditRun } from "./audit-log";
@@ -129,6 +129,34 @@ function applyContentStaleness(
     ...subsystem,
     status: verdict,
     note: `${subsystem.note ? subsystem.note + " " : ""}cron 은 돌고 있으나 ${since} — 생성이 멈췄는지 확인 필요.`,
+  };
+}
+
+/**
+ * Third opinion, for the backup only: did the copy leave the box?
+ *
+ * Same failure shape as the one above. The heartbeat answers "did the cron
+ * run" and the verification answers "would this file restore" — neither
+ * answers "does a copy exist anywhere the host's disk isn't". Snapshots land
+ * in ~/backups/alpha, on the same volume as the DB they copy, so with
+ * BACKUP_REMOTE unset the row reported `ok` for something one disk failure
+ * away from nothing.
+ *
+ * Capped at `warn`, never `fail`, for the same reason as content staleness:
+ * the cron is healthy and ?strict=1 must not 503 a monitor over a
+ * configuration gap. But `ok` overstated it, and this is the one row whose
+ * whole job is to be true before someone needs it.
+ */
+function applyOffHostGap(
+  subsystem: SubsystemHealth,
+  heartbeat: ReturnType<typeof getHeartbeat>
+): SubsystemHealth {
+  if (subsystem.status === "fail") return subsystem;
+  if (readOffHost(heartbeat?.lastNote) !== "none") return subsystem;
+  return {
+    ...subsystem,
+    status: "warn",
+    note: `${subsystem.note ? subsystem.note + " " : ""}사본이 원본과 같은 호스트에 있습니다 — BACKUP_REMOTE 미설정. 호스트 손실 시 둘 다 사라집니다.`,
   };
 }
 
@@ -536,7 +564,7 @@ export function getSystemHealth(): {
           ? `마지막 실행 ${hb.lastStatus}. ${hb.lastNote ?? ""}`.trim()
           : "heartbeat 없음 — cron 첫 실행 대기 중.",
       });
-      return applyHeartbeatFailure(sub, hb);
+      return applyOffHostGap(applyHeartbeatFailure(sub, hb), hb);
     })(),
     (() => {
       // Liveness of the weekly audit cron — deliberately NOT its citation

@@ -41,6 +41,9 @@ import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { loadScriptEnv } from "../lib/script-env";
+// Type-only: the value side stays behind the dynamic import below, which
+// must not run before loadScriptEnv() has put DB_PATH in the environment.
+import type { OffHostState } from "../lib/cron-heartbeat";
 
 loadScriptEnv();
 
@@ -124,7 +127,7 @@ async function main() {
     return;
   }
 
-  const { recordHeartbeat } = await import("../lib/cron-heartbeat");
+  const { recordHeartbeat, offHostToken } = await import("../lib/cron-heartbeat");
   const src = process.env.DB_PATH;
   if (!src || !fs.existsSync(src)) {
     const note = `DB_PATH 없음 또는 파일 없음: ${src ?? "(unset)"}`;
@@ -180,6 +183,7 @@ async function main() {
   // warning — the local copy still exists, but the box is a single point of
   // failure again and someone has to know.
   let offHost = "off-host 미설정 (BACKUP_REMOTE)";
+  let offHostState: OffHostState = "none";
   let status: "ok" | "error" = "ok";
   if (remote) {
     const rsync = process.env.BACKUP_RSYNC_BIN || "rsync";
@@ -188,9 +192,11 @@ async function main() {
         timeout: 15 * 60_000,
       });
       offHost = `off-host 복사 완료 → ${remote}`;
+      offHostState = "ok";
       console.log(offHost);
     } catch (err) {
       offHost = `off-host 복사 실패 → ${remote}: ${(err as Error).message.slice(0, 200)}`;
+      offHostState = "fail";
       console.error(offHost);
       status = "error";
     }
@@ -201,7 +207,7 @@ async function main() {
   }
 
   const removed = prune(dir, keep);
-  const note = `${path.basename(dest)} ${sizeMb}MB · ${check.note} · ${offHost} · 정리 ${removed}건 (보관 ${keep})`;
+  const note = `${offHostToken(offHostState)} · ${path.basename(dest)} ${sizeMb}MB · ${check.note} · ${offHost} · 정리 ${removed}건 (보관 ${keep})`;
   console.log(`Heartbeat: ${status} — ${note}`);
   recordHeartbeat("alpha-backup-cron", status, note);
   if (status === "error") process.exitCode = 1;
