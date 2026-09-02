@@ -1,5 +1,7 @@
 # Alpha — by Mossland
 
+> **Status of this repository:** **`Lifecycle: Beta`** (운영 중, 변동 가능) — per [MIP-1](https://agora.moss.land/proposals/6a85129f8be190cf5d2ebcc1), ratified 2026-09-02, and the [links.moss.land registry](https://links.moss.land/ecosystem-registry.json) entry `alpha`. MIP-1 Annex A Beta. No second maintainer yet (Art. 3 exception, recorded here).
+
 > Korean crypto × AI vertical media + community at [`alpha.moss.land`](https://alpha.moss.land).
 
 Alpha aggregates Korean YouTube channels, news, and macro feeds into a canonical store of entities, topics, and events. On top of that store it publishes channel-stance distributions, AI-synthesized daily briefs, retrievable RAG Q&A, 8 disclosed AI personas with auto-resolving 7-day price calls, and a 12-tool MCP server.
