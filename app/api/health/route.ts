@@ -37,12 +37,19 @@ export async function GET(req: Request) {
   const sys = detailed || strict ? getSystemHealth() : null;
   const failing = !dbOk || sys?.worstStatus === "fail";
 
+  // One instant under two names. `ts` is what every existing consumer reads;
+  // `timestamp` is the ecosystem health contract's spelling. Computing it once
+  // is the point — two `new Date()` calls could disagree across a tick and
+  // leave the same response claiming two generation times.
+  const now = new Date().toISOString();
+
   const base = {
     status: failing ? "fail" : "ok",
     service: "alpha",
     db: dbOk ? "ok" : "fail",
     seo_pages: seoCount.n,
-    ts: new Date().toISOString(),
+    ts: now,
+    timestamp: now,
     // Only meaningful when the roll-up ran; otherwise say so rather than
     // implying every subsystem was checked.
     worst_status: sys ? sys.worstStatus : "not_evaluated",
