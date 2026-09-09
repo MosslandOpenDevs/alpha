@@ -67,6 +67,9 @@
 #   DEPLOY_CI_WAIT_MIN     how long to keep waiting for a CI verdict (run not
 #                          created yet, or GitHub API failing) before deploying
 #                          without one, with a warning + alert (default 15)
+#   DEPLOY_FETCH_WAIT_MIN  how long `git fetch` may keep failing before the
+#                          poller alerts that it can no longer see the remote
+#                          (default 30). Once per streak, not once per tick.
 #   DEPLOY_ALERT_WEBHOOK   Slack/Discord webhook for failures
 #   DEPLOY_VERBOSE         1 = log no-op ticks too
 #   DEPLOY_RETRY_BASE_MIN / DEPLOY_RETRY_MAX_MIN           (5 / 60)
@@ -411,6 +414,41 @@ ci_wait_expired() {
   return 1
 }
 
+# Has `git fetch` been failing continuously for longer than
+# DEPLOY_FETCH_WAIT_MIN?
+#
+# One failed tick is noise — the tailnet blips, GitHub 5xxs — and the next tick
+# usually succeeds, so a single WARN in the log is the right weight for it. A
+# sustained failure is a different thing wearing the same clothes: the poller
+# never learns the remote moved, so it goes on reporting "up to date" and stays
+# silent forever. That is indistinguishable from a healthy idle poller from the
+# outside, including to whoever just merged a fix and is waiting for it.
+#
+# It has already happened: 2026-09-03..05, 77 failed ticks, 50 of them on the
+# 4th. Nothing was waiting to ship that week so it cost nothing, and nobody
+# heard about it either — which is exactly why it is worth a signal now.
+#
+# Alerts ONCE per streak, not once per tick. A 5-minute pager for three days is
+# how a channel gets muted, and a muted channel is where this started. The
+# streak resets on the first success.
+fetch_outage_alert_due() {
+  local f="${DEPLOY_FETCH_WAIT_FILE}" since alerted now
+  now=$(date +%s)
+  if [ -f "${f}" ]; then
+    read -r since alerted <"${f}" 2>/dev/null || true
+    if [ -n "${since:-}" ] && [ "${since}" -eq "${since}" ] 2>/dev/null; then
+      [ "${alerted:-0}" = "1" ] && return 1
+      if [ $((now - since)) -ge $((DEPLOY_FETCH_WAIT_MIN * 60)) ]; then
+        printf '%s 1\n' "${since}" >"${f}" 2>/dev/null || true
+        return 0
+      fi
+      return 1
+    fi
+  fi
+  printf '%s 0\n' "${now}" >"${f}" 2>/dev/null || true
+  return 1
+}
+
 # KST hour (0-23) — the cron slots are defined in KST in ecosystem.config.cjs.
 kst_hour() { TZ=Asia/Seoul date +%-H; }
 
@@ -493,6 +531,8 @@ main() {
   DEPLOY_HOLD_FILE=${DEPLOY_HOLD_FILE:-${GIT_DIR_ABS}/alpha-deploy-hold}
   DEPLOY_CI_WAIT_FILE=${DEPLOY_CI_WAIT_FILE:-${GIT_DIR_ABS}/alpha-deploy-ci-wait}
   DEPLOY_CI_WAIT_MIN=${DEPLOY_CI_WAIT_MIN:-15}
+  DEPLOY_FETCH_WAIT_FILE=${DEPLOY_FETCH_WAIT_FILE:-${GIT_DIR_ABS}/alpha-deploy-fetch-wait}
+  DEPLOY_FETCH_WAIT_MIN=${DEPLOY_FETCH_WAIT_MIN:-30}
 
   FORCE=0; CHECK_ONLY=0
   while [ $# -gt 0 ]; do
@@ -514,9 +554,18 @@ main() {
   fi
 
   # --- 1. Anything to deploy? ----------------------------------------------
-  ( cd "${ALPHA_REPO}" && git fetch --quiet "${DEPLOY_REMOTE}" "${DEPLOY_BRANCH}" ) || {
-    log "WARN git fetch failed -- will retry next tick"; exit 0
-  }
+  if ( cd "${ALPHA_REPO}" && git fetch --quiet "${DEPLOY_REMOTE}" "${DEPLOY_BRANCH}" ); then
+    # A success ends the streak, so the next outage alerts on its own merits.
+    [ "${CHECK_ONLY}" = "1" ] || rm -f "${DEPLOY_FETCH_WAIT_FILE}" 2>/dev/null || true
+  else
+    log "WARN git fetch failed -- will retry next tick"
+    # --check changes nothing, so it neither stamps the streak nor alerts.
+    if [ "${CHECK_ONLY}" != "1" ] && fetch_outage_alert_due; then
+      log "ERROR git fetch failing for ${DEPLOY_FETCH_WAIT_MIN}m+ -- cannot see ${DEPLOY_REMOTE}/${DEPLOY_BRANCH}; anything merged since will not deploy"
+      alert "alpha: deploy poller cannot reach ${DEPLOY_REMOTE} -- git fetch failing for ${DEPLOY_FETCH_WAIT_MIN}m+. Anything merged since then is NOT deploying."
+    fi
+    exit 0
+  fi
   TARGET=$(cd "${ALPHA_REPO}" && git rev-parse "${DEPLOY_REMOTE}/${DEPLOY_BRANCH}")
 
   # Read what is live BEFORE fast-forwarding the checkout below. On a host
