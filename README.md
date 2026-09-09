@@ -93,7 +93,7 @@ on every Next.js upgrade.
 | `SIGNALMAP_ROOT` | (optional) checked-out SignalMap repo for `seed/channels.json` | `../signalmap` |
 | `GROK_API_KEY` | xAI Grok | required for AI features |
 | `OPENAI_API_KEY` | embeddings + audit | required for hybrid search |
-| `TRUSTED_PROXY_HOPS` | reverse proxies in front of the app; picks the real client IP for rate limiting (not the spoofable leftmost `X-Forwarded-For`) | `0` |
+| `TRUSTED_PROXY_HOPS` | how many `X-Forwarded-For` entries to skip from the right when keying per-IP rate limits. `0` = the address our nearest proxy connected from, which is right for a single nginx that appends the peer. Raising it past the real proxy count reads caller-supplied bytes | `0` |
 | `INDEXNOW_ADMIN_TOKEN` | bearer token to authorize `GET/POST /api/admin/indexnow`; the endpoint is disabled when unset | optional |
 | `INDEXNOW_STATE_FILE` | absolute path to the weekly cron's "last pinged" watermark. A relative value resolves against the pm2 cwd (the release dir) and is lost on redeploy | `<dirname(DB_PATH)>/indexnow-cron-state.json` |
 | `AUDIT_RESULTS_DIR` | absolute path for weekly LLM-citation audit output. Same release-dir trap as above — a relative value discards each paid run on redeploy | `<dirname(DB_PATH)>/audit-results` |
@@ -173,7 +173,19 @@ pm2 start ecosystem.config.cjs
 pm2 save
 ```
 
-When Alpha runs behind a reverse proxy or CDN, set `TRUSTED_PROXY_HOPS` to the number of trusted hops so per-IP rate limits key on the real client address (the leftmost `X-Forwarded-For` entry is caller-spoofable). Security response headers are emitted by `next.config.ts` and need no proxy configuration.
+`TRUSTED_PROXY_HOPS` decides which `X-Forwarded-For` entry the per-IP rate
+limits key on. `clientIp()` counts that many entries in from the **right**, and
+the right end is what our own infrastructure appended, so the default `0` means
+"the address the nearest trusted proxy actually connected from". Count proxies
+that add a hop *beyond* that nearest one — not the total in front of the app.
+
+Production sits behind one nginx that sets
+`X-Forwarded-For $proxy_add_x_forwarded_for`, which appends the real peer, so
+`0` is correct and is what the box runs. Raising it to `1` there would read the
+entry *before* the one nginx appended — which is caller-supplied — and hand
+every caller a fresh rate-limit bucket per request. `1` is for a real second
+layer, e.g. a CDN in front of that nginx. Security response headers are emitted
+by `next.config.ts` and need no proxy configuration.
 
 The cron apps cover macro fetch, AI synthesis, daily brief, English brief
 translation, persona ticks, persona replies, trackable call resolution,
