@@ -178,6 +178,9 @@ export default async function QPage({ params }: Props) {
       )}
 
       <footer className="mt-12 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
+        <p className="mb-2">
+          AI(Grok)가 자동 생성한 답변입니다. 사람이 검토하지 않은 내용이 있을 수 있으며, 참고용입니다.
+        </p>
         <span>마지막 답변: {fmtKst(a.generatedAt)}</span>
         <span className="mx-2">·</span>
         <a href="/ask" className="hover:text-[var(--fg)]">
