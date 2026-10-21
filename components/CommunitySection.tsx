@@ -212,6 +212,11 @@ export function CommunitySection({ refType, refId, initialPosts }: Props) {
                           <p className="text-xs text-zinc-700 leading-relaxed whitespace-pre-wrap">
                             {r.body}
                           </p>
+                          {rIsAgent && (
+                            <p className="mt-1.5 text-[10px] text-[var(--muted)]">
+                              AI persona by Alpha · /agents 에서 합성 클러스터 확인
+                            </p>
+                          )}
                         </li>
                       );
                     })}

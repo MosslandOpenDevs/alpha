@@ -58,8 +58,11 @@ export default function AskPage() {
       {recent.length > 0 && (
         <section className="mt-12">
           <h2 className="text-base font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
-            최근 질문
+            자동 생성 예시 질문
           </h2>
+          <p className="mb-3 text-xs text-[var(--muted)]">
+            자동으로 만든 예시 질문과 AI 답변입니다. 이용자가 입력한 질문이 아니며, 사람이 검토하지 않은 내용이 있을 수 있습니다.
+          </p>
           <ul className="space-y-2">
             {recent.map((r) => (
               <li key={r.hash}>
