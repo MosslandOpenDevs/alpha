@@ -22,19 +22,22 @@ allowBuilds:
 # listed here with the reason — an unexplained ignore is how the Next.js
 # backlog that prompted this got missed in the first place.
 #
-# Both packages below are pinned inside `next` itself and cannot be moved
-# without overriding what Next ships and tests against. Re-check on every Next
-# upgrade: `pnpm audit` with this list removed, then delete whatever no longer
-# matches. The 16.2.12 → 16.3.4 bump did exactly that to two entries — the
-# postcss XSS one (fixed in 8.5.x) and the sharp/libvips one (sharp 0.35.4) —
-# so a list that is not re-read on upgrade grows stale ignores, which is the
-# same blindness an unexplained ignore causes.
+# Re-check on every Next upgrade: `pnpm audit` with this list removed, then
+# delete whatever no longer matches. The 16.2.12 → 16.3.4 bump did exactly that
+# to two entries — the postcss XSS one (fixed in 8.5.x) and the sharp/libvips
+# one (sharp 0.35.4) — and the 16.4.2 re-check dropped GHSA-6g55 (postcss
+# <= 8.5.11, stale since 16.3.8: nothing in the tree is that old). A list that
+# is not re-read on upgrade grows stale ignores, which is the same blindness an
+# unexplained ignore causes.
+#
+# As of 16.4.2 every remaining match is the postcss that @tailwindcss/postcss
+# resolves (8.5.14, build-time only), not next's own exact pin (postcss 8.5.23
+# with nanoid 3.3.18, which matches none of them).
 auditConfig:
   ignoreGhsas:
-    # postcss 8.5.23, pinned exactly by next. Each of these needs
+    # postcss 8.5.14 via @tailwindcss/postcss. Each of these needs
     # attacker-controlled CSS or a sourceMappingURL in it; the only CSS this
     # build compiles is our own Tailwind input.
-    - GHSA-6g55-p6wh-862q # file read via attacker-controlled sourceMappingURL
     - GHSA-r28c-9q8g-f849 # path traversal in previous-source-map auto-loading
     - GHSA-fxqj-rqcc-2cmp # incomplete fix of GHSA-6g55-p6wh-862q
     # nanoid 3.3.x, a dependency of that same postcss. Reached only by
